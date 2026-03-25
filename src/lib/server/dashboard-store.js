@@ -121,6 +121,7 @@ function normalizeClientRecord(client) {
     id: client?.id || payload.id || '',
     name: client?.name || payload.name || 'Novo cliente',
     dashboardColor: payload.dashboardColor || 'blue',
+    dashboardAccentColor: payload.dashboardAccentColor || '',
     logoUrl: payload.logoUrl || '',
     metaAdAccountId: payload.metaAdAccountId || '',
     googleAdsAccountId: payload.googleAdsAccountId || '',

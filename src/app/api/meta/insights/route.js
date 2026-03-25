@@ -42,6 +42,8 @@ export async function GET(request) {
       return NextResponse.json({
         summary: formatInsightsWithConversions(null),
         daily: [],
+        daily_by_campaign: [],
+        daily_by_ad: [],
       })
     }
 
@@ -93,7 +95,16 @@ export async function GET(request) {
     )
     const dailyCampaignUrl = `https://graph.facebook.com/v19.0/${id}/insights?${dailyCampaignParams.toString()}`
 
-    const [dailyData, dailyCampaignData] = await Promise.all([
+    const dailyAdParams = new URLSearchParams(baseParams)
+    dailyAdParams.set('time_increment', '1')
+    dailyAdParams.set('level', 'ad')
+    dailyAdParams.set(
+      'fields',
+      `ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,${fields}`
+    )
+    const dailyAdUrl = `https://graph.facebook.com/v19.0/${id}/insights?${dailyAdParams.toString()}`
+
+    const [dailyData, dailyCampaignData, dailyAdData] = await Promise.all([
       fetchMetaJson(
         dailyUrl,
         'A Meta demorou para responder ao carregar os indicadores principais. Tente novamente em alguns instantes.'
@@ -101,6 +112,10 @@ export async function GET(request) {
       fetchMetaJson(
         dailyCampaignUrl,
         'A Meta demorou para responder ao carregar a evolução por campanha. Tente novamente em alguns instantes.'
+      ),
+      fetchMetaJson(
+        dailyAdUrl,
+        'A Meta demorou para responder ao carregar a evolução por criativo. Tente novamente em alguns instantes.'
       ),
     ])
 
@@ -165,6 +180,7 @@ export async function GET(request) {
       summary: formatInsightsWithConversions(summaryRaw),
       daily: rawDailyRows.map(formatInsightsWithConversions),
       daily_by_campaign: (dailyCampaignData.data || []).map(formatInsightsWithConversions),
+      daily_by_ad: (dailyAdData.data || []).map(formatInsightsWithConversions),
     })
   } catch (error) {
     console.error('Meta API Error:', error)

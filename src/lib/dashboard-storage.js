@@ -191,6 +191,7 @@ export function createClientRecord(overrides = {}) {
     id: overrides.id || createRecordId('client'),
     name: 'Novo cliente',
     dashboardColor: 'blue',
+    dashboardAccentColor: '',
     logoUrl: '',
     metaAdAccountId: '',
     googleAdsAccountId: '',

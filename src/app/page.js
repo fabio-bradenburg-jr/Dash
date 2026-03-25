@@ -214,6 +214,12 @@ function resolveDashboardTheme(colorValue) {
   return buildCustomTheme(colorValue)
 }
 
+function resolveDashboardAccentColor(colorValue, fallbackColorValue = 'blue') {
+  const normalizedColor = typeof colorValue === 'string' ? colorValue.trim() : ''
+  if (normalizedColor) return normalizedColor
+  return fallbackColorValue
+}
+
 function getDashboardColorLabel(colorValue) {
   if (THEME_LABELS[colorValue]) return THEME_LABELS[colorValue]
 
@@ -1609,6 +1615,50 @@ function buildMetaResultComparisonSeries(dailyItems = [], resultMetricKey, group
     }))
 }
 
+function buildMetaCreativeResultSeries(dailyItems = [], adId, grouping = 'week') {
+  const normalizedAdId = String(adId || '').trim()
+  if (!normalizedAdId) return []
+
+  const buckets = new Map()
+
+  dailyItems.forEach((dayItem) => {
+    if (String(dayItem.ad_id || '').trim() !== normalizedAdId) return
+
+    const parsedDate = parseMetaSeriesDate(dayItem.date_start)
+    const bucketMeta = getMetaResultBucketMeta(parsedDate, grouping)
+    if (!bucketMeta) return
+
+    const metrics = dayItem.custom_metrics || extractMetaCampaignMetrics(dayItem)
+    const spendValue = parseFloat(dayItem.spend || 0)
+    const resultValue = Number(metrics.totalConversions || 0)
+    const clicksValue = Number(dayItem.clicks || 0)
+    const impressionsValue = Number(dayItem.impressions || 0)
+
+    if (!buckets.has(bucketMeta.key)) {
+      buckets.set(bucketMeta.key, {
+        ...bucketMeta,
+        spend: 0,
+        results: 0,
+        clicks: 0,
+        impressions: 0,
+      })
+    }
+
+    const bucket = buckets.get(bucketMeta.key)
+    bucket.spend += spendValue
+    bucket.results += resultValue
+    bucket.clicks += clicksValue
+    bucket.impressions += impressionsValue
+  })
+
+  return Array.from(buckets.values())
+    .sort((left, right) => left.start.getTime() - right.start.getTime())
+    .map((bucket) => ({
+      ...bucket,
+      cost: bucket.results > 0 ? bucket.spend / bucket.results : 0,
+    }))
+}
+
 function getSummaryMetricValue(metricKey, summary, customMetrics) {
   switch (metricKey) {
     case 'spend':
@@ -1717,6 +1767,7 @@ export default function DashboardPage() {
   const [previousInsights, setPreviousInsights] = useState(null)
   const [dailyData, setDailyData] = useState([])
   const [dailyCampaignData, setDailyCampaignData] = useState([])
+  const [dailyAdData, setDailyAdData] = useState([])
   const [campaigns, setCampaigns] = useState([])
   const [metaHierarchy, setMetaHierarchy] = useState([])
   const [breakdowns, setBreakdowns] = useState(EMPTY_META_BREAKDOWNS)
@@ -1874,12 +1925,28 @@ export default function DashboardPage() {
     [activeClient]
   )
   const activeClientDashboardRgb = useMemo(
-    () => parseDashboardColor(activeClient?.dashboardColor || themeColor || 'blue') || hexToRgb(THEMES.blue.main),
+    () => parseDashboardColor(resolveDashboardTheme(activeClient?.dashboardColor || themeColor || 'blue').main) || hexToRgb(THEMES.blue.main),
     [activeClient?.dashboardColor, themeColor]
   )
   const activeClientDashboardHex = useMemo(
     () => rgbToHex(activeClientDashboardRgb),
     [activeClientDashboardRgb]
+  )
+  const activeClientDashboardAccentColor = useMemo(
+    () => resolveDashboardAccentColor(activeClient?.dashboardAccentColor, activeClient?.dashboardColor || themeColor || 'blue'),
+    [activeClient?.dashboardAccentColor, activeClient?.dashboardColor, themeColor]
+  )
+  const activeClientDashboardAccentRgb = useMemo(
+    () => parseDashboardColor(resolveDashboardTheme(activeClientDashboardAccentColor).main) || activeClientDashboardRgb,
+    [activeClientDashboardAccentColor, activeClientDashboardRgb]
+  )
+  const activeClientDashboardAccentHex = useMemo(
+    () => rgbToHex(activeClientDashboardAccentRgb),
+    [activeClientDashboardAccentRgb]
+  )
+  const currentAccentTheme = useMemo(
+    () => resolveDashboardTheme(activeClientDashboardAccentColor),
+    [activeClientDashboardAccentColor]
   )
   const selectedQualifiedStagesKey = useMemo(
     () => JSON.stringify([...selectedQualifiedStages].sort()),
@@ -2635,9 +2702,12 @@ export default function DashboardPage() {
   useEffect(() => {
     const root = document.documentElement
     root.style.setProperty('--theme-surface', currentTheme.surface)
+    root.style.setProperty('--theme-secondary-main', currentAccentTheme.main)
+    root.style.setProperty('--theme-secondary-surface', currentAccentTheme.surface)
+    root.style.setProperty('--theme-secondary-glow', currentAccentTheme.glow)
     ChartJS.defaults.color = '#94a3b8'
     ChartJS.defaults.font.family = "'Inter', sans-serif"
-  }, [currentTheme])
+  }, [currentTheme, currentAccentTheme])
 
   useEffect(() => {
     if (userLoading) return
@@ -3366,6 +3436,24 @@ export default function DashboardPage() {
     setThemeColor(nextColor)
   }
 
+  const handleClientDashboardAccentRgbChange = (channel, value) => {
+    const nextRgb = {
+      ...activeClientDashboardAccentRgb,
+      [channel]: clampColorChannel(value),
+    }
+    const nextColor = `rgb(${nextRgb.r}, ${nextRgb.g}, ${nextRgb.b})`
+
+    handleClientFieldChange('dashboardAccentColor', nextColor)
+  }
+
+  const handleClientDashboardAccentHexChange = (value) => {
+    const parsedColor = hexToRgb(value)
+    if (!parsedColor) return
+
+    const nextColor = `rgb(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b})`
+    handleClientFieldChange('dashboardAccentColor', nextColor)
+  }
+
   const handleGlobalIntegrationChange = (fieldName, value) => {
     setGlobalIntegrations((current) => ({
       ...current,
@@ -3478,6 +3566,7 @@ export default function DashboardPage() {
       setInsights(null)
       setDailyData([])
       setDailyCampaignData([])
+      setDailyAdData([])
       setCampaigns([])
       setMetaHierarchy([])
       setBreakdowns(EMPTY_META_BREAKDOWNS)
@@ -3592,6 +3681,7 @@ export default function DashboardPage() {
       setInsights(null)
       setDailyData([])
       setDailyCampaignData([])
+      setDailyAdData([])
       setRdSummary(null)
       setGoogleSheetsSummary(null)
       setClickUpSummary(null)
@@ -3613,6 +3703,7 @@ export default function DashboardPage() {
       setInsights(null)
       setDailyData([])
       setDailyCampaignData([])
+      setDailyAdData([])
       setRdSummary(null)
       setGoogleSheetsSummary(null)
       setClickUpSummary(null)
@@ -3753,6 +3844,7 @@ export default function DashboardPage() {
               setInsights(buildMetaSummaryFromCampaigns(campaignsRef.current))
               setDailyData([])
               setDailyCampaignData([])
+              setDailyAdData([])
               setPreviousInsights(null)
             }
             metaError = isMetaRateLimitMessage(nextMetaError) ? '' : nextMetaError
@@ -3760,6 +3852,7 @@ export default function DashboardPage() {
             setInsights(insightsData.summary || {})
             setDailyData(insightsData.daily || [])
             setDailyCampaignData(insightsData.daily_by_campaign || [])
+            setDailyAdData(insightsData.daily_by_ad || [])
 
             if (previousInsightsResponse) {
               const previousInsightsData = await previousInsightsResponse.json()
@@ -3773,6 +3866,7 @@ export default function DashboardPage() {
           setPreviousInsights(null)
           setDailyData([])
           setDailyCampaignData([])
+          setDailyAdData([])
         }
 
         if (shouldFetchPresentationData && hasRdConfigured) {
@@ -3976,6 +4070,7 @@ export default function DashboardPage() {
           setPreviousInsights(null)
           setDailyData([])
           setDailyCampaignData([])
+          setDailyAdData([])
           setBreakdowns(EMPTY_META_BREAKDOWNS)
           setRdSummary(null)
           setPreviousRdSummary(null)
@@ -4858,6 +4953,111 @@ export default function DashboardPage() {
       selectedRank: selectedRank >= 0 ? selectedRank + 1 : null,
     }
   }, [activeMetaRankingDrilldownConfig, activeMetaRankingDrilldownItem, metaRankingDrilldown])
+  const creativeRankingSeries = useMemo(
+    () => (
+      isCreativeRankingDrilldown
+        ? buildMetaCreativeResultSeries(dailyAdData, activeMetaRankingDrilldownItem?.adId || activeMetaRankingDrilldownItem?.id, metaResultGrouping)
+        : []
+    ),
+    [activeMetaRankingDrilldownItem, dailyAdData, isCreativeRankingDrilldown, metaResultGrouping]
+  )
+  const creativeRankingChartData = useMemo(() => {
+    if (!isCreativeRankingDrilldown) return null
+
+    return {
+      labels: creativeRankingSeries.length ? creativeRankingSeries.map((bucket) => bucket.label) : ['Sem dados'],
+      datasets: [
+        {
+          label: activeMetaRankingDrilldownConfig?.resultLabel || 'Resultados',
+          data: creativeRankingSeries.length ? creativeRankingSeries.map((bucket) => bucket.results) : [0],
+          borderColor: activeMetaRankingDrilldownConfig?.resultTone || '#10b981',
+          backgroundColor: `${activeMetaRankingDrilldownConfig?.resultTone || '#10b981'}22`,
+          borderWidth: 3,
+          pointBackgroundColor: '#0b0f19',
+          pointBorderColor: activeMetaRankingDrilldownConfig?.resultTone || '#10b981',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.34,
+          fill: true,
+          yAxisID: 'y',
+        },
+        {
+          label: activeMetaRankingDrilldownConfig?.costLabel || 'Custo por resultado',
+          data: creativeRankingSeries.length ? creativeRankingSeries.map((bucket) => bucket.cost) : [0],
+          borderColor: activeMetaRankingDrilldownConfig?.costTone || '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          borderDash: [7, 5],
+          pointBackgroundColor: '#0b0f19',
+          pointBorderColor: activeMetaRankingDrilldownConfig?.costTone || '#f59e0b',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.34,
+          yAxisID: 'y1',
+        },
+      ],
+    }
+  }, [activeMetaRankingDrilldownConfig, creativeRankingSeries, isCreativeRankingDrilldown])
+  const creativeRankingChartOptions = useMemo(() => {
+    if (!isCreativeRankingDrilldown) return null
+
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(17, 24, 39, 0.94)',
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          borderColor: 'rgba(255,255,255,0.08)',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label(context) {
+              return `${context.dataset.label}: ${context.dataset.yAxisID === 'y'
+                ? formatNumber(context.parsed.y)
+                : formatCurrency(context.parsed.y)}`
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8', maxRotation: 0, autoSkipPadding: 16 },
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: '#94a3b8',
+            precision: 0,
+            callback(value) {
+              return formatNumber(value)
+            },
+          },
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: { display: false },
+          ticks: {
+            color: '#94a3b8',
+            callback(value) {
+              return formatCurrency(value)
+            },
+          },
+        },
+      },
+    }
+  }, [isCreativeRankingDrilldown])
   const metaDashboardMetricValues = useMemo(
     () => ({
       spend,
@@ -7181,65 +7381,135 @@ export default function DashboardPage() {
                       <div className="input-group">
                         <label>Cor da dashboard</label>
                         <div className="dashboard-color-editor">
-                          <div className="dashboard-color-preview-row">
-                            <input
-                              type="color"
-                              value={activeClientDashboardHex}
-                              onChange={(event) => handleClientDashboardHexChange(event.target.value)}
-                              aria-label="Selecionar cor da dashboard"
-                            />
-                            <div className="dashboard-color-code">
-                              <strong>{activeClientDashboardHex.toUpperCase()}</strong>
-                              <span>{`rgb(${activeClientDashboardRgb.r}, ${activeClientDashboardRgb.g}, ${activeClientDashboardRgb.b})`}</span>
+                          <div className="dashboard-color-section">
+                            <div className="dashboard-color-section-head">
+                              <strong>Cor principal</strong>
+                              <span>Base do tema, destaques e identidade do cliente.</span>
+                            </div>
+                            <div className="dashboard-color-preview-row">
+                              <input
+                                type="color"
+                                value={activeClientDashboardHex}
+                                onChange={(event) => handleClientDashboardHexChange(event.target.value)}
+                                aria-label="Selecionar cor principal da dashboard"
+                              />
+                              <div className="dashboard-color-code">
+                                <strong>{activeClientDashboardHex.toUpperCase()}</strong>
+                                <span>{`rgb(${activeClientDashboardRgb.r}, ${activeClientDashboardRgb.g}, ${activeClientDashboardRgb.b})`}</span>
+                              </div>
+                            </div>
+                            <div className="dashboard-rgb-grid">
+                              <label className="dashboard-rgb-field">
+                                <span>R</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardRgb.r}
+                                  onChange={(event) => handleClientDashboardRgbChange('r', event.target.value)}
+                                />
+                              </label>
+                              <label className="dashboard-rgb-field">
+                                <span>G</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardRgb.g}
+                                  onChange={(event) => handleClientDashboardRgbChange('g', event.target.value)}
+                                />
+                              </label>
+                              <label className="dashboard-rgb-field">
+                                <span>B</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardRgb.b}
+                                  onChange={(event) => handleClientDashboardRgbChange('b', event.target.value)}
+                                />
+                              </label>
+                            </div>
+                            <div className="dashboard-theme-presets">
+                              {Object.entries(THEMES).map(([themeKey, theme]) => (
+                                <button
+                                  key={themeKey}
+                                  type="button"
+                                  className={`dashboard-theme-preset ${activeClient.dashboardColor === themeKey ? 'active' : ''}`}
+                                  onClick={() => {
+                                    handleClientFieldChange('dashboardColor', themeKey)
+                                    setThemeColor(themeKey)
+                                  }}
+                                >
+                                  <span className="dashboard-theme-swatch" style={{ background: theme.main }}></span>
+                                  <small>{themeKey}</small>
+                                </button>
+                              ))}
                             </div>
                           </div>
-                          <div className="dashboard-rgb-grid">
-                            <label className="dashboard-rgb-field">
-                              <span>R</span>
+
+                          <div className="dashboard-color-section">
+                            <div className="dashboard-color-section-head">
+                              <strong>Cor secundária</strong>
+                              <span>Usada nos hovers, estados ativos e botões de apoio.</span>
+                            </div>
+                            <div className="dashboard-color-preview-row">
                               <input
-                                type="number"
-                                min="0"
-                                max="255"
-                                value={activeClientDashboardRgb.r}
-                                onChange={(event) => handleClientDashboardRgbChange('r', event.target.value)}
+                                type="color"
+                                value={activeClientDashboardAccentHex}
+                                onChange={(event) => handleClientDashboardAccentHexChange(event.target.value)}
+                                aria-label="Selecionar cor secundária da dashboard"
                               />
-                            </label>
-                            <label className="dashboard-rgb-field">
-                              <span>G</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="255"
-                                value={activeClientDashboardRgb.g}
-                                onChange={(event) => handleClientDashboardRgbChange('g', event.target.value)}
-                              />
-                            </label>
-                            <label className="dashboard-rgb-field">
-                              <span>B</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="255"
-                                value={activeClientDashboardRgb.b}
-                                onChange={(event) => handleClientDashboardRgbChange('b', event.target.value)}
-                              />
-                            </label>
-                          </div>
-                          <div className="dashboard-theme-presets">
-                            {Object.entries(THEMES).map(([themeKey, theme]) => (
-                              <button
-                                key={themeKey}
-                                type="button"
-                                className={`dashboard-theme-preset ${activeClient.dashboardColor === themeKey ? 'active' : ''}`}
-                                onClick={() => {
-                                  handleClientFieldChange('dashboardColor', themeKey)
-                                  setThemeColor(themeKey)
-                                }}
-                              >
-                                <span className="dashboard-theme-swatch" style={{ background: theme.main }}></span>
-                                <small>{themeKey}</small>
-                              </button>
-                            ))}
+                              <div className="dashboard-color-code">
+                                <strong>{activeClientDashboardAccentHex.toUpperCase()}</strong>
+                                <span>{`rgb(${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b})`}</span>
+                              </div>
+                            </div>
+                            <div className="dashboard-rgb-grid">
+                              <label className="dashboard-rgb-field">
+                                <span>R</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardAccentRgb.r}
+                                  onChange={(event) => handleClientDashboardAccentRgbChange('r', event.target.value)}
+                                />
+                              </label>
+                              <label className="dashboard-rgb-field">
+                                <span>G</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardAccentRgb.g}
+                                  onChange={(event) => handleClientDashboardAccentRgbChange('g', event.target.value)}
+                                />
+                              </label>
+                              <label className="dashboard-rgb-field">
+                                <span>B</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="255"
+                                  value={activeClientDashboardAccentRgb.b}
+                                  onChange={(event) => handleClientDashboardAccentRgbChange('b', event.target.value)}
+                                />
+                              </label>
+                            </div>
+                            <div className="dashboard-theme-presets">
+                              {Object.entries(THEMES).map(([themeKey, theme]) => (
+                                <button
+                                  key={`accent-${themeKey}`}
+                                  type="button"
+                                  className={`dashboard-theme-preset ${activeClientDashboardAccentColor === themeKey ? 'active' : ''}`}
+                                  onClick={() => handleClientFieldChange('dashboardAccentColor', themeKey)}
+                                >
+                                  <span className="dashboard-theme-swatch" style={{ background: theme.main }}></span>
+                                  <small>{themeKey}</small>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -8274,6 +8544,102 @@ export default function DashboardPage() {
                   <div className="glass-panel ranking-card meta-ranking-card">
                     <div className="section-header section-header-stack">
                       <div>
+                        <h2>Top 5 por criativos</h2>
+                        <p className="chart-subtitle">Os criativos com melhor resultado dentro do período selecionado.</p>
+                      </div>
+                    </div>
+                    <div className="ranking-list">
+                      {isRankingsLoading ? (
+                        <div className="ranking-empty">Carregando ranking de criativos...</div>
+                      ) : rankingsError ? (
+                        <div className="ranking-empty">{rankingsError}</div>
+                      ) : breakdowns.errors?.creatives ? (
+                        <div className="ranking-empty">{breakdowns.errors.creatives}</div>
+                      ) : breakdowns.creatives.length === 0 ? (
+                        <div className="ranking-empty">Sem dados por criativo para o período.</div>
+                      ) : (
+                        breakdowns.creatives.map((item, index) => (
+                          <button
+                            key={`${item.label}-${index}`}
+                            type="button"
+                            className="ranking-row ranking-row-action ranking-row-rich meta-ranking-row meta-ranking-row-rich"
+                            onClick={() => setMetaRankingDrilldown({ type: 'creatives', index, item })}
+                          >
+                            <div className="creative-ranking-main">
+                              <div className="creative-thumb">
+                                {item.imageUrl ? (
+                                  <img src={item.imageUrl} alt={item.label} />
+                                ) : (
+                                  <span>Sem imagem</span>
+                                )}
+                              </div>
+                              <div className="ranking-main-column meta-ranking-main-column">
+                                <strong>{item.label}</strong>
+                                <span>{formatNumber(getMetaBreakdownConversions(item))} conversões</span>
+                              </div>
+                            </div>
+                            <div className="ranking-metrics meta-ranking-metrics">
+                              <b>{formatCurrency(getMetaBreakdownAverageCost(item))} / resultado</b>
+                              <span>{formatCurrency(item.spend)} investidos</span>
+                              <small>Preview e comparativo</small>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="glass-panel ranking-card meta-ranking-card">
+                    <div className="section-header section-header-stack">
+                      <div>
+                        <h2>Resultado por idade</h2>
+                        <p className="chart-subtitle">Faixas etárias com melhor performance no período.</p>
+                      </div>
+                    </div>
+                    <div className="ranking-list">
+                      {isRankingsLoading ? (
+                        <div className="ranking-empty">Carregando ranking por idade...</div>
+                      ) : rankingsError ? (
+                        <div className="ranking-empty">{rankingsError}</div>
+                      ) : breakdowns.errors?.ages ? (
+                        <div className="ranking-empty">{breakdowns.errors.ages}</div>
+                      ) : ageRankingItems.length === 0 ? (
+                        <div className="ranking-empty">Sem dados por idade para o período.</div>
+                      ) : (
+                        ageRankingItems.map((item, index) => (
+                          <button
+                            key={`${item.label}-${index}`}
+                            type="button"
+                            className="ranking-row ranking-row-action meta-ranking-row age-ranking-row"
+                            onClick={() => setMetaRankingDrilldown({ type: 'ages', index, item })}
+                          >
+                            <div className="age-ranking-main">
+                              <div className="age-ranking-position">#{index + 1}</div>
+                              <div className="ranking-main-column age-ranking-copy">
+                                <div className="meta-ranking-main-column age-ranking-title-row">
+                                  <strong>{item.label}</strong>
+                                  <span>{formatNumber(item.conversions)} conversões</span>
+                                </div>
+                                <div className="age-ranking-bar-track" aria-hidden="true">
+                                  <span className="age-ranking-bar-fill" style={{ width: `${item.intensity * 100}%` }}></span>
+                                </div>
+                                <small className="age-ranking-tag">{item.performanceLabel}</small>
+                              </div>
+                            </div>
+                            <div className="ranking-metrics meta-ranking-metrics age-ranking-metrics">
+                              <b>{formatCurrency(item.averageCost)} / resultado</b>
+                              <span>{formatPercent(item.conversionRateValue)} de conversão</span>
+                              <small>Toque para comparar</small>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="glass-panel ranking-card meta-ranking-card">
+                    <div className="section-header section-header-stack">
+                      <div>
                         <h2>Mapa de estados e cidades</h2>
                         <p className="chart-subtitle">Estados com calor por resultado e pins das principais cidades no período selecionado.</p>
                       </div>
@@ -8377,102 +8743,6 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="glass-panel ranking-card meta-ranking-card">
-                    <div className="section-header section-header-stack">
-                      <div>
-                        <h2>Top 5 por criativos</h2>
-                        <p className="chart-subtitle">Os criativos com melhor resultado dentro do período selecionado.</p>
-                      </div>
-                    </div>
-                    <div className="ranking-list">
-                      {isRankingsLoading ? (
-                        <div className="ranking-empty">Carregando ranking de criativos...</div>
-                      ) : rankingsError ? (
-                        <div className="ranking-empty">{rankingsError}</div>
-                      ) : breakdowns.errors?.creatives ? (
-                        <div className="ranking-empty">{breakdowns.errors.creatives}</div>
-                      ) : breakdowns.creatives.length === 0 ? (
-                        <div className="ranking-empty">Sem dados por criativo para o período.</div>
-                      ) : (
-                        breakdowns.creatives.map((item, index) => (
-                          <button
-                            key={`${item.label}-${index}`}
-                            type="button"
-                            className="ranking-row ranking-row-action ranking-row-rich meta-ranking-row meta-ranking-row-rich"
-                            onClick={() => setMetaRankingDrilldown({ type: 'creatives', index, item })}
-                          >
-                            <div className="creative-ranking-main">
-                              <div className="creative-thumb">
-                                {item.imageUrl ? (
-                                  <img src={item.imageUrl} alt={item.label} />
-                                ) : (
-                                  <span>Sem imagem</span>
-                                )}
-                              </div>
-                              <div className="ranking-main-column meta-ranking-main-column">
-                                <strong>{item.label}</strong>
-                                <span>{formatNumber(getMetaBreakdownConversions(item))} conversões</span>
-                              </div>
-                            </div>
-                            <div className="ranking-metrics meta-ranking-metrics">
-                              <b>{formatCurrency(getMetaBreakdownAverageCost(item))} / resultado</b>
-                              <span>{formatCurrency(item.spend)} investidos</span>
-                              <small>Preview e comparativo</small>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="glass-panel ranking-card meta-ranking-card">
-                    <div className="section-header section-header-stack">
-                      <div>
-                        <h2>Resultado por idade</h2>
-                        <p className="chart-subtitle">Faixas etárias com melhor performance no período.</p>
-                      </div>
-                    </div>
-                    <div className="ranking-list">
-                      {isRankingsLoading ? (
-                        <div className="ranking-empty">Carregando ranking por idade...</div>
-                      ) : rankingsError ? (
-                        <div className="ranking-empty">{rankingsError}</div>
-                      ) : breakdowns.errors?.ages ? (
-                        <div className="ranking-empty">{breakdowns.errors.ages}</div>
-                      ) : ageRankingItems.length === 0 ? (
-                        <div className="ranking-empty">Sem dados por idade para o período.</div>
-                      ) : (
-                        ageRankingItems.map((item, index) => (
-                          <button
-                            key={`${item.label}-${index}`}
-                            type="button"
-                            className="ranking-row ranking-row-action meta-ranking-row age-ranking-row"
-                            onClick={() => setMetaRankingDrilldown({ type: 'ages', index, item })}
-                          >
-                            <div className="age-ranking-main">
-                              <div className="age-ranking-position">#{index + 1}</div>
-                              <div className="ranking-main-column age-ranking-copy">
-                                <div className="meta-ranking-main-column age-ranking-title-row">
-                                  <strong>{item.label}</strong>
-                                  <span>{formatNumber(item.conversions)} conversões</span>
-                                </div>
-                                <div className="age-ranking-bar-track" aria-hidden="true">
-                                  <span className="age-ranking-bar-fill" style={{ width: `${item.intensity * 100}%` }}></span>
-                                </div>
-                                <small className="age-ranking-tag">{item.performanceLabel}</small>
-                              </div>
-                            </div>
-                            <div className="ranking-metrics meta-ranking-metrics age-ranking-metrics">
-                              <b>{formatCurrency(item.averageCost)} / resultado</b>
-                              <span>{formatPercent(item.conversionRateValue)} de conversão</span>
-                              <small>Toque para comparar</small>
-                            </div>
-                          </button>
-                        ))
                       )}
                     </div>
                   </div>
@@ -9164,6 +9434,29 @@ export default function DashboardPage() {
                         ? `, com ${formatNumber(metaRankingDrilldownSummary.impressionsValue)} impressões dentro do recorte selecionado.`
                         : ' dentro do recorte selecionado.'}
                     </div>
+                    <div className="meta-result-chart-head meta-ranking-creative-chart-head">
+                      <div>
+                        <strong>Curva do criativo</strong>
+                        <p className="chart-subtitle">Acompanhe a evolução do resultado e do custo por resultado desse criativo no período filtrado.</p>
+                      </div>
+                      <div className="meta-result-legend">
+                        <span className="legend-item">
+                          <span className="dot" style={{ background: activeMetaRankingDrilldownConfig.resultTone, boxShadow: `0 0 8px ${activeMetaRankingDrilldownConfig.resultTone}` }}></span>
+                          {activeMetaRankingDrilldownConfig.resultLabel}
+                        </span>
+                        <span className="legend-item">
+                          <span className="dot" style={{ background: activeMetaRankingDrilldownConfig.costTone, boxShadow: `0 0 8px ${activeMetaRankingDrilldownConfig.costTone}` }}></span>
+                          {activeMetaRankingDrilldownConfig.costLabel}
+                        </span>
+                      </div>
+                    </div>
+                    {creativeRankingChartData && creativeRankingChartOptions && creativeRankingSeries.length ? (
+                      <div className="canvas-wrapper meta-ranking-chart-wrapper meta-ranking-creative-chart-wrapper">
+                        <Line data={creativeRankingChartData} options={creativeRankingChartOptions} />
+                      </div>
+                    ) : (
+                      <div className="ranking-empty">Sem histórico suficiente para montar a curva desse criativo no período atual.</div>
+                    )}
                   </div>
                 ) : (
                   <div className="glass-item meta-ranking-chart-shell">
@@ -9799,8 +10092,8 @@ export default function DashboardPage() {
         }
 
         .client-directory-card-active {
-          border-color: var(--accent-blue);
-          background: var(--theme-surface);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, var(--theme-surface));
         }
 
         .client-directory-actions {
@@ -9960,8 +10253,8 @@ export default function DashboardPage() {
         }
 
         .meta-result-period-btn.active {
-          border-color: var(--accent-blue);
-          background: rgba(59, 130, 246, 0.12);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, rgba(59, 130, 246, 0.12));
           color: var(--text-primary);
         }
 
@@ -10152,11 +10445,36 @@ export default function DashboardPage() {
 
         .dashboard-color-editor {
           display: grid;
-          gap: 12px;
+          gap: 18px;
           padding: 18px;
           border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.06);
           background: rgba(255, 255, 255, 0.02);
+        }
+
+        .dashboard-color-section {
+          display: grid;
+          gap: 12px;
+        }
+
+        .dashboard-color-section + .dashboard-color-section {
+          padding-top: 18px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .dashboard-color-section-head {
+          display: grid;
+          gap: 4px;
+        }
+
+        .dashboard-color-section-head strong {
+          font-size: 14px;
+        }
+
+        .dashboard-color-section-head span {
+          color: var(--text-muted);
+          font-size: 12px;
+          line-height: 1.5;
         }
 
         .dashboard-color-preview-row {
@@ -10260,8 +10578,8 @@ export default function DashboardPage() {
         }
 
         .dashboard-theme-preset.active {
-          border-color: var(--accent-blue);
-          background: var(--theme-surface);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, var(--theme-surface));
         }
 
         .dashboard-theme-preset small {
@@ -10310,8 +10628,8 @@ export default function DashboardPage() {
         }
 
         .client-row.selected {
-          border-color: var(--accent-blue);
-          background: var(--theme-surface);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, var(--theme-surface));
         }
 
         .client-select,
@@ -10886,12 +11204,12 @@ export default function DashboardPage() {
           align-items: center;
           justify-content: center;
           padding: 14px 18px;
-          border: 1px solid rgba(59, 130, 246, 0.34);
+          border: 1px solid color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 34%, transparent);
           border-radius: 999px;
           background:
-            linear-gradient(180deg, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.94)),
+            linear-gradient(180deg, color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 18%, transparent), rgba(15, 23, 42, 0.94)),
             rgba(15, 23, 42, 0.96);
-          box-shadow: 0 18px 42px rgba(2, 8, 23, 0.45);
+          box-shadow: 0 18px 42px color-mix(in srgb, var(--theme-secondary-glow, rgba(59, 130, 246, 0.18)) 55%, rgba(2, 8, 23, 0.45));
           color: #eff6ff;
           font-size: 15px;
           font-weight: 700;
@@ -10901,7 +11219,7 @@ export default function DashboardPage() {
 
         .floating-filter-apply:hover:not(:disabled) {
           transform: translateY(calc(-50% - 2px));
-          box-shadow: 0 22px 48px rgba(2, 8, 23, 0.52);
+          box-shadow: 0 22px 48px color-mix(in srgb, var(--theme-secondary-glow, rgba(59, 130, 246, 0.18)) 65%, rgba(2, 8, 23, 0.52));
         }
 
         .floating-filter-apply:disabled {
@@ -10934,8 +11252,8 @@ export default function DashboardPage() {
 
         .meta-campaign-filter-trigger:hover,
         .meta-campaign-filter-trigger.open {
-          border-color: rgba(59, 130, 246, 0.35);
-          background: rgba(59, 130, 246, 0.06);
+          border-color: color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 35%, transparent);
+          background: var(--theme-secondary-surface, rgba(59, 130, 246, 0.06));
         }
 
         .meta-campaign-filter-trigger h3 {
@@ -11178,8 +11496,8 @@ export default function DashboardPage() {
 
         .conversion-group-secondary-trigger:hover {
           transform: translateY(-1px);
-          border-color: rgba(96, 165, 250, 0.28);
-          background: rgba(59, 130, 246, 0.06);
+          border-color: color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 28%, transparent);
+          background: var(--theme-secondary-surface, rgba(59, 130, 246, 0.06));
           color: var(--text-primary);
         }
 
@@ -11323,8 +11641,8 @@ export default function DashboardPage() {
         }
 
         .meta-result-preview-tab.active {
-          border-color: var(--accent-blue);
-          background: rgba(59, 130, 246, 0.12);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, rgba(59, 130, 246, 0.12));
           color: var(--text-primary);
           opacity: 1;
         }
@@ -11917,6 +12235,14 @@ export default function DashboardPage() {
           line-height: 1.6;
         }
 
+        .meta-ranking-creative-chart-head {
+          margin-top: 4px;
+        }
+
+        .meta-ranking-creative-chart-wrapper {
+          min-height: 320px;
+        }
+
         .meta-ranking-inline-note strong {
           color: var(--text-primary);
         }
@@ -12226,8 +12552,8 @@ export default function DashboardPage() {
         }
 
         .user-picker-item.active {
-          border-color: var(--accent-blue);
-          background: var(--theme-surface);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
+          background: var(--theme-secondary-surface, var(--theme-surface));
           transform: translateY(-1px);
         }
 
@@ -12333,12 +12659,12 @@ export default function DashboardPage() {
 
         .input-group input:not([type="checkbox"]):focus {
           outline: none;
-          border-color: var(--accent-blue);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
         }
 
         .client-select-input:focus {
           outline: none;
-          border-color: var(--accent-blue);
+          border-color: var(--theme-secondary-main, var(--accent-blue));
         }
 
         .logo-preview {
@@ -12424,8 +12750,8 @@ export default function DashboardPage() {
         }
 
         .stage-chip.active {
-          border-color: color-mix(in srgb, var(--accent-blue) 55%, white 15%);
-          background: color-mix(in srgb, var(--accent-blue) 16%, transparent);
+          border-color: color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 55%, white 15%);
+          background: color-mix(in srgb, var(--theme-secondary-main, var(--accent-blue)) 16%, transparent);
           color: white;
         }
 
@@ -12438,7 +12764,7 @@ export default function DashboardPage() {
           border: none;
           background: transparent;
           flex: 0 0 16px;
-          accent-color: var(--accent-blue);
+          accent-color: var(--theme-secondary-main, var(--accent-blue));
         }
 
         .stage-chip span {

@@ -218,6 +218,11 @@ export async function GET(request) {
       .map((ad) => {
         const insight = formatInsightsWithConversions(ad.insights?.data?.[0] || {})
         return {
+          id: ad.id || '',
+          adId: ad.id || '',
+          adName: ad.name || '',
+          campaignId: ad.campaign_id || '',
+          adsetId: ad.adset_id || '',
           label: normalizeCreativeLabel(ad),
           imageUrl: ad.creative?.thumbnail_url || ad.creative?.image_url || '',
           spend: parseFloat(insight.spend || 0),
