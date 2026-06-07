@@ -14,7 +14,7 @@ export const demoPlatformSnapshot: PlatformSnapshot = {
     darkMode: defaultLegacyTheme.darkMode,
     mode: 'dark',
     logoUrl: '',
-    appName: 'Assessoria LP',
+    appName: 'Nype',
     appSubtitle: 'Performance Hub',
   },
   clients: [],

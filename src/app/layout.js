@@ -2,8 +2,8 @@ import { UserProvider } from '@/lib/contexts/UserContext'
 import './globals.css'
 
 export const metadata = {
-  title: 'Assessoria LP',
-  description: 'Assessoria LP: dashboards, integrações e IA para leitura de performance de marketing.',
+  title: 'Nype',
+  description: 'Nype: dashboards, integrações e IA para leitura de performance de marketing.',
 }
 
 export default function RootLayout({ children }) {
