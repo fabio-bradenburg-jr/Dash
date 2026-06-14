@@ -32876,8 +32876,6 @@ export default function DashboardShell({
 
         .campaign-row-wrap {
           position: relative;
-          display: grid;
-          gap: 0;
         }
 
         .campaign-chart-icon-btn {
@@ -32901,12 +32899,12 @@ export default function DashboardShell({
 
         .campaign-chart-icon-btn:hover {
           color: rgba(255,255,255,0.8);
-          background: rgba(255,255,255,0.05);
+          background: rgba(255,255,255,0.08);
         }
 
         .campaign-chart-icon-btn.active {
           color: #fff;
-          background: rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.12);
         }
 
         .campaign-chart-panel {
