@@ -5600,7 +5600,7 @@ export default function DashboardShell({
     { key: 'ctr', label: 'CTR', format: 'percent' },
   ]
 
-  const handleToggleCampaignChart = useCallback(async (campaignKey, campaignId) => {
+  const handleToggleCampaignChart = useCallback(async (campaignKey, entityId) => {
     setCampaignChartOpenKeys((prev) => {
       const isOpen = !!prev[campaignKey]
       if (isOpen) {
@@ -5614,7 +5614,7 @@ export default function DashboardShell({
     setCampaignChartData((current) => {
       if (current[campaignKey] !== undefined) return current
 
-      const params = new URLSearchParams({ campaignId })
+      const params = new URLSearchParams({ entityId })
       if (dateRange === 'custom' && customSince && customUntil) {
         params.set('since', customSince)
         params.set('until', customUntil)
@@ -17919,51 +17919,50 @@ export default function DashboardShell({
 
                                 return (
                                   <div key={campaignKey} className="campaign-overview-tree-group">
-                                    <button type="button" className="campaign-overview-tree-row campaign-overview-campaign-row" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} aria-expanded={campaignExpanded}>
-                                      <span className="campaign-overview-row-title">
-                                        <strong>{campaign.name || 'Campanha sem nome'}</strong>
-                                        <small>{formatNumber(adsets.length)} conjunto(s)</small>
-                                      </span>
-                                      <span className="campaign-overview-metric">
-                                        <small>Investimento</small>
-                                        <strong>{formatCurrency(campaign.spend || 0)}</strong>
-                                      </span>
-                                      <span className="campaign-overview-metric">
-                                        <small>Resultados</small>
-                                        <strong>{formatNumber(campaign.results || 0)}</strong>
-                                      </span>
-                                      <span className="campaign-overview-metric">
-                                        <small>Custo/resultado</small>
-                                        <strong>{campaign.results > 0 ? formatCurrency((campaign.spend || 0) / campaign.results) : '—'}</strong>
-                                      </span>
-                                      <span className="campaign-overview-metric">
-                                        <small>Cliques</small>
-                                        <strong>{formatNumber(campaign.clicks || 0)}</strong>
-                                      </span>
-                                      <span className="campaign-overview-metric">
-                                        <small>Impressões</small>
-                                        <strong>{formatNumber(campaign.impressions || 0)}</strong>
-                                      </span>
-                                      <span className="campaign-overview-chevron">
-                                        <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
-                                      </span>
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      className={'campaign-chart-toggle' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')}
-                                      onClick={(e) => { e.stopPropagation(); handleToggleCampaignChart(campaignKey, campaign.campaignId) }}
-                                      title="Ver evolução diária"
-                                    >
-                                      <i className="bx bx-line-chart"></i>
-                                      <span>{campaignChartOpenKeys[campaignKey] ? 'Ocultar gráfico' : 'Ver gráfico'}</span>
-                                    </button>
-
-                                    {campaignChartOpenKeys[campaignKey] && (
-                                      <div className="campaign-chart-panel">
-                                        {renderCampaignChart(campaignKey, effectiveWorkspaceBranding.primaryColor)}
-                                      </div>
-                                    )}
+                                    <div className="campaign-row-wrap">
+                                      <button type="button" className="campaign-overview-tree-row campaign-overview-campaign-row" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} aria-expanded={campaignExpanded}>
+                                        <span className="campaign-overview-row-title">
+                                          <strong>{campaign.name || 'Campanha sem nome'}</strong>
+                                          <small>{formatNumber(adsets.length)} conjunto(s)</small>
+                                        </span>
+                                        <span className="campaign-overview-metric">
+                                          <small>Investimento</small>
+                                          <strong>{formatCurrency(campaign.spend || 0)}</strong>
+                                        </span>
+                                        <span className="campaign-overview-metric">
+                                          <small>Resultados</small>
+                                          <strong>{formatNumber(campaign.results || 0)}</strong>
+                                        </span>
+                                        <span className="campaign-overview-metric">
+                                          <small>Custo/resultado</small>
+                                          <strong>{campaign.results > 0 ? formatCurrency((campaign.spend || 0) / campaign.results) : '—'}</strong>
+                                        </span>
+                                        <span className="campaign-overview-metric">
+                                          <small>Cliques</small>
+                                          <strong>{formatNumber(campaign.clicks || 0)}</strong>
+                                        </span>
+                                        <span className="campaign-overview-metric">
+                                          <small>Impressões</small>
+                                          <strong>{formatNumber(campaign.impressions || 0)}</strong>
+                                        </span>
+                                        <span className="campaign-overview-chevron">
+                                          <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
+                                        </span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')}
+                                        onClick={() => handleToggleCampaignChart(campaignKey, campaign.campaignId)}
+                                        title="Ver evolução diária"
+                                      >
+                                        <i className="bx bx-line-chart"></i>
+                                      </button>
+                                      {campaignChartOpenKeys[campaignKey] && (
+                                        <div className="campaign-chart-panel">
+                                          {renderCampaignChart(campaignKey, effectiveWorkspaceBranding.primaryColor)}
+                                        </div>
+                                      )}
+                                    </div>
 
                                     {campaignExpanded ? (
                                       adsets.length ? (
@@ -17975,66 +17974,95 @@ export default function DashboardShell({
 
                                             return (
                                               <div key={adsetKey} className="campaign-overview-tree-group">
-                                                <button type="button" className="campaign-overview-tree-row campaign-overview-adset-row" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} aria-expanded={adsetExpanded}>
-                                                  <span className="campaign-overview-row-title">
-                                                    <strong>{adset.name || 'Conjunto sem nome'}</strong>
-                                                    <small>{formatNumber(ads.length)} anúncio(s)</small>
-                                                  </span>
-                                                  <span className="campaign-overview-metric">
-                                                    <small>Investimento</small>
-                                                    <strong>{formatCurrency(adset.spend || 0)}</strong>
-                                                  </span>
-                                                  <span className="campaign-overview-metric">
-                                                    <small>Resultados</small>
-                                                    <strong>{formatNumber(adset.results || 0)}</strong>
-                                                  </span>
-                                                  <span className="campaign-overview-metric">
-                                                    <small>Custo/resultado</small>
-                                                    <strong>{adset.results > 0 ? formatCurrency((adset.spend || 0) / adset.results) : '—'}</strong>
-                                                  </span>
-                                                  <span className="campaign-overview-metric">
-                                                    <small>Cliques</small>
-                                                    <strong>{formatNumber(adset.clicks || 0)}</strong>
-                                                  </span>
-                                                  <span className="campaign-overview-metric">
-                                                    <small>Impressões</small>
-                                                    <strong>{formatNumber(adset.impressions || 0)}</strong>
-                                                  </span>
-                                                  <span className="campaign-overview-chevron">
-                                                    <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
-                                                  </span>
-                                                </button>
+                                                <div className="campaign-row-wrap">
+                                                  <button type="button" className="campaign-overview-tree-row campaign-overview-adset-row" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} aria-expanded={adsetExpanded}>
+                                                    <span className="campaign-overview-row-title">
+                                                      <strong>{adset.name || 'Conjunto sem nome'}</strong>
+                                                      <small>{formatNumber(ads.length)} anúncio(s)</small>
+                                                    </span>
+                                                    <span className="campaign-overview-metric">
+                                                      <small>Investimento</small>
+                                                      <strong>{formatCurrency(adset.spend || 0)}</strong>
+                                                    </span>
+                                                    <span className="campaign-overview-metric">
+                                                      <small>Resultados</small>
+                                                      <strong>{formatNumber(adset.results || 0)}</strong>
+                                                    </span>
+                                                    <span className="campaign-overview-metric">
+                                                      <small>Custo/resultado</small>
+                                                      <strong>{adset.results > 0 ? formatCurrency((adset.spend || 0) / adset.results) : '—'}</strong>
+                                                    </span>
+                                                    <span className="campaign-overview-metric">
+                                                      <small>Cliques</small>
+                                                      <strong>{formatNumber(adset.clicks || 0)}</strong>
+                                                    </span>
+                                                    <span className="campaign-overview-metric">
+                                                      <small>Impressões</small>
+                                                      <strong>{formatNumber(adset.impressions || 0)}</strong>
+                                                    </span>
+                                                    <span className="campaign-overview-chevron">
+                                                      <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
+                                                    </span>
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adsetKey] ? ' active' : '')}
+                                                    onClick={() => handleToggleCampaignChart(adsetKey, adset.adsetId)}
+                                                    title="Ver evolução diária"
+                                                  >
+                                                    <i className="bx bx-line-chart"></i>
+                                                  </button>
+                                                  {campaignChartOpenKeys[adsetKey] && (
+                                                    <div className="campaign-chart-panel">
+                                                      {renderCampaignChart(adsetKey, effectiveWorkspaceBranding.primaryColor)}
+                                                    </div>
+                                                  )}
+                                                </div>
 
                                                 {adsetExpanded ? (
                                                   ads.length ? (
                                                     <div className="campaign-overview-ad-list">
                                                       {ads.map((ad, adIndex) => (
-                                                        <div key={`${adsetKey}:${ad.adId || adIndex}`} className="campaign-overview-tree-row campaign-overview-ad-row">
-                                                          <span className="campaign-overview-row-title">
-                                                            <strong>{ad.name || 'Anúncio sem nome'}</strong>
-                                                            <small>{ad.adId || 'Sem ID'}</small>
-                                                          </span>
-                                                          <span className="campaign-overview-metric">
-                                                            <small>Investimento</small>
-                                                            <strong>{formatCurrency(ad.spend || 0)}</strong>
-                                                          </span>
-                                                          <span className="campaign-overview-metric">
-                                                            <small>Resultados</small>
-                                                            <strong>{formatNumber(ad.results || 0)}</strong>
-                                                          </span>
-                                                          <span className="campaign-overview-metric">
-                                                            <small>Custo/resultado</small>
-                                                            <strong>{ad.results > 0 ? formatCurrency((ad.spend || 0) / ad.results) : '—'}</strong>
-                                                          </span>
-                                                          <span className="campaign-overview-metric">
-                                                            <small>Cliques</small>
-                                                            <strong>{formatNumber(ad.clicks || 0)}</strong>
-                                                          </span>
-                                                          <span className="campaign-overview-metric">
-                                                            <small>Impressões</small>
-                                                            <strong>{formatNumber(ad.impressions || 0)}</strong>
-                                                          </span>
-                                                          <span aria-hidden="true" />
+                                                        <div key={`${adsetKey}:${ad.adId || adIndex}`} className="campaign-row-wrap">
+                                                          <div className="campaign-overview-tree-row campaign-overview-ad-row">
+                                                            <span className="campaign-overview-row-title">
+                                                              <strong>{ad.name || 'Anúncio sem nome'}</strong>
+                                                              <small>{ad.adId || 'Sem ID'}</small>
+                                                            </span>
+                                                            <span className="campaign-overview-metric">
+                                                              <small>Investimento</small>
+                                                              <strong>{formatCurrency(ad.spend || 0)}</strong>
+                                                            </span>
+                                                            <span className="campaign-overview-metric">
+                                                              <small>Resultados</small>
+                                                              <strong>{formatNumber(ad.results || 0)}</strong>
+                                                            </span>
+                                                            <span className="campaign-overview-metric">
+                                                              <small>Custo/resultado</small>
+                                                              <strong>{ad.results > 0 ? formatCurrency((ad.spend || 0) / ad.results) : '—'}</strong>
+                                                            </span>
+                                                            <span className="campaign-overview-metric">
+                                                              <small>Cliques</small>
+                                                              <strong>{formatNumber(ad.clicks || 0)}</strong>
+                                                            </span>
+                                                            <span className="campaign-overview-metric">
+                                                              <small>Impressões</small>
+                                                              <strong>{formatNumber(ad.impressions || 0)}</strong>
+                                                            </span>
+                                                            <button
+                                                              type="button"
+                                                              className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[`${adsetKey}:${ad.adId || adIndex}`] ? ' active' : '')}
+                                                              onClick={() => handleToggleCampaignChart(`${adsetKey}:${ad.adId || adIndex}`, ad.adId)}
+                                                              title="Ver evolução diária"
+                                                            >
+                                                              <i className="bx bx-line-chart"></i>
+                                                            </button>
+                                                          </div>
+                                                          {campaignChartOpenKeys[`${adsetKey}:${ad.adId || adIndex}`] && (
+                                                            <div className="campaign-chart-panel">
+                                                              {renderCampaignChart(`${adsetKey}:${ad.adId || adIndex}`, effectiveWorkspaceBranding.primaryColor)}
+                                                            </div>
+                                                          )}
                                                         </div>
                                                       ))}
                                                     </div>
@@ -32843,29 +32871,37 @@ export default function DashboardShell({
           align-items: center;
         }
 
-        .campaign-chart-toggle {
+        .campaign-row-wrap {
+          position: relative;
+        }
+
+        .campaign-chart-icon-btn {
+          position: absolute;
+          right: 6px;
+          top: 0;
+          height: 72px;
+          width: 32px;
           display: flex;
           align-items: center;
-          gap: 6px;
-          margin-top: 6px;
-          padding: 6px 14px;
-          border-radius: 999px;
-          border: 1px solid rgba(190, 201, 191, 0.18);
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.55);
-          font-size: 12px;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          color: rgba(255,255,255,0.3);
           cursor: pointer;
-          transition: all 0.18s;
-          align-self: flex-start;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: color 0.15s, background 0.15s;
+          z-index: 1;
         }
-        .campaign-chart-toggle:hover,
-        .campaign-chart-toggle.active {
-          border-color: rgba(38, 194, 129, 0.5);
-          color: #26C281;
-          background: rgba(38, 194, 129, 0.08);
+
+        .campaign-chart-icon-btn:hover {
+          color: rgba(255,255,255,0.8);
+          background: rgba(255,255,255,0.08);
         }
-        .campaign-chart-toggle i {
-          font-size: 15px;
+
+        .campaign-chart-icon-btn.active {
+          color: #fff;
+          background: rgba(255,255,255,0.12);
         }
 
         .campaign-chart-panel {
@@ -32916,12 +32952,6 @@ export default function DashboardShell({
           font-size: 13px;
         }
 
-        .dashboard-light-mode .campaign-chart-toggle,
-        :root[data-ui-mode='light'] .campaign-chart-toggle {
-          border-color: #d0ddd4;
-          color: #6a7f74;
-          background: #f4f7f5;
-        }
         .dashboard-light-mode .campaign-chart-panel,
         :root[data-ui-mode='light'] .campaign-chart-panel {
           background: #f9fcfa;

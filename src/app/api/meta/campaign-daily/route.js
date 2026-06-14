@@ -6,13 +6,13 @@ import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const campaignId = searchParams.get('campaignId') || ''
+    const entityId = searchParams.get('entityId') || searchParams.get('campaignId') || ''
     const datePreset = searchParams.get('date_preset') || 'last_30d'
     const since = searchParams.get('since') || ''
     const until = searchParams.get('until') || ''
 
-    if (!campaignId) {
-      return NextResponse.json({ error: 'campaignId é obrigatório.' }, { status: 400 })
+    if (!entityId) {
+      return NextResponse.json({ error: 'entityId é obrigatório.' }, { status: 400 })
     }
 
     const token = await resolveWorkspaceMetaAccessToken(request)
@@ -34,7 +34,7 @@ export async function GET(request) {
       params.set('date_preset', datePreset)
     }
 
-    const url = `https://graph.facebook.com/v19.0/${campaignId}/insights?${params.toString()}`
+    const url = `https://graph.facebook.com/v19.0/${entityId}/insights?${params.toString()}`
     const raw = await fetchMetaJson(url, 'A Meta demorou para responder.', { maxPages: 2 })
     const rows = (raw?.data || []).map((row) => {
       const formatted = formatInsightsWithConversions(row)
