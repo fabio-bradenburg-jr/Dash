@@ -5600,7 +5600,7 @@ export default function DashboardShell({
     { key: 'ctr', label: 'CTR', format: 'percent' },
   ]
 
-  const handleToggleCampaignChart = useCallback(async (campaignKey, campaignId) => {
+  const handleToggleCampaignChart = useCallback(async (campaignKey, entityId) => {
     setCampaignChartOpenKeys((prev) => {
       const isOpen = !!prev[campaignKey]
       if (isOpen) {
@@ -5614,7 +5614,7 @@ export default function DashboardShell({
     setCampaignChartData((current) => {
       if (current[campaignKey] !== undefined) return current
 
-      const params = new URLSearchParams({ campaignId })
+      const params = new URLSearchParams({ entityId })
       if (dateRange === 'custom' && customSince && customUntil) {
         params.set('since', customSince)
         params.set('until', customUntil)
@@ -18053,7 +18053,7 @@ export default function DashboardShell({
                                                             </span>
                                                             <button
                                                               type="button"
-                                                              className={'campaign-chart-icon-btn inline' + (campaignChartOpenKeys[adKey] ? ' active' : '')}
+                                                              className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adKey] ? ' active' : '')}
                                                               onClick={() => handleToggleCampaignChart(adKey, ad.adId)}
                                                               title="Ver evolução diária"
                                                             >
@@ -32874,29 +32874,39 @@ export default function DashboardShell({
           align-items: center;
         }
 
-        .campaign-chart-toggle {
+        .campaign-row-wrap {
+          position: relative;
+          display: grid;
+          gap: 0;
+        }
+
+        .campaign-chart-icon-btn {
+          position: absolute;
+          right: 6px;
+          top: 0;
+          height: 72px;
+          width: 32px;
           display: flex;
           align-items: center;
-          gap: 6px;
-          margin-top: 6px;
-          padding: 6px 14px;
-          border-radius: 999px;
-          border: 1px solid rgba(190, 201, 191, 0.18);
-          background: rgba(255, 255, 255, 0.04);
-          color: rgba(255, 255, 255, 0.55);
-          font-size: 12px;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          color: rgba(255,255,255,0.3);
           cursor: pointer;
-          transition: all 0.18s;
-          align-self: flex-start;
+          border-radius: 8px;
+          font-size: 16px;
+          transition: color 0.15s, background 0.15s;
+          z-index: 1;
         }
-        .campaign-chart-toggle:hover,
-        .campaign-chart-toggle.active {
-          border-color: rgba(38, 194, 129, 0.5);
-          color: #26C281;
-          background: rgba(38, 194, 129, 0.08);
+
+        .campaign-chart-icon-btn:hover {
+          color: rgba(255,255,255,0.8);
+          background: rgba(255,255,255,0.05);
         }
-        .campaign-chart-toggle i {
-          font-size: 15px;
+
+        .campaign-chart-icon-btn.active {
+          color: #fff;
+          background: rgba(255,255,255,0.1);
         }
 
         .campaign-chart-panel {
@@ -32947,12 +32957,6 @@ export default function DashboardShell({
           font-size: 13px;
         }
 
-        .dashboard-light-mode .campaign-chart-toggle,
-        :root[data-ui-mode='light'] .campaign-chart-toggle {
-          border-color: #d0ddd4;
-          color: #6a7f74;
-          background: #f4f7f5;
-        }
         .dashboard-light-mode .campaign-chart-panel,
         :root[data-ui-mode='light'] .campaign-chart-panel {
           background: #f9fcfa;
