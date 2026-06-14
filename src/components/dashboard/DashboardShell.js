@@ -3393,6 +3393,9 @@ export default function DashboardShell({
   const [campaignOverviewExpandedClientIds, setCampaignOverviewExpandedClientIds] = useState([])
   const [campaignOverviewExpandedCampaignIds, setCampaignOverviewExpandedCampaignIds] = useState([])
   const [campaignOverviewExpandedAdsetIds, setCampaignOverviewExpandedAdsetIds] = useState([])
+  const [campaignChartOpenKeys, setCampaignChartOpenKeys] = useState({})
+  const [campaignChartData, setCampaignChartData] = useState({})
+  const [campaignChartMetric, setCampaignChartMetric] = useState({})
   const [insights, setInsights] = useState(null)
   const [previousInsights, setPreviousInsights] = useState(null)
   const [googleAdsSummary, setGoogleAdsSummary] = useState(null)
@@ -5588,6 +5591,142 @@ export default function DashboardShell({
       'x-meta-access-token': globalIntegrations.metaAccessToken,
     }
   }, [shouldUseMetaOauth, hasMetaManualToken, globalIntegrations.metaAccessToken])
+
+  const CAMPAIGN_CHART_METRICS = [
+    { key: 'spend', label: 'Investimento', format: 'currency' },
+    { key: 'results', label: 'Resultados', format: 'number' },
+    { key: 'clicks', label: 'Cliques', format: 'number' },
+    { key: 'impressions', label: 'Impressões', format: 'number' },
+    { key: 'ctr', label: 'CTR', format: 'percent' },
+  ]
+
+  const handleToggleCampaignChart = useCallback(async (campaignKey, campaignId) => {
+    setCampaignChartOpenKeys((prev) => {
+      const isOpen = !!prev[campaignKey]
+      if (isOpen) {
+        const next = { ...prev }
+        delete next[campaignKey]
+        return next
+      }
+      return { ...prev, [campaignKey]: true }
+    })
+
+    setCampaignChartData((current) => {
+      if (current[campaignKey] !== undefined) return current
+
+      const params = new URLSearchParams({ campaignId })
+      if (dateRange === 'custom' && customSince && customUntil) {
+        params.set('since', customSince)
+        params.set('until', customUntil)
+      } else {
+        params.set('date_preset', dateRange || 'last_30d')
+      }
+
+      fetch(`/api/meta/campaign-daily?${params}`, { headers: metaRequestHeaders })
+        .then((res) => res.json())
+        .then((json) => setCampaignChartData((prev) => ({ ...prev, [campaignKey]: json.data || [] })))
+        .catch(() => setCampaignChartData((prev) => ({ ...prev, [campaignKey]: [] })))
+
+      return { ...current, [campaignKey]: null }
+    })
+  }, [metaRequestHeaders, dateRange, customSince, customUntil])
+
+  const renderCampaignChart = (campaignKey, themeColor) => {
+    const data = campaignChartData[campaignKey]
+    const metric = campaignChartMetric[campaignKey] || 'spend'
+    const metaDef = CAMPAIGN_CHART_METRICS.find((m) => m.key === metric) || CAMPAIGN_CHART_METRICS[0]
+
+    if (data === null || data === undefined) {
+      return <div className="campaign-chart-loading"><span>Carregando dados...</span></div>
+    }
+    if (!data.length) {
+      return <div className="campaign-chart-loading"><span>Sem dados para o período selecionado.</span></div>
+    }
+
+    const labels = data.map((d) => {
+      const dt = new Date(d.date_start || d.date)
+      return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    })
+
+    const values = data.map((d) => {
+      if (metric === 'ctr') return parseFloat(d.ctr || 0)
+      return parseFloat(d[metric] || 0)
+    })
+
+    const color = themeColor || '#26C281'
+
+    const chartData = {
+      labels,
+      datasets: [{
+        label: metaDef.label,
+        data: values,
+        borderColor: color,
+        backgroundColor: `${color}22`,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }],
+    }
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed.y
+              if (metaDef.format === 'currency') return `R$ ${v.toFixed(2)}`
+              if (metaDef.format === 'percent') return `${v.toFixed(2)}%`
+              return String(Math.round(v))
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } },
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: 'rgba(255,255,255,0.5)',
+            font: { size: 11 },
+            callback: (v) => {
+              if (metaDef.format === 'currency') return `R$${v}`
+              if (metaDef.format === 'percent') return `${v}%`
+              return v
+            },
+          },
+        },
+      },
+    }
+
+    return (
+      <div className="campaign-chart-body">
+        <div className="campaign-chart-metric-tabs">
+          {CAMPAIGN_CHART_METRICS.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              className={'campaign-chart-metric-tab' + (metric === m.key ? ' active' : '')}
+              onClick={() => setCampaignChartMetric((prev) => ({ ...prev, [campaignKey]: m.key }))}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="campaign-chart-canvas-wrap">
+          <Line data={chartData} options={chartOptions} />
+        </div>
+      </div>
+    )
+  }
+
   const metaCredentialSignature = useMemo(
     () =>
       JSON.stringify({
@@ -17809,6 +17948,22 @@ export default function DashboardShell({
                                         <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
                                       </span>
                                     </button>
+
+                                    <button
+                                      type="button"
+                                      className={'campaign-chart-toggle' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')}
+                                      onClick={(e) => { e.stopPropagation(); handleToggleCampaignChart(campaignKey, campaign.campaignId) }}
+                                      title="Ver evolução diária"
+                                    >
+                                      <i className="bx bx-line-chart"></i>
+                                      <span>{campaignChartOpenKeys[campaignKey] ? 'Ocultar gráfico' : 'Ver gráfico'}</span>
+                                    </button>
+
+                                    {campaignChartOpenKeys[campaignKey] && (
+                                      <div className="campaign-chart-panel">
+                                        {renderCampaignChart(campaignKey, effectiveWorkspaceBranding.primaryColor)}
+                                      </div>
+                                    )}
 
                                     {campaignExpanded ? (
                                       adsets.length ? (
@@ -32686,6 +32841,101 @@ export default function DashboardShell({
           padding: 16px;
           display: grid;
           align-items: center;
+        }
+
+        .campaign-chart-toggle {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(190, 201, 191, 0.18);
+          background: rgba(255, 255, 255, 0.04);
+          color: rgba(255, 255, 255, 0.55);
+          font-size: 12px;
+          cursor: pointer;
+          transition: all 0.18s;
+          align-self: flex-start;
+        }
+        .campaign-chart-toggle:hover,
+        .campaign-chart-toggle.active {
+          border-color: rgba(38, 194, 129, 0.5);
+          color: #26C281;
+          background: rgba(38, 194, 129, 0.08);
+        }
+        .campaign-chart-toggle i {
+          font-size: 15px;
+        }
+
+        .campaign-chart-panel {
+          border: 1px solid rgba(190, 201, 191, 0.12);
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.18);
+          overflow: hidden;
+          margin-top: 2px;
+        }
+
+        .campaign-chart-metric-tabs {
+          display: flex;
+          gap: 4px;
+          padding: 12px 16px 0;
+          flex-wrap: wrap;
+        }
+        .campaign-chart-metric-tab {
+          padding: 4px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(190, 201, 191, 0.15);
+          background: transparent;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .campaign-chart-metric-tab:hover {
+          border-color: rgba(38, 194, 129, 0.4);
+          color: rgba(38, 194, 129, 0.8);
+        }
+        .campaign-chart-metric-tab.active {
+          border-color: rgba(38, 194, 129, 0.6);
+          background: rgba(38, 194, 129, 0.12);
+          color: #26C281;
+        }
+
+        .campaign-chart-canvas-wrap {
+          height: 200px;
+          padding: 12px 16px 16px;
+        }
+
+        .campaign-chart-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 80px;
+          color: rgba(255, 255, 255, 0.35);
+          font-size: 13px;
+        }
+
+        .dashboard-light-mode .campaign-chart-toggle,
+        :root[data-ui-mode='light'] .campaign-chart-toggle {
+          border-color: #d0ddd4;
+          color: #6a7f74;
+          background: #f4f7f5;
+        }
+        .dashboard-light-mode .campaign-chart-panel,
+        :root[data-ui-mode='light'] .campaign-chart-panel {
+          background: #f9fcfa;
+          border-color: #d0ddd4;
+        }
+        .dashboard-light-mode .campaign-chart-metric-tab,
+        :root[data-ui-mode='light'] .campaign-chart-metric-tab {
+          border-color: #d0ddd4;
+          color: #6a7f74;
+        }
+        .dashboard-light-mode .campaign-chart-metric-tab.active,
+        :root[data-ui-mode='light'] .campaign-chart-metric-tab.active {
+          background: rgba(38, 194, 129, 0.1);
+          color: #1aa068;
         }
 
         .client-form-grid-3 {
