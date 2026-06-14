@@ -6,7 +6,7 @@ import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const entityId = searchParams.get('entityId') || searchParams.get('campaignId') || ''
+    const entityId = searchParams.get('entityId') || ''
     const datePreset = searchParams.get('date_preset') || 'last_30d'
     const since = searchParams.get('since') || ''
     const until = searchParams.get('until') || ''
@@ -23,7 +23,6 @@ export async function GET(request) {
     const params = new URLSearchParams({
       access_token: token,
       fields: 'spend,impressions,clicks,actions,date_start,date_stop',
-      level: 'campaign',
       time_increment: '1',
       limit: '90',
     })
