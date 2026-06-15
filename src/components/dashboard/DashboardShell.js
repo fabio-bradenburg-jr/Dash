@@ -17933,18 +17933,20 @@ export default function DashboardShell({
                                           <small>Impressões</small>
                                           <strong>{formatNumber(campaign.impressions || 0)}</strong>
                                         </span>
-                                        <span className="campaign-overview-chevron">
+                                      </button>
+                                      <div className="campaign-row-actions">
+                                        <span className="campaign-overview-chevron" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} style={{cursor:'pointer',pointerEvents:'auto'}}>
                                           <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
                                         </span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')}
-                                        onClick={() => handleToggleCampaignChart(campaignKey, campaign.campaignId)}
-                                        title="Ver evolução diária"
-                                      >
-                                        <i className="bx bx-line-chart"></i>
-                                      </button>
+                                        <button
+                                          type="button"
+                                          className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')}
+                                          onClick={() => handleToggleCampaignChart(campaignKey, campaign.campaignId)}
+                                          title="Ver evolução diária"
+                                        >
+                                          <i className="bx bx-line-chart"></i>
+                                        </button>
+                                      </div>
                                       {campaignChartOpenKeys[campaignKey] && (
                                         <div className="campaign-chart-panel">
                                           {renderCampaignChart(campaignKey, effectiveWorkspaceBranding.primaryColor)}
@@ -17988,18 +17990,20 @@ export default function DashboardShell({
                                                       <small>Impressões</small>
                                                       <strong>{formatNumber(adset.impressions || 0)}</strong>
                                                     </span>
-                                                    <span className="campaign-overview-chevron">
+                                                  </button>
+                                                  <div className="campaign-row-actions">
+                                                    <span className="campaign-overview-chevron" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{cursor:'pointer',pointerEvents:'auto'}}>
                                                       <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
                                                     </span>
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adsetKey] ? ' active' : '')}
-                                                    onClick={() => handleToggleCampaignChart(adsetKey, adset.adsetId)}
-                                                    title="Ver evolução diária"
-                                                  >
-                                                    <i className="bx bx-line-chart"></i>
-                                                  </button>
+                                                    <button
+                                                      type="button"
+                                                      className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adsetKey] ? ' active' : '')}
+                                                      onClick={() => handleToggleCampaignChart(adsetKey, adset.adsetId)}
+                                                      title="Ver evolução diária"
+                                                    >
+                                                      <i className="bx bx-line-chart"></i>
+                                                    </button>
+                                                  </div>
                                                   {campaignChartOpenKeys[adsetKey] && (
                                                     <div className="campaign-chart-panel">
                                                       {renderCampaignChart(adsetKey, effectiveWorkspaceBranding.primaryColor)}
@@ -18039,6 +18043,8 @@ export default function DashboardShell({
                                                               <small>Impressões</small>
                                                               <strong>{formatNumber(ad.impressions || 0)}</strong>
                                                             </span>
+                                                          </div>
+                                                          <div className="campaign-row-actions" style={{height:'64px'}}>
                                                             <button
                                                               type="button"
                                                               className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adKey] ? ' active' : '')}
@@ -32776,9 +32782,9 @@ export default function DashboardShell({
 
         .campaign-overview-campaign-row,
         .campaign-overview-adset-row {
-          grid-template-columns: minmax(240px, 1fr) repeat(5, minmax(100px, 0.4fr)) 38px;
+          grid-template-columns: minmax(240px, 1fr) repeat(5, minmax(100px, 0.4fr));
           min-height: 72px;
-          padding: 14px 16px;
+          padding: 14px 96px 14px 16px;
           border-radius: 18px;
           background:
             linear-gradient(90deg, rgba(38, 194, 129, 0.095), rgba(255, 255, 255, 0.018)),
@@ -32854,9 +32860,9 @@ export default function DashboardShell({
         }
 
         .campaign-overview-ad-row {
-          grid-template-columns: minmax(240px, 1fr) repeat(5, minmax(100px, 0.4fr)) 38px;
+          grid-template-columns: minmax(240px, 1fr) repeat(5, minmax(100px, 0.4fr));
           min-height: 64px;
-          padding: 12px 14px;
+          padding: 12px 96px 12px 14px;
           border-radius: 16px;
           background: rgba(0, 0, 0, 0.12);
         }
@@ -32873,12 +32879,22 @@ export default function DashboardShell({
           position: relative;
         }
 
-        .campaign-chart-icon-btn {
+        .campaign-row-actions {
           position: absolute;
-          right: 6px;
+          right: 8px;
           top: 0;
           height: 72px;
-          width: 36px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .campaign-chart-icon-btn {
+          position: static;
+          height: auto;
+          width: auto;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -32887,7 +32903,7 @@ export default function DashboardShell({
           cursor: pointer;
           font-size: 18px;
           transition: color 0.15s;
-          z-index: 1;
+          pointer-events: auto;
           color: var(--accent-blue);
         }
         .campaign-chart-icon-btn > i {
@@ -33595,7 +33611,7 @@ export default function DashboardShell({
           .campaign-overview-campaign-row,
           .campaign-overview-adset-row,
           .campaign-overview-ad-row {
-            grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(100px, 0.5fr)) 38px;
+            grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(100px, 0.5fr));
           }
 
           .campaign-overview-ad-row {
