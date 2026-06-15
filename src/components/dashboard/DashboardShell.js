@@ -3266,6 +3266,7 @@ export default function DashboardShell({
   const [weeklyWeekStart, setWeeklyWeekStart] = useState(() => getMondayDateInputValue())
   const [isWeeklyEntryModalOpen, setIsWeeklyEntryModalOpen] = useState(false)
   const [isWeeklyHistoryModalOpen, setIsWeeklyHistoryModalOpen] = useState(false)
+  const [isChurnListOpen, setIsChurnListOpen] = useState(false)
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -5418,6 +5419,7 @@ export default function DashboardShell({
       integrationCount: healthCounts.integration,
       churnCount: healthCounts.churn,
       churnedThisMonthCount,
+      churnClientIdsList: Array.from(churnClientIds),
       activeAtStartOfMonth: totalPeriodClients,
       monthlyChurnRate,
       latestWeekLabel: weeklyHistoryCards[0]
@@ -14786,6 +14788,7 @@ export default function DashboardShell({
           const color = hasChurn ? '#ef4444' : '#10b981'
           const bg = hasChurn ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)'
           const border = hasChurn ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'
+          const churnClients = (weeklyPortfolioStats.churnClientIdsList || []).map((id) => clientsById.get(id)).filter(Boolean)
           return (
             <div style={{
               gridColumn: 1, gridRow: 2,
@@ -14794,9 +14797,29 @@ export default function DashboardShell({
               display: 'flex', flexDirection: 'column', gap: 8,
               alignSelf: 'center', margin: '0 12px 12px 12px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color, fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <i className={hasChurn ? 'bx bx-user-minus' : 'bx bx-user-check'} style={{ fontSize: '1.1rem' }}></i>
-                Churn do mês
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color, fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <i className={hasChurn ? 'bx bx-user-minus' : 'bx bx-user-check'} style={{ fontSize: '1.1rem' }}></i>
+                  Churn do mês
+                </div>
+                {hasChurn && (
+                  <button
+                    type="button"
+                    onClick={() => setIsChurnListOpen((v) => !v)}
+                    style={{
+                      width: 32, height: 32, borderRadius: '999px',
+                      border: '1px solid rgba(239,68,68,0.35)',
+                      background: 'rgba(239,68,68,0.12)',
+                      display: 'grid', placeItems: 'center',
+                      cursor: 'pointer', color: '#ef4444', fontSize: 16,
+                      transition: 'background 0.15s, border-color 0.15s',
+                      flexShrink: 0,
+                    }}
+                    title={isChurnListOpen ? 'Fechar lista' : 'Ver clientes em churn'}
+                  >
+                    <i className={isChurnListOpen ? 'bx bx-chevron-up' : 'bx bx-chevron-down'}></i>
+                  </button>
+                )}
               </div>
               <div style={{ fontSize: 'clamp(2.2rem,3.5vw,3rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, color: isLightAppMode ? '#0f172a' : '#f8fafc' }}>
                 {weeklyPortfolioStats.monthlyChurnRate == null ? '—' : weeklyPortfolioStats.monthlyChurnRate.toFixed(1) + '%'}
@@ -14810,6 +14833,22 @@ export default function DashboardShell({
                 <i className={hasChurn ? 'bx bx-error-circle' : 'bx bx-check-circle'} style={{ fontSize: '1rem' }}></i>
                 {hasChurn ? `${weeklyPortfolioStats.churnedThisMonthCount} churn este mês` : 'Nenhum churn este mês'}
               </div>
+              {isChurnListOpen && hasChurn && churnClients.length > 0 && (
+                <div style={{
+                  marginTop: 4, borderTop: '1px solid rgba(239,68,68,0.2)',
+                  paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6,
+                }}>
+                  {churnClients.map((client) => (
+                    <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {client.logoUrl
+                        ? <img src={client.logoUrl} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        : <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(239,68,68,0.25)', display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 10, color: '#ef4444', fontWeight: 800 }}>{String(client.name || '?')[0].toUpperCase()}</span>
+                      }
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isLightAppMode ? '#1e293b' : '#f1f5f9' }}>{client.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })()}
