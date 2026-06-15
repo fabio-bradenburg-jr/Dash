@@ -5708,18 +5708,6 @@ export default function DashboardShell({
 
     return (
       <div className="campaign-chart-body">
-        <div className="campaign-chart-metric-tabs">
-          {CAMPAIGN_CHART_METRICS.map((m) => (
-            <button
-              key={m.key}
-              type="button"
-              className={'campaign-chart-metric-tab' + (metric === m.key ? ' active' : '')}
-              onClick={() => setCampaignChartMetric((prev) => ({ ...prev, [campaignKey]: m.key }))}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
         <div className="campaign-chart-canvas-wrap">
           <Line data={chartData} options={chartOptions} />
         </div>
@@ -32890,28 +32878,36 @@ export default function DashboardShell({
           right: 6px;
           top: 0;
           height: 72px;
-          width: 32px;
+          width: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: none;
           background: transparent;
-          color: rgba(255,255,255,0.3);
           cursor: pointer;
-          border-radius: 8px;
-          font-size: 16px;
-          transition: color 0.15s, background 0.15s;
+          font-size: 18px;
+          transition: color 0.15s;
           z-index: 1;
+          color: var(--accent-blue);
         }
-
-        .campaign-chart-icon-btn:hover {
-          color: rgba(255,255,255,0.8);
-          background: rgba(255,255,255,0.08);
+        .campaign-chart-icon-btn > i {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(129, 216, 167, 0.18);
+          background: rgba(38, 194, 129, 0.08);
+          font-size: 16px;
+          transition: background 0.15s, border-color 0.15s;
         }
-
-        .campaign-chart-icon-btn.active {
-          color: #fff;
-          background: rgba(255,255,255,0.12);
+        .campaign-chart-icon-btn:hover > i {
+          border-color: rgba(129, 216, 167, 0.4);
+          background: rgba(38, 194, 129, 0.18);
+        }
+        .campaign-chart-icon-btn.active > i {
+          border-color: rgba(38, 194, 129, 0.6);
+          background: rgba(38, 194, 129, 0.22);
         }
 
         .campaign-chart-panel {
