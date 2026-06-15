@@ -5633,8 +5633,6 @@ export default function DashboardShell({
 
   const renderCampaignChart = (campaignKey, themeColor) => {
     const data = campaignChartData[campaignKey]
-    const metric = campaignChartMetric[campaignKey] || 'spend'
-    const metaDef = CAMPAIGN_CHART_METRICS.find((m) => m.key === metric) || CAMPAIGN_CHART_METRICS[0]
 
     if (data === null || data === undefined) {
       return <div className="campaign-chart-loading"><span>Carregando dados...</span></div>
@@ -5643,45 +5641,77 @@ export default function DashboardShell({
       return <div className="campaign-chart-loading"><span>Sem dados para o período selecionado.</span></div>
     }
 
+    const color = themeColor || '#26C281'
+    const colorResults = 'rgba(255,255,255,0.45)'
+
     const labels = data.map((d) => {
       const dt = new Date(d.date_start || d.date)
       return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     })
 
-    const values = data.map((d) => {
-      if (metric === 'ctr') return parseFloat(d.ctr || 0)
-      return parseFloat(d[metric] || 0)
+    const costPerResult = data.map((d) => {
+      const spend = parseFloat(d.spend || 0)
+      const results = parseFloat(d.results || 0)
+      return results > 0 ? parseFloat((spend / results).toFixed(2)) : 0
     })
 
-    const color = themeColor || '#26C281'
+    const results = data.map((d) => parseFloat(d.results || 0))
 
     const chartData = {
       labels,
-      datasets: [{
-        label: metaDef.label,
-        data: values,
-        borderColor: color,
-        backgroundColor: `${color}22`,
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      }],
+      datasets: [
+        {
+          label: 'Custo/resultado',
+          data: costPerResult,
+          borderColor: color,
+          backgroundColor: `${color}22`,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderDash: [],
+          yAxisID: 'yCost',
+        },
+        {
+          label: 'Resultados',
+          data: results,
+          borderColor: colorResults,
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderDash: [6, 4],
+          yAxisID: 'yResults',
+        },
+      ],
     }
 
     const chartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: 'rgba(255,255,255,0.55)',
+            font: { size: 11 },
+            boxWidth: 24,
+            usePointStyle: true,
+            pointStyle: 'line',
+          },
+        },
         tooltip: {
           callbacks: {
             label: (ctx) => {
               const v = ctx.parsed.y
-              if (metaDef.format === 'currency') return `R$ ${v.toFixed(2)}`
-              if (metaDef.format === 'percent') return `${v.toFixed(2)}%`
-              return String(Math.round(v))
+              if (ctx.datasetIndex === 0) return `Custo/resultado: R$ ${v.toFixed(2)}`
+              return `Resultados: ${Math.round(v)}`
             },
           },
         },
@@ -5691,16 +5721,22 @@ export default function DashboardShell({
           grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } },
         },
-        y: {
+        yCost: {
+          position: 'left',
           grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: {
-            color: 'rgba(255,255,255,0.5)',
+            color: color,
             font: { size: 11 },
-            callback: (v) => {
-              if (metaDef.format === 'currency') return `R$${v}`
-              if (metaDef.format === 'percent') return `${v}%`
-              return v
-            },
+            callback: (v) => `R$${v}`,
+          },
+        },
+        yResults: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: {
+            color: colorResults,
+            font: { size: 11 },
+            callback: (v) => Math.round(v),
           },
         },
       },
