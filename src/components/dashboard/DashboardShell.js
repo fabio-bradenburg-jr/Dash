@@ -18419,7 +18419,14 @@ export default function DashboardShell({
                 ) : filteredAdAccountBalanceRows.length ? (
                   filteredAdAccountBalanceRows.map((row) => {
                     const billingUrl = row.accountId
-                      ? `https://adsmanager.facebook.com/adsmanager/billing_hub/payment_settings/?act=${row.accountId}&nav_entry_point=ads_ecosystem_navigation_menu`
+                      ? (() => {
+                          const params = new URLSearchParams({ asset_id: row.accountId, placement: 'ads_manager' })
+                          if (row.businessId) {
+                            params.set('global_scope_id', row.businessId)
+                            params.set('business_id', row.businessId)
+                          }
+                          return `https://adsmanager.facebook.com/adsmanager/billing_hub/accounts/details/?${params}`
+                        })()
                       : null
                     return (
                       <div key={`${row.clientId}-${row.accountId || 'empty'}`} className={'ad-balance-account-card ' + (row.tone || 'empty')}>
