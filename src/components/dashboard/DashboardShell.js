@@ -4989,6 +4989,18 @@ export default function DashboardShell({
   const weeklyCurrentCpl = weeklyCurrentLeads > 0 ? weeklyCurrentInvestment / weeklyCurrentLeads : 0
   const weeklyCurrentCostPerSql = weeklyCurrentSql > 0 ? weeklyCurrentInvestment / weeklyCurrentSql : 0
 
+  const weeklyPrevWeekStart = useMemo(() => {
+    if (!weeklyWeekStart) return ''
+    const d = new Date(weeklyWeekStart + 'T00:00:00')
+    d.setDate(d.getDate() - 7)
+    return d.toISOString().slice(0, 10)
+  }, [weeklyWeekStart])
+
+  const weeklyPrevRecord = useMemo(() => {
+    if (!weeklyForm.clientId || !weeklyPrevWeekStart) return null
+    return weeklyRecords.find((r) => r.clientId === weeklyForm.clientId && r.weekStart === weeklyPrevWeekStart) || null
+  }, [weeklyRecords, weeklyForm.clientId, weeklyPrevWeekStart])
+
   const weeklyHealthRiskTarget = Number.isFinite(Number(operationSettings?.healthRiskTargetPercent))
     ? Math.min(100, Math.max(0, Number(operationSettings.healthRiskTargetPercent)))
     : 20
@@ -14679,23 +14691,48 @@ export default function DashboardShell({
         </label>
         <label className="input-group" style={weeklyFieldStyle}>
           <span>Investimento</span>
-          <input style={weeklyControlStyle} type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
+          <div className="weekly-input-row">
+            <input style={weeklyControlStyle} type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
+            {weeklyPrevRecord && (
+              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.investment || 0)}</span>
+            )}
+          </div>
         </label>
         <label className="input-group" style={weeklyFieldStyle}>
           <span>Leads gerados</span>
-          <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
+          <div className="weekly-input-row">
+            <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
+            {weeklyPrevRecord && (
+              <span className="weekly-prev-value">{formatNumber(weeklyPrevRecord.leads || 0)}</span>
+            )}
+          </div>
         </label>
         <label className="input-group" style={weeklyFieldStyle}>
           <span>SQL</span>
-          <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
+          <div className="weekly-input-row">
+            <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
+            {weeklyPrevRecord && (
+              <span className="weekly-prev-value">{formatNumber(weeklyPrevRecord.sql || 0)}</span>
+            )}
+          </div>
         </label>
         <div className="weekly-computed-field" style={weeklyComputedStyle}>
           <span>CPL automático</span>
-          <strong>{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</strong>
+          <div className="weekly-input-row">
+            <strong>{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</strong>
+            {weeklyPrevRecord && weeklyPrevRecord.cpl > 0 && (
+              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.cpl)}</span>
+            )}
+          </div>
         </div>
         <div className="weekly-computed-field" style={weeklyComputedStyle}>
           <span>Custo SQL automático</span>
-          <strong>{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</strong>
+          <div className="weekly-input-row">
+            <strong>{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</strong>
+            {weeklyPrevRecord && weeklyPrevRecord.costPerSql > 0 && (
+              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.costPerSql)}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -21971,6 +22008,22 @@ export default function DashboardShell({
           border-radius: 24px !important;
           background: rgba(255,255,255,.045) !important;
           padding: 20px !important;
+        }
+
+        .weekly-dashboard-panel .weekly-input-row {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+        }
+
+        .weekly-dashboard-panel .weekly-prev-value {
+          font-size: 11px !important;
+          opacity: 0.5 !important;
+          white-space: nowrap !important;
+          color: inherit !important;
+          flex-shrink: 0 !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
         }
 
         .weekly-dashboard-panel .weekly-health-options {
