@@ -14714,7 +14714,7 @@ export default function DashboardShell({
         </label>
         <div className="weekly-computed-field" style={weeklyComputedStyle}>
           <span>CPL automático</span>
-          <div className="weekly-input-row">
+          <div className="weekly-input-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
             <strong>{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</strong>
             {weeklyPrevRecord && weeklyPrevRecord.cpl > 0 && (
               <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.cpl)}</span>
@@ -14723,7 +14723,7 @@ export default function DashboardShell({
         </div>
         <div className="weekly-computed-field" style={weeklyComputedStyle}>
           <span>Custo SQL automático</span>
-          <div className="weekly-input-row">
+          <div className="weekly-input-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
             <strong>{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</strong>
             {weeklyPrevRecord && weeklyPrevRecord.costPerSql > 0 && (
               <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.costPerSql)}</span>
