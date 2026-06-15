@@ -5393,23 +5393,17 @@ export default function DashboardShell({
       if (healthCounts[record.healthStatus] != null) healthCounts[record.healthStatus] += 1
     })
 
-    // Monthly churn calculation
-    const now = new Date()
-    const thisYear = now.getFullYear()
-    const thisMonth = now.getMonth()
-    const startOfMonth = new Date(thisYear, thisMonth, 1)
-
-    // Clients who churned this month (churnDate set and falls in current month)
-    const churnedThisMonth = clients.filter((client) => {
-      if (String(client?.status || '').trim().toLowerCase() !== 'churn') return false
-      const d = client.churnDate ? new Date(client.churnDate) : null
-      return d && d >= startOfMonth && d.getFullYear() === thisYear && d.getMonth() === thisMonth
+    // Churn rate: unique clients with churn status in filtered period / total unique clients in filtered period
+    const churnClientIds = new Set()
+    const allPeriodClientIds = new Set()
+    weeklyVisibleRecords.forEach((record) => {
+      if (record.clientId) allPeriodClientIds.add(record.clientId)
+      if (record.healthStatus === 'churn' && record.clientId) churnClientIds.add(record.clientId)
     })
-
-    // Active at start of month = all non-churn now + those who churned this month
-    const activeAtStartOfMonth = activeBaseClientsCount + churnedThisMonth.length
-    const monthlyChurnRate = activeAtStartOfMonth > 0
-      ? (churnedThisMonth.length / activeAtStartOfMonth) * 100
+    const churnedThisMonthCount = churnClientIds.size
+    const totalPeriodClients = allPeriodClientIds.size || activeBaseClientsCount
+    const monthlyChurnRate = totalPeriodClients > 0
+      ? (churnedThisMonthCount / totalPeriodClients) * 100
       : null
 
     return {
@@ -5423,8 +5417,8 @@ export default function DashboardShell({
       withResultCount: healthCounts.with_result,
       integrationCount: healthCounts.integration,
       churnCount: healthCounts.churn,
-      churnedThisMonthCount: churnedThisMonth.length,
-      activeAtStartOfMonth,
+      churnedThisMonthCount,
+      activeAtStartOfMonth: totalPeriodClients,
       monthlyChurnRate,
       latestWeekLabel: weeklyHistoryCards[0]
         ? formatWeekRangeLabel(weeklyHistoryCards[0].weekStart, weeklyHistoryCards[0].weekEnd)
