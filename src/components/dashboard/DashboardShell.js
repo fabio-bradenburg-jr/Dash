@@ -18016,7 +18016,19 @@ export default function DashboardShell({
                                     <div className="campaign-row-wrap">
                                       <button type="button" className="campaign-overview-tree-row campaign-overview-campaign-row" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} aria-expanded={campaignExpanded}>
                                         <span className="campaign-overview-row-title">
-                                          <strong>{campaign.name || 'Campanha sem nome'}</strong>
+                                          <strong>
+                                            <span
+                                              title={campaign.effectiveStatus === 'ACTIVE' ? 'Ativa' : campaign.effectiveStatus === 'PAUSED' ? 'Pausada' : campaign.effectiveStatus || 'Status desconhecido'}
+                                              style={{
+                                                display: 'inline-block',
+                                                width: 8, height: 8, borderRadius: '50%',
+                                                background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b',
+                                                marginRight: 7, flexShrink: 0, verticalAlign: 'middle',
+                                                boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 6px #22c55e88' : 'none',
+                                              }}
+                                            />
+                                            {campaign.name || 'Campanha sem nome'}
+                                          </strong>
                                           <small>{formatNumber(adsets.length)} conjunto(s)</small>
                                         </span>
                                         <span className="campaign-overview-metric">
