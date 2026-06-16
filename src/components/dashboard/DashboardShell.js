@@ -3337,6 +3337,7 @@ export default function DashboardShell({
   const [newClientGoogleAdsAccountId, setNewClientGoogleAdsAccountId] = useState('')
   const [newClientLeadsSheetUrl, setNewClientLeadsSheetUrl] = useState('')
   const [selectedSheetClientId, setSelectedSheetClientId] = useState('')
+  const [sheetFullscreen, setSheetFullscreen] = useState(false)
   const [newClientDashboardColor, setNewClientDashboardColor] = useState('#10B981')
   const [newClientLogoUrl, setNewClientLogoUrl] = useState('')
   const [newClientResultManagerUserId, setNewClientResultManagerUserId] = useState('')
@@ -17840,7 +17841,17 @@ export default function DashboardShell({
                   </div>
 
                   {/* Sheet viewer */}
-                  <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
+                  <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, position: 'relative' }}>
+                    {selectedSheetClient && (
+                      <button
+                        type="button"
+                        onClick={() => setSheetFullscreen(true)}
+                        title="Tela cheia"
+                        style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, backdropFilter: 'blur(6px)' }}
+                      >
+                        <i className="bx bx-fullscreen"></i>
+                      </button>
+                    )}
                     {selectedSheetClient ? (
                       <iframe
                         key={selectedSheetClient.id}
@@ -17856,6 +17867,29 @@ export default function DashboardShell({
                       </div>
                     )}
                   </div>
+
+                  {/* Fullscreen overlay */}
+                  {sheetFullscreen && selectedSheetClient && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{selectedSheetClient.name} — Planilha de Leads</span>
+                        <button
+                          type="button"
+                          onClick={() => setSheetFullscreen(false)}
+                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
+                        >
+                          <i className="bx bx-exit-fullscreen"></i>
+                        </button>
+                      </div>
+                      <iframe
+                        key={`fs-${selectedSheetClient.id}`}
+                        src={toEmbedUrl(selectedSheetClient.leadsSheetUrl)}
+                        title={`Planilha de leads — ${selectedSheetClient.name}`}
+                        style={{ flex: 1, border: 'none', display: 'block', width: '100%' }}
+                        allow="autoplay"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </section>
