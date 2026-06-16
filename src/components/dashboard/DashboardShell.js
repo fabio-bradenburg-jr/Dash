@@ -3272,6 +3272,7 @@ export default function DashboardShell({
   const [onboardingExpandedClient, setOnboardingExpandedClient] = useState(null)
   const [onboardingSaving, setOnboardingSaving] = useState(false)
   const [onboardingClientFilter, setOnboardingClientFilter] = useState('')
+  const [onboardingView, setOnboardingView] = useState('cards')
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -17044,6 +17045,133 @@ export default function DashboardShell({
                 { id: 'reuniao_30d', label: 'Agendar reunião de 30 dias (a partir do início da campanha)' },
               ],
             },
+            {
+              id: 'kickoff_extra',
+              label: '7. Comunicação adicional',
+              icon: 'bx-chat',
+              tasks: [
+                { id: 'checklist_cliente', label: 'Enviar checklist inicial ao cliente' },
+                { id: 'reunioes_recorrentes', label: 'Agendar reuniões recorrentes' },
+                { id: 'resposta_integracao_gr', label: 'Enviar Resposta de Integração para o G.R' },
+              ],
+            },
+            {
+              id: 'organico_gmb',
+              label: '8. Google Meu Negócio',
+              icon: 'bx-map-pin',
+              tasks: [
+                { id: 'gmb_acesso', label: 'Coletar acesso ao Google Meu Negócio' },
+                { id: 'gmb_fotos', label: 'Ajustar fotos do perfil' },
+                { id: 'gmb_horario', label: 'Configurar horário de atendimento' },
+                { id: 'gmb_site_redes', label: 'Vincular site e redes sociais' },
+                { id: 'gmb_localizacao', label: 'Ajustar localização da empresa' },
+                { id: 'gmb_avaliacao', label: 'Enviar link de avaliação para o cliente' },
+              ],
+            },
+            {
+              id: 'organico_redes',
+              label: '9. Configuração de redes sociais',
+              icon: 'bx-share-alt',
+              tasks: [
+                { id: 'ig_foto', label: 'Instagram: Foto de perfil' },
+                { id: 'ig_bio', label: 'Instagram: Bio' },
+                { id: 'ig_botoes', label: 'Instagram: Botões de comunicação (contato)' },
+                { id: 'ig_fixado', label: 'Instagram: Post fixado' },
+                { id: 'fb_foto', label: 'Facebook: Foto de perfil' },
+                { id: 'fb_capa', label: 'Facebook: Capa da página' },
+                { id: 'fb_wpp_btn', label: 'Facebook: Botão de WhatsApp' },
+                { id: 'fb_horario', label: 'Facebook: Horário de atendimento' },
+                { id: 'fb_localizacao', label: 'Facebook: Localização' },
+                { id: 'fb_sobre', label: 'Facebook: Sobre a empresa' },
+                { id: 'fb_acesso_time', label: 'Facebook: Dar acesso para o time' },
+                { id: 'fb_acesso_cliente', label: 'Facebook: Dar acesso para o cliente' },
+                { id: 'li_foto', label: 'LinkedIn: Foto de perfil' },
+                { id: 'li_sobre', label: 'LinkedIn: Sobre a empresa' },
+                { id: 'li_contato', label: 'LinkedIn: Botão de contato' },
+                { id: 'li_vinculacao', label: 'LinkedIn: Vinculação de redes sociais e site' },
+                { id: 'li_acesso_time', label: 'LinkedIn: Dar acesso da página para o time' },
+                { id: 'li_acesso_cliente', label: 'LinkedIn: Dar acesso para o cliente' },
+                { id: 'wpp_foto', label: 'WhatsApp: Foto de perfil' },
+                { id: 'wpp_nome', label: 'WhatsApp: Nome' },
+                { id: 'wpp_horario_neg', label: 'WhatsApp: Horário de atendimento' },
+                { id: 'wpp_redes', label: 'WhatsApp: Redes sociais' },
+                { id: 'wpp_site', label: 'WhatsApp: Site' },
+                { id: 'wpp_saudacao', label: 'WhatsApp: Mensagem de saudação' },
+              ],
+            },
+            {
+              id: 'fast_traffic_1',
+              label: '10. Fast Traffic — Etapa 1',
+              deadline: '⏱ Até 10 dias após reunião',
+              icon: 'bx-bolt-circle',
+              tasks: [
+                { id: 'ft1_acessos', label: 'Acessos (BM, conta de anúncios, página, Instagram)' },
+                { id: 'ft1_wpp_bm', label: 'Configuração WhatsApp Business na conta de anúncios' },
+                { id: 'ft1_dominio', label: 'Verificação de domínio' },
+                { id: 'ft1_pixel', label: 'Configuração Pixel / API de conversão (se aplicável)' },
+                { id: 'ft1_eventos', label: 'Configuração de eventos (Lead, Purchase, etc.) (se aplicável)' },
+                { id: 'ft1_tag_google', label: 'Configuração tag Google Ads (se aplicável)' },
+                { id: 'ft1_wpp_vinculacao', label: 'Vinculação de WhatsApp no Meta Business Suite' },
+              ],
+            },
+            {
+              id: 'fast_traffic_2',
+              label: '11. Fast Traffic — Etapa 2',
+              deadline: '⏱ Até 10 dias após reunião',
+              icon: 'bx-spreadsheet',
+              tasks: [
+                { id: 'ft2_planilha_leads', label: 'Criar/validar planilha de leads' },
+                { id: 'ft2_lista_clientes', label: 'Solicitar lista de clientes' },
+                { id: 'ft2_reportei', label: 'Vinculação do Reportei' },
+                { id: 'ft2_catalogo', label: 'Solicitação do catálogo de produtos/serviços' },
+                { id: 'ft2_info_tecnicas', label: 'Solicitação de informações técnicas' },
+                { id: 'ft2_materiais', label: 'Solicitação de materiais' },
+              ],
+            },
+            {
+              id: 'fast_traffic_3',
+              label: '12. Fast Traffic — Etapa 3',
+              deadline: '⏱ Até 10 dias após reunião',
+              icon: 'bx-rocket',
+              tasks: [
+                { id: 'ft3_briefing', label: 'Briefing estratégico completo' },
+                { id: 'ft3_negocio', label: 'Análise do negócio (produto, margem, diferencial, curva ABC)' },
+                { id: 'ft3_publico', label: 'Análise de público-alvo' },
+                { id: 'ft3_concorrentes', label: 'Análise de concorrentes' },
+                { id: 'ft3_presenca', label: 'Análise de presença digital atual' },
+                { id: 'ft3_site', label: 'Estudo do site / landing page' },
+                { id: 'ft3_publicos_frio', label: 'Configuração de públicos frio' },
+                { id: 'ft3_lista_plat', label: 'Subir lista na plataforma' },
+                { id: 'ft3_copys', label: 'Criação de copys' },
+                { id: 'ft3_criativos', label: 'Produção de criativos (design/vídeo)' },
+                { id: 'ft3_pagamento', label: 'Definição de forma de pagamento' },
+                { id: 'ft3_cartao', label: 'Cadastrar cartão ou alocar verba' },
+                { id: 'ft3_campanhas', label: 'Subir campanhas' },
+              ],
+            },
+            {
+              id: 'treinamento',
+              label: '13. Treinamento & Ativação',
+              icon: 'bx-chalkboard',
+              tasks: [
+                { id: 'trei_comercial', label: 'Treinamento comercial' },
+                { id: 'trei_script', label: 'Definição de script de atendimento' },
+                { id: 'trei_crm', label: 'Treinamento de CRM' },
+                { id: 'trei_prospeccao', label: 'Treinamento de prospecção ativa (se aplicável)' },
+              ],
+            },
+            {
+              id: 'pos_onboarding',
+              label: '14. Pós-Onboarding & Relacionamento',
+              icon: 'bx-heart',
+              tasks: [
+                { id: 'pos_acompanhamento', label: 'Acompanhamento dos primeiros resultados' },
+                { id: 'pos_relatorio', label: 'Envio de primeiro relatório' },
+                { id: 'pos_reuniao30', label: 'Reunião de 30 dias (análise + próximos passos)' },
+                { id: 'pos_fluxos', label: 'Inclusão em fluxos de relacionamento' },
+                { id: 'pos_nps', label: 'Coleta de feedback inicial (NPS onboarding)' },
+              ],
+            },
           ]
 
           const totalTasks = ONBOARDING_PHASES.reduce((sum, p) => sum + p.tasks.length, 0)
@@ -17119,10 +17247,151 @@ export default function DashboardShell({
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
+                  {/* View toggle */}
+                  <div style={{ display: 'flex', gap: 4, marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4 }}>
+                    {[
+                      { id: 'cards', icon: 'bx-grid-alt', label: 'Quadros' },
+                      { id: 'list', icon: 'bx-list-ul', label: 'Lista' },
+                      { id: 'table', icon: 'bx-table', label: 'Tabela' },
+                    ].map((v) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setOnboardingView(v.id)}
+                        title={v.label}
+                        style={{ padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: onboardingView === v.id ? 'rgba(38,194,129,0.2)' : 'transparent', color: onboardingView === v.id ? '#26c281' : 'inherit', transition: 'all 0.15s', fontSize: '1rem' }}
+                      >
+                        <i className={`bx ${v.icon}`}></i>
+                      </button>
+                    ))}
+                  </div>
                   {onboardingSaving && <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>Salvando...</span>}
                 </div>
               </div>
 
+              {/* TABLE VIEW */}
+              {onboardingView === 'table' && (
+                <div style={{ padding: '0 28px 28px', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.87rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(129,216,167,0.12)' }}>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.5 }}>Cliente</th>
+                        {ONBOARDING_PHASES.map((p) => (
+                          <th key={p.id} title={p.label} style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.5, minWidth: 60, maxWidth: 80, wordBreak: 'break-word' }}>
+                            <i className={`bx ${p.icon}`}></i>
+                          </th>
+                        ))}
+                        <th style={{ textAlign: 'center', padding: '10px 12px', fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.5 }}>%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredOnboardingClients.map((client) => {
+                        const record = onboardingRecords.find((r) => r.client_id === client.id)
+                        const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+                        const progress = Math.round((completedTasks.length / totalTasks) * 100)
+                        return (
+                          <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.2)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                                  {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 28, height: 28, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 12 }}></i>}
+                                </span>
+                                {client.name}
+                              </div>
+                            </td>
+                            {ONBOARDING_PHASES.map((phase) => {
+                              const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
+                              const phaseTotal = phase.tasks.length
+                              const allDone = phaseDone === phaseTotal
+                              const noneDone = phaseDone === 0
+                              return (
+                                <td key={phase.id} style={{ textAlign: 'center', padding: '10px 8px' }}>
+                                  <span title={`${phaseDone}/${phaseTotal}`} style={{
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    width: 28, height: 28, borderRadius: 8,
+                                    background: allDone ? 'rgba(34,197,94,0.18)' : noneDone ? 'rgba(255,255,255,0.04)' : 'rgba(245,158,11,0.15)',
+                                    color: allDone ? '#22c55e' : noneDone ? 'rgba(255,255,255,0.2)' : '#f59e0b',
+                                    fontSize: '0.72rem', fontWeight: 700,
+                                  }}>
+                                    {allDone ? <i className="bx bx-check" style={{ fontSize: 14 }}></i> : noneDone ? <i className="bx bx-minus" style={{ fontSize: 12 }}></i> : phaseDone}
+                                  </span>
+                                </td>
+                              )
+                            })}
+                            <td style={{ textAlign: 'center', padding: '10px 12px', fontWeight: 800, color: progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>{progress}%</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* LIST VIEW */}
+              {onboardingView === 'list' && (
+                <div style={{ padding: '0 28px 28px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {filteredOnboardingClients.map((client) => {
+                    const record = onboardingRecords.find((r) => r.client_id === client.id)
+                    const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+                    const completedCount = completedTasks.length
+                    const progress = Math.round((completedCount / totalTasks) * 100)
+                    const isExpanded = onboardingExpandedClient === client.id
+                    return (
+                      <div key={client.id} style={{ borderRadius: 14, border: '1px solid rgba(129,216,167,0.1)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden' }}>
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingExpandedClient(isExpanded ? null : client.id)}
+                          style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
+                        >
+                          <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.18)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                            {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 14 }}></i>}
+                          </span>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>{client.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
+                            <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4 }} />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                          </div>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'right' }}>{progress}%</span>
+                          <i className={`bx ${isExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.5 }}></i>
+                        </button>
+                        {isExpanded && (
+                          <div style={{ borderTop: '1px solid rgba(129,216,167,0.08)', padding: '10px 16px 14px' }}>
+                            {ONBOARDING_PHASES.map((phase) => {
+                              const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
+                              return (
+                                <div key={phase.id} style={{ marginBottom: 14 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.55 }}>
+                                    <i className={`bx ${phase.icon}`}></i>{phase.label}
+                                    {phase.deadline && <span style={{ fontWeight: 600, fontSize: '0.65rem', color: '#f59e0b', opacity: 1, textTransform: 'none', letterSpacing: 0, background: 'rgba(245,158,11,0.12)', borderRadius: 5, padding: '1px 5px' }}>{phase.deadline}</span>}
+                                    <span style={{ marginLeft: 'auto' }}>{phaseDone}/{phase.tasks.length}</span>
+                                  </div>
+                                  {phase.tasks.map((task) => {
+                                    const done = completedTasks.includes(task.id)
+                                    return (
+                                      <button key={task.id} type="button" onClick={() => handleToggleOnboardingTask(client.id, task.id)}
+                                        style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 2px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left', opacity: done ? 0.5 : 1 }}>
+                                        <span style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${done ? '#22c55e' : 'rgba(129,216,167,0.3)'}`, background: done ? '#22c55e' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1 }}>
+                                          {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff' }}></i>}
+                                        </span>
+                                        <span style={{ fontSize: '0.83rem', lineHeight: 1.4, textDecoration: done ? 'line-through' : 'none' }}>{task.label}</span>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* CARDS VIEW */}
+              {onboardingView === 'cards' && (
               <div style={{ display: 'grid', gap: 16, padding: '24px 28px', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', alignItems: 'start' }}>
                 {filteredOnboardingClients.map((client) => {
                   const record = onboardingRecords.find((r) => r.client_id === client.id)
@@ -17167,6 +17436,7 @@ export default function DashboardShell({
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.6 }}>
                                   <i className={`bx ${phase.icon}`}></i>
                                   {phase.label}
+                                  {phase.deadline && <span style={{ fontWeight: 600, fontSize: '0.65rem', color: '#f59e0b', opacity: 1, textTransform: 'none', letterSpacing: 0, background: 'rgba(245,158,11,0.12)', borderRadius: 5, padding: '1px 5px' }}>{phase.deadline}</span>}
                                   <span style={{ marginLeft: 'auto', fontWeight: 700 }}>{phaseDone}/{phase.tasks.length}</span>
                                 </div>
                                 {phase.tasks.map((task) => {
@@ -17203,6 +17473,7 @@ export default function DashboardShell({
                   )
                 })}
               </div>
+              )}
             </section>
           )
         })()}
