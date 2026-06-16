@@ -17252,13 +17252,13 @@ export default function DashboardShell({
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   {/* Search input */}
                   <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
-                    <i className="bx bx-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
+                    <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
                     <input
                       type="text"
                       value={onboardingSearch}
                       onChange={(e) => setOnboardingSearch(e.target.value)}
                       placeholder="Buscar cliente..."
-                      style={{ width: '100%', padding: '8px 12px 8px 38px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 12px 8px 42px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                   {/* Status filter chips */}
