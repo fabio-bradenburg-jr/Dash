@@ -3523,13 +3523,13 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
   const PAC_TABS = ['pac-dash', 'pac-calendario', 'pac-tipos']
   const [isPacMenuOpen, setIsPacMenuOpen] = useState(() => PAC_TABS.includes(initialTab))
-  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding', 'gr-tarefas']
+  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding']
   const [isSuccessMenuOpen, setIsSuccessMenuOpen] = useState(() => SUCCESS_TABS.includes(initialTab))
   const [globalIntegrations, setGlobalIntegrations] = useState({
     ...DEFAULT_PREFERENCES.globalIntegrations,
@@ -16671,12 +16671,6 @@ export default function DashboardShell({
                       Offboarding
                     </button>
                   )}
-                  {isMaster && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
-                      <i className="bx bx-task"></i>
-                      Gestor de Resultado
-                    </button>
-                  )}
                 </div>
               )}
             </>
@@ -16791,6 +16785,12 @@ export default function DashboardShell({
                 <i className="bx bx-file"></i>
                 {!isSidebarCollapsed && 'Relatórios'}
               </button>
+              {isMaster && (
+                <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
+                  <i className="bx bx-task"></i>
+                  {!isSidebarCollapsed && 'Gestor de Resultado'}
+                </button>
+              )}
             </div>
           )}
           {canAccessTeamTab && (
@@ -17833,7 +17833,7 @@ export default function DashboardShell({
           ]
           const totalTasks = OFFBOARDING_PHASES.reduce((s, p) => s + p.tasks.length, 0)
           const PHASE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#64748b']
-          const churnClients = (dashboardState?.clients || []).filter((c) => {
+          const churnClients = (clients || []).filter((c) => {
             const status = String(c?.status || '').trim().toLowerCase()
             return status === 'churn'
           }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
