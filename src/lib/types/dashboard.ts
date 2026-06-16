@@ -322,6 +322,7 @@ export interface ClientRecord {
   googleAdsAccountId: string
   tiktokAdsAccountId: string
   linkedInAdsAccountId: string
+  leadsSheetUrl: string
   googleSheetsUrl: string
   googleSheetsHeaderRow: number
   googleSheetsStatusColumn: string
