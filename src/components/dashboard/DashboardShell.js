@@ -21331,6 +21331,16 @@ export default function DashboardShell({
                     </div>
                     {permUser && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 14px' }}
+                            onClick={() => PAGE_DEFS.forEach(p => toggleNavPermission(permUser.id, p.key, true))}>
+                            <i className="bx bx-check-double" style={{ marginRight: 4 }}></i>Selecionar tudo
+                          </button>
+                          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 14px' }}
+                            onClick={() => PAGE_DEFS.forEach(p => toggleNavPermission(permUser.id, p.key, false))}>
+                            <i className="bx bx-x" style={{ marginRight: 4 }}></i>Desselecionar tudo
+                          </button>
+                        </div>
                         {groups.map(group => (
                           <div key={group}>
                             <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{group}</div>
