@@ -3267,6 +3267,11 @@ export default function DashboardShell({
   const [isWeeklyEntryModalOpen, setIsWeeklyEntryModalOpen] = useState(false)
   const [isWeeklyHistoryModalOpen, setIsWeeklyHistoryModalOpen] = useState(false)
   const [isChurnListOpen, setIsChurnListOpen] = useState(false)
+  // Onboarding checklist state
+  const [onboardingRecords, setOnboardingRecords] = useState([])
+  const [onboardingExpandedClient, setOnboardingExpandedClient] = useState(null)
+  const [onboardingSaving, setOnboardingSaving] = useState(false)
+  const [onboardingClientFilter, setOnboardingClientFilter] = useState('')
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -3715,6 +3720,36 @@ export default function DashboardShell({
   useEffect(() => {
     loadWeeklyRecords()
   }, [loadWeeklyRecords])
+
+  const loadOnboardingRecords = useCallback(async () => {
+    if (activeTab !== 'onboarding') return
+    try {
+      const res = await fetch('/api/client-onboarding', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      setOnboardingRecords(Array.isArray(data.records) ? data.records : [])
+    } catch { setOnboardingRecords([]) }
+  }, [activeTab])
+
+  useEffect(() => { loadOnboardingRecords() }, [loadOnboardingRecords])
+
+  const handleToggleOnboardingTask = useCallback(async (clientId, taskId) => {
+    const record = onboardingRecords.find((r) => r.client_id === clientId)
+    const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+    const next = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    setOnboardingRecords((prev) => {
+      const exists = prev.find((r) => r.client_id === clientId)
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: next } : r)
+      return [...prev, { client_id: clientId, completed_tasks: next, notes: '' }]
+    })
+    setOnboardingSaving(true)
+    try {
+      await fetch('/api/client-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, completedTasks: next }),
+      })
+    } finally { setOnboardingSaving(false) }
+  }, [onboardingRecords])
 
   useEffect(() => {
     if (!weeklyForm.clientId) return
@@ -16564,6 +16599,12 @@ export default function DashboardShell({
             <i className="bx bx-pulse"></i>
             {!isSidebarCollapsed && 'Controle da Operação'}
           </button>
+          {isMaster && (
+            <button type="button" data-tooltip="Onboarding" aria-label="Onboarding" className={`nav-item nav-button ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
+              <i className="bx bx-list-check"></i>
+              {!isSidebarCollapsed && 'Onboarding'}
+            </button>
+          )}
           {/* PAC sub-menu group */}
           <button
             type="button"
@@ -16917,6 +16958,207 @@ export default function DashboardShell({
 
 
         {activeTab === 'semanal' && renderWeeklyClientPanel()}
+
+        {activeTab === 'onboarding' && isMaster && (() => {
+          const ONBOARDING_PHASES = [
+            {
+              id: 'estrutura',
+              label: '1. Estrutura inicial',
+              icon: 'bx-folder-plus',
+              tasks: [
+                { id: 'drive_criar', label: 'Criar o Drive do cliente (Assessoria LP - [Nome])' },
+                { id: 'drive_pastas', label: 'Criar as pastas padrão: Documentos, Materiais, IDV, Criativos, Reuniões, Script Padrão' },
+                { id: 'drive_link', label: 'Copiar o link do Drive' },
+                { id: 'wpp_criar', label: 'Criar o grupo do WhatsApp (Assessoria LP - [Nome])' },
+                { id: 'wpp_equipe_interna', label: 'Adicionar a equipe interna da LP no grupo' },
+                { id: 'wpp_gestor', label: 'Adicionar o gestor de tráfego responsável' },
+                { id: 'wpp_descricao', label: 'Inserir o link do Drive na descrição do grupo' },
+                { id: 'clickup_add', label: 'Adicionar o cliente no ClickUp' },
+                { id: 'app_add', label: 'Adicionar o cliente no app da assessoria' },
+                { id: 'wpp_cliente', label: 'Adicionar os responsáveis do cliente no grupo' },
+              ],
+            },
+            {
+              id: 'boas_vindas',
+              label: '2. Boas-vindas',
+              icon: 'bx-message-rounded-dots',
+              tasks: [
+                { id: 'msg_boas_vindas', label: 'Enviar a mensagem de boas-vindas no grupo' },
+                { id: 'guia_cliente', label: 'Enviar o Guia do Cliente 2026.pdf' },
+                { id: 'reuniao_agendar', label: 'Agendar a reunião de integração' },
+              ],
+            },
+            {
+              id: 'reuniao',
+              label: '3. Reunião de integração',
+              icon: 'bx-video',
+              tasks: [
+                { id: 'reuniao_realizada', label: 'Realizar a reunião de integração' },
+                { id: 'acesso_facebook', label: 'Pegar acesso: Facebook' },
+                { id: 'acesso_instagram', label: 'Pegar acesso: Instagram' },
+                { id: 'acesso_meta_business', label: 'Pegar acesso: Meta Business' },
+                { id: 'acesso_conta_anuncios', label: 'Pegar acesso: Conta de anúncios' },
+                { id: 'acesso_pagina_fb', label: 'Pegar acesso: Página do Facebook' },
+                { id: 'acesso_ig_pro', label: 'Pegar acesso: Instagram profissional' },
+                { id: 'acesso_google', label: 'Pegar acesso: Google (se necessário)' },
+                { id: 'acesso_site', label: 'Pegar acesso: Site ou landing page (se necessário)' },
+                { id: 'acesso_wpp_business', label: 'Pegar acesso: WhatsApp Business (se necessário)' },
+                { id: 'acesso_crm', label: 'Pegar acesso: CRM atual (se existir)' },
+              ],
+            },
+            {
+              id: 'pos_reuniao',
+              label: '4. Pós-reunião',
+              icon: 'bx-check-double',
+              tasks: [
+                { id: 'clickup_atualizar', label: 'Atualizar ClickUp com resultado da reunião' },
+                { id: 'app_atualizar', label: 'Atualizar app da assessoria' },
+                { id: 'acessos_registrar', label: 'Registrar acessos coletados e pendentes' },
+                { id: 'responsaveis_registrar', label: 'Registrar responsáveis do cliente' },
+                { id: 'gestor_informar', label: 'Informar o gestor de tráfego sobre próximos passos' },
+                { id: 'previsao_subida', label: 'Confirmar previsão de subida da campanha' },
+                { id: 'leo_avisar', label: 'Avisar o Leonardo que a reunião foi realizada' },
+              ],
+            },
+            {
+              id: 'pre_campanha',
+              label: '5. Validações pré-campanha',
+              icon: 'bx-rocket',
+              tasks: [
+                { id: 'acessos_completos', label: 'Acessos completos confirmados' },
+                { id: 'conta_ativa', label: 'Conta de anúncios ativa' },
+                { id: 'pagamento_configurado', label: 'Forma de pagamento configurada' },
+                { id: 'criativos_aprovados', label: 'Criativos aprovados' },
+                { id: 'publico_regiao', label: 'Público e região definidos' },
+                { id: 'produto_definido', label: 'Produto ou serviço principal definido' },
+                { id: 'destino_configurado', label: 'Página, formulário ou destino configurado' },
+                { id: 'responsavel_leads', label: 'Responsável pelo atendimento dos leads definido' },
+                { id: 'crm_pronto', label: 'CRM ou controle comercial pronto para receber leads' },
+              ],
+            },
+            {
+              id: 'pos_campanha',
+              label: '6. Pós-campanha',
+              icon: 'bx-calendar-check',
+              tasks: [
+                { id: 'reuniao_30d', label: 'Agendar reunião de 30 dias (a partir do início da campanha)' },
+              ],
+            },
+          ]
+
+          const totalTasks = ONBOARDING_PHASES.reduce((sum, p) => sum + p.tasks.length, 0)
+          const onboardingClients = clients.filter((c) => {
+            const st = String(c?.status || '').trim().toLowerCase()
+            return c?.id && st !== 'churn' && st !== 'pausado'
+          })
+          const filteredOnboardingClients = onboardingClientFilter
+            ? onboardingClients.filter((c) => c.id === onboardingClientFilter)
+            : onboardingClients
+
+          return (
+            <section className="weekly-dashboard-panel onboarding-panel">
+              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(129,216,167,0.1)' }}>
+                <span className="eyebrow" style={{ color: '#22c55e' }}><i className="bx bx-list-check"></i> Master · Restrito</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
+                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
+                <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    value={onboardingClientFilter}
+                    onChange={(e) => setOnboardingClientFilter(e.target.value)}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.2)', background: 'rgba(255,255,255,0.04)', color: 'inherit', fontSize: '0.9rem', cursor: 'pointer' }}
+                  >
+                    <option value="">Todos os clientes ({onboardingClients.length})</option>
+                    {onboardingClients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {onboardingSaving && <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>Salvando...</span>}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 16, padding: '24px 28px', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', alignItems: 'start' }}>
+                {filteredOnboardingClients.map((client) => {
+                  const record = onboardingRecords.find((r) => r.client_id === client.id)
+                  const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+                  const completedCount = completedTasks.length
+                  const progress = Math.round((completedCount / totalTasks) * 100)
+                  const isExpanded = onboardingExpandedClient === client.id
+
+                  return (
+                    <div key={client.id} style={{ borderRadius: 18, border: '1px solid rgba(129,216,167,0.14)', background: 'rgba(255,255,255,0.025)', overflow: 'hidden' }}>
+                      {/* Card header */}
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingExpandedClient(isExpanded ? null : client.id)}
+                        style={{ width: '100%', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
+                      >
+                        <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.2)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                          {client.logoUrl
+                            ? <img src={client.logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
+                            : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 18 }}></i>
+                          }
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.97rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                            <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4, transition: 'width 0.3s' }} />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                          </div>
+                        </div>
+                        <i className={`bx ${isExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 20, opacity: 0.6, flexShrink: 0 }}></i>
+                      </button>
+
+                      {/* Checklist expandido */}
+                      {isExpanded && (
+                        <div style={{ borderTop: '1px solid rgba(129,216,167,0.1)', padding: '12px 18px 18px' }}>
+                          {ONBOARDING_PHASES.map((phase) => {
+                            const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
+                            return (
+                              <div key={phase.id} style={{ marginBottom: 16 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.6 }}>
+                                  <i className={`bx ${phase.icon}`}></i>
+                                  {phase.label}
+                                  <span style={{ marginLeft: 'auto', fontWeight: 700 }}>{phaseDone}/{phase.tasks.length}</span>
+                                </div>
+                                {phase.tasks.map((task) => {
+                                  const done = completedTasks.includes(task.id)
+                                  return (
+                                    <button
+                                      key={task.id}
+                                      type="button"
+                                      onClick={() => handleToggleOnboardingTask(client.id, task.id)}
+                                      style={{
+                                        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
+                                        padding: '7px 4px', background: 'transparent', border: 'none',
+                                        cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                                        opacity: done ? 0.5 : 1, transition: 'opacity 0.15s',
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? '#22c55e' : 'rgba(129,216,167,0.35)'}`,
+                                        background: done ? '#22c55e' : 'transparent', display: 'grid', placeItems: 'center',
+                                        flexShrink: 0, marginTop: 1, transition: 'all 0.15s',
+                                      }}>
+                                        {done && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
+                                      </span>
+                                      <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none' }}>{task.label}</span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })()}
 
         {isBrandingModalOpen && canManageUsers && (
           <div className="modal-overlay" onClick={() => setIsBrandingModalOpen(false)}>
