@@ -3285,6 +3285,14 @@ export default function DashboardShell({
   const [grCompletions, setGrCompletions] = useState([])
   const [grWeekOffset, setGrWeekOffset] = useState(0)
   const [grSelectedUser, setGrSelectedUser] = useState(null)
+  const [grTaskDefs, setGrTaskDefs] = useState([])
+  const [grTaskDefsLoaded, setGrTaskDefsLoaded] = useState(false)
+  const [grEditingTask, setGrEditingTask] = useState(null)
+  const [grNewTask, setGrNewTask] = useState(null)
+  const [grManageMode, setGrManageMode] = useState(false)
+  const [navPermissions, setNavPermissions] = useState([])
+  const [myNavPermissions, setMyNavPermissions] = useState([])
+  const [permSelectedUserId, setPermSelectedUserId] = useState('')
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -3783,6 +3791,34 @@ export default function DashboardShell({
     return d.toISOString().slice(0, 10)
   }, [])
 
+  const loadGrTaskDefs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/gr-tasks/definitions', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      setGrTaskDefs(Array.isArray(data.tasks) ? data.tasks : [])
+      setGrTaskDefsLoaded(true)
+    } catch { setGrTaskDefsLoaded(true) }
+  }, [])
+
+  const loadNavPermissions = useCallback(async () => {
+    if (!isMaster) return
+    try {
+      const res = await fetch('/api/nav-permissions', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      setNavPermissions(Array.isArray(data.permissions) ? data.permissions : [])
+    } catch { setNavPermissions([]) }
+  }, [isMaster])
+
+  const loadMyNavPermissions = useCallback(async () => {
+    if (isMaster) return
+    try {
+      const res = await fetch('/api/nav-permissions', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      const all = Array.isArray(data.permissions) ? data.permissions : []
+      setMyNavPermissions(all.filter(p => p.user_id === user?.id))
+    } catch { setMyNavPermissions([]) }
+  }, [isMaster, user?.id])
+
   const loadGrCompletions = useCallback(async () => {
     if (activeTab !== 'gr-tarefas') return
     try {
@@ -3794,6 +3830,28 @@ export default function DashboardShell({
   }, [activeTab, grWeekOffset, getWeekStart])
 
   useEffect(() => { loadGrCompletions() }, [loadGrCompletions])
+  useEffect(() => { if (activeTab === 'gr-tarefas' && !grTaskDefsLoaded) loadGrTaskDefs() }, [activeTab, grTaskDefsLoaded, loadGrTaskDefs])
+  useEffect(() => { if (activeTab === 'usuarios') loadNavPermissions() }, [activeTab, loadNavPermissions])
+  useEffect(() => { if (user && !isMaster) loadMyNavPermissions() }, [user, isMaster, loadMyNavPermissions])
+
+  const hasNavAccess = useCallback((pageKey) => {
+    if (isMaster) return true
+    const perm = myNavPermissions.find(p => p.page_key === pageKey)
+    return perm ? perm.granted : false
+  }, [isMaster, myNavPermissions])
+
+  const toggleNavPermission = useCallback(async (userId, pageKey, granted) => {
+    setNavPermissions(prev => {
+      const exists = prev.find(p => p.user_id === userId && p.page_key === pageKey)
+      if (exists) return prev.map(p => p.user_id === userId && p.page_key === pageKey ? { ...p, granted } : p)
+      return [...prev, { user_id: userId, page_key: pageKey, granted }]
+    })
+    await fetch('/api/nav-permissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, pageKey, granted }),
+    })
+  }, [])
 
   const handleToggleGrTask = useCallback(async (userId, taskId, completed) => {
     const weekStart = getWeekStart(grWeekOffset)
@@ -16633,12 +16691,14 @@ export default function DashboardShell({
             <i className="bx bx-search-alt"></i>
             {!isSidebarCollapsed && 'Busca'}
           </button>
-          <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
-            <i className="bx bx-note"></i>
-            {!isSidebarCollapsed && 'Notas'}
-          </button>
+          {(isMaster || hasNavAccess('notas')) && (
+            <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
+              <i className="bx bx-note"></i>
+              {!isSidebarCollapsed && 'Notas'}
+            </button>
+          )}
           {/* Sucesso do Cliente sub-menu group */}
-          {(canAccessClientsTab || isMaster) && (
+          {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('offboarding')) && (
             <>
               <button
                 type="button"
@@ -16657,19 +16717,19 @@ export default function DashboardShell({
               </button>
               {isSuccessMenuOpen && !isSidebarCollapsed && (
                 <div className="nav-sub-group">
-                  {canAccessClientsTab && (
+                  {canAccessClientsTab && (isMaster || hasNavAccess('clientes')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
                       <i className="bx bxs-buildings"></i>
                       Clientes
                     </button>
                   )}
-                  {isMaster && (
+                  {(isMaster || hasNavAccess('onboarding')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
                       <i className="bx bx-log-in"></i>
                       Onboarding
                     </button>
                   )}
-                  {isMaster && (
+                  {(isMaster || hasNavAccess('offboarding')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'offboarding' ? 'active' : ''}`} onClick={() => setActiveTab('offboarding')}>
                       <i className="bx bx-log-out"></i>
                       Offboarding
@@ -16679,119 +16739,155 @@ export default function DashboardShell({
               )}
             </>
           )}
-          <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
-            <i className="bx bx-pulse"></i>
-            {!isSidebarCollapsed && 'Controle da Operação'}
-          </button>
+          {(isMaster || hasNavAccess('semanal')) && (
+            <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
+              <i className="bx bx-pulse"></i>
+              {!isSidebarCollapsed && 'Controle da Operação'}
+            </button>
+          )}
           {/* Performance sub-menu group */}
-          <button
-            type="button"
-            data-tooltip="Performance"
-            aria-label="Performance"
-            className={`nav-item nav-button nav-group-trigger ${ADS_TABS.includes(activeTab) ? 'active' : ''}`}
-            onClick={() => setIsAdsMenuOpen((v) => !v)}
-          >
-            <i className="bx bx-bullseye"></i>
-            {!isSidebarCollapsed && (
-              <>
-                <span style={{ flex: 1 }}>Performance</span>
-                <i className={`bx bx-chevron-${isAdsMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </>
-            )}
-          </button>
-          {isAdsMenuOpen && !isSidebarCollapsed && (
-            <div className="nav-sub-group">
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
-                <i className="bx bxs-dashboard"></i>
-                {!isSidebarCollapsed && 'Dash'}
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
+            <>
+              <button
+                type="button"
+                data-tooltip="Performance"
+                aria-label="Performance"
+                className={`nav-item nav-button nav-group-trigger ${ADS_TABS.includes(activeTab) ? 'active' : ''}`}
+                onClick={() => setIsAdsMenuOpen((v) => !v)}
+              >
+                <i className="bx bx-bullseye"></i>
+                {!isSidebarCollapsed && (
+                  <>
+                    <span style={{ flex: 1 }}>Performance</span>
+                    <i className={`bx bx-chevron-${isAdsMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+                  </>
+                )}
               </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'campanhas' ? 'active' : ''}`} onClick={() => setActiveTab('campanhas')}>
-                <i className="bx bx-sitemap"></i>
-                {!isSidebarCollapsed && 'Campanhas'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
-                <i className="bx bx-layout"></i>
-                {!isSidebarCollapsed && 'Anúncios'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'saldos' ? 'active' : ''}`} onClick={() => setActiveTab('saldos')}>
-                <i className="bx bx-wallet-alt"></i>
-                {!isSidebarCollapsed && 'Saldos'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
-                <i className="bx bx-file"></i>
-                {!isSidebarCollapsed && 'Relatórios'}
-              </button>
-              {(isMaster || role === 'gestor_resultado') && (
-                <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
-                  <i className="bx bx-task"></i>
-                  {!isSidebarCollapsed && 'G.R - Tarefas'}
-                </button>
+              {isAdsMenuOpen && !isSidebarCollapsed && (
+                <div className="nav-sub-group">
+                  {(isMaster || hasNavAccess('apresentacao')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
+                      <i className="bx bxs-dashboard"></i>
+                      {!isSidebarCollapsed && 'Dash'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('campanhas')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'campanhas' ? 'active' : ''}`} onClick={() => setActiveTab('campanhas')}>
+                      <i className="bx bx-sitemap"></i>
+                      {!isSidebarCollapsed && 'Campanhas'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('anuncios')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
+                      <i className="bx bx-layout"></i>
+                      {!isSidebarCollapsed && 'Anúncios'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('saldos')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'saldos' ? 'active' : ''}`} onClick={() => setActiveTab('saldos')}>
+                      <i className="bx bx-wallet-alt"></i>
+                      {!isSidebarCollapsed && 'Saldos'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('relatorios')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
+                      <i className="bx bx-file"></i>
+                      {!isSidebarCollapsed && 'Relatórios'}
+                    </button>
+                  )}
+                  {(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
+                      <i className="bx bx-task"></i>
+                      {!isSidebarCollapsed && 'G.R - Tarefas'}
+                    </button>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
           {/* Social Media sub-menu group */}
-          <button
-            type="button"
-            data-tooltip="Social Media"
-            aria-label="Social Media"
-            className={`nav-item nav-button nav-group-trigger ${SOCIAL_TABS.includes(activeTab) ? 'active' : ''}`}
-            onClick={() => setIsSocialMenuOpen((v) => !v)}
-          >
-            <i className="bx bx-image-alt"></i>
-            {!isSidebarCollapsed && (
-              <>
-                <span style={{ flex: 1 }}>Social Media</span>
-                <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </>
-            )}
-          </button>
-          {isSocialMenuOpen && !isSidebarCollapsed && (
-            <div className="nav-sub-group">
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
-                <i className="bx bx-bar-chart-alt-2"></i>
-                {!isSidebarCollapsed && 'Painel'}
+          {(isMaster || hasNavAccess('editorial-dash') || hasNavAccess('editorial') || hasNavAccess('editorial-plans')) && (
+            <>
+              <button
+                type="button"
+                data-tooltip="Social Media"
+                aria-label="Social Media"
+                className={`nav-item nav-button nav-group-trigger ${SOCIAL_TABS.includes(activeTab) ? 'active' : ''}`}
+                onClick={() => setIsSocialMenuOpen((v) => !v)}
+              >
+                <i className="bx bx-image-alt"></i>
+                {!isSidebarCollapsed && (
+                  <>
+                    <span style={{ flex: 1 }}>Social Media</span>
+                    <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+                  </>
+                )}
               </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
-                <i className="bx bx-calendar-alt"></i>
-                {!isSidebarCollapsed && 'Calendário'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
-                <i className="bx bx-spreadsheet"></i>
-                {!isSidebarCollapsed && 'Planejamentos'}
-              </button>
-            </div>
+              {isSocialMenuOpen && !isSidebarCollapsed && (
+                <div className="nav-sub-group">
+                  {(isMaster || hasNavAccess('editorial-dash')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
+                      <i className="bx bx-bar-chart-alt-2"></i>
+                      {!isSidebarCollapsed && 'Painel'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('editorial')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
+                      <i className="bx bx-calendar-alt"></i>
+                      {!isSidebarCollapsed && 'Calendário'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('editorial-plans')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
+                      <i className="bx bx-spreadsheet"></i>
+                      {!isSidebarCollapsed && 'Planejamentos'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
           {/* PAC sub-menu group */}
-          <button
-            type="button"
-            data-tooltip="PAC"
-            aria-label="PAC"
-            className={`nav-item nav-button nav-group-trigger ${PAC_TABS.includes(activeTab) ? 'active' : ''}`}
-            onClick={() => setIsPacMenuOpen((v) => !v)}
-          >
-            <i className="bx bx-book-bookmark"></i>
-            {!isSidebarCollapsed && (
-              <>
-                <span style={{ flex: 1 }}>PAC</span>
-                <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </>
-            )}
-          </button>
-          {isPacMenuOpen && !isSidebarCollapsed && (
-            <div className="nav-sub-group">
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
-                <i className="bx bx-bar-chart-alt-2"></i>
-                {!isSidebarCollapsed && 'Painel'}
+          {(isMaster || hasNavAccess('pac-dash') || hasNavAccess('pac-calendario') || hasNavAccess('pac-tipos')) && (
+            <>
+              <button
+                type="button"
+                data-tooltip="PAC"
+                aria-label="PAC"
+                className={`nav-item nav-button nav-group-trigger ${PAC_TABS.includes(activeTab) ? 'active' : ''}`}
+                onClick={() => setIsPacMenuOpen((v) => !v)}
+              >
+                <i className="bx bx-book-bookmark"></i>
+                {!isSidebarCollapsed && (
+                  <>
+                    <span style={{ flex: 1 }}>PAC</span>
+                    <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+                  </>
+                )}
               </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
-                <i className="bx bx-calendar-alt"></i>
-                {!isSidebarCollapsed && 'Calendário'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
-                <i className="bx bx-category"></i>
-                {!isSidebarCollapsed && 'Tipos'}
-              </button>
-            </div>
+              {isPacMenuOpen && !isSidebarCollapsed && (
+                <div className="nav-sub-group">
+                  {(isMaster || hasNavAccess('pac-dash')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
+                      <i className="bx bx-bar-chart-alt-2"></i>
+                      {!isSidebarCollapsed && 'Painel'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('pac-calendario')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
+                      <i className="bx bx-calendar-alt"></i>
+                      {!isSidebarCollapsed && 'Calendário'}
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('pac-tipos')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
+                      <i className="bx bx-category"></i>
+                      {!isSidebarCollapsed && 'Tipos'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
           {canAccessTeamTab && (
             <button type="button" data-tooltip="Time" aria-label="Time" className={`nav-item nav-button ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>
@@ -17672,8 +17768,8 @@ export default function DashboardShell({
           )
         })()}
 
-        {activeTab === 'gr-tarefas' && isMaster && (() => {
-          const GR_TASKS = [
+        {activeTab === 'gr-tarefas' && (isMaster || role === 'gestor_resultado') && (() => {
+          const GR_TASKS_FALLBACK = [
             { id: 'conferir_agenda', label: 'Conferir Agenda', days: [1,2,3,4,5], icon: 'bx-calendar-check', color: '#6366f1' },
             { id: 'revisao_conta_diaria', label: 'Revisão de Conta (CPL, MQL, Resultado)', days: [1,2,3,4,5], icon: 'bx-bar-chart-alt-2', color: '#8b5cf6' },
             { id: 'revisao_planilha_leads', label: 'Revisão de Planilha de Leads (MQL, SQL)', days: [1,2,3,4,5], icon: 'bx-spreadsheet', color: '#14b8a6' },
@@ -17689,6 +17785,9 @@ export default function DashboardShell({
             { id: 'atualizar_formulario', label: 'Atualizar Formulário Nativo', days: [5], icon: 'bx-edit', color: '#84cc16' },
             { id: 'bom_fds', label: 'Bom Final de Semana', days: [5], icon: 'bx-party', color: '#ef4444' },
           ]
+          const GR_TASKS = grTaskDefsLoaded && grTaskDefs.length > 0
+            ? grTaskDefs.filter(t => t.active !== false).map(t => ({ id: t.id, label: t.label, days: t.days, icon: t.icon, color: t.color }))
+            : GR_TASKS_FALLBACK
 
           const DAY_LABELS = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
           const DAY_COLORS = ['', '#6366f1', '#3b82f6', '#06b6d4', '#f59e0b', '#10b981']
@@ -17893,6 +17992,100 @@ export default function DashboardShell({
                 </div>
               )}
             </section>
+
+            {isMaster && (
+              <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                    <i className="bx bx-list-ul" style={{ marginRight: 8, color: '#6366f1' }}></i>
+                    Gerenciar Tarefas
+                  </h3>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setGrManageMode(v => !v)}>
+                      {grManageMode ? 'Fechar' : 'Editar tarefas'}
+                    </button>
+                    {grManageMode && (
+                      <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setGrNewTask({ label: '', days: [1,2,3,4,5], color: '#6366f1', icon: 'bx-check' })}>
+                        <i className="bx bx-plus"></i> Nova tarefa
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {grManageMode && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {grNewTask && (
+                      <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <strong style={{ fontSize: '0.85rem' }}>Nova tarefa</strong>
+                        <input type="text" className="input-field" placeholder="Nome da tarefa" value={grNewTask.label} onChange={e => setGrNewTask(t => ({ ...t, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {[['Seg',1],['Ter',2],['Qua',3],['Qui',4],['Sex',5]].map(([lbl, d]) => (
+                            <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', cursor: 'pointer' }}>
+                              <input type="checkbox" checked={grNewTask.days.includes(d)} onChange={e => setGrNewTask(t => ({ ...t, days: e.target.checked ? [...t.days, d].sort() : t.days.filter(x => x !== d) }))} />
+                              {lbl}
+                            </label>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input type="color" value={grNewTask.color} onChange={e => setGrNewTask(t => ({ ...t, color: e.target.value }))} style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                          <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} disabled={!grNewTask.label.trim()} onClick={async () => {
+                            const res = await fetch('/api/gr-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(grNewTask) })
+                            const data = await res.json()
+                            if (data.task) { setGrTaskDefs(prev => [...prev, data.task]); setGrNewTask(null) }
+                          }}>Salvar</button>
+                          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setGrNewTask(null)}>Cancelar</button>
+                        </div>
+                      </div>
+                    )}
+                    {(grTaskDefsLoaded ? grTaskDefs : []).map(task => (
+                      <div key={task.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px' }}>
+                        {grEditingTask?.id === task.id ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <input type="text" className="input-field" value={grEditingTask.label} onChange={e => setGrEditingTask(t => ({ ...t, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              {[['Seg',1],['Ter',2],['Qua',3],['Qui',4],['Sex',5]].map(([lbl, d]) => (
+                                <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={grEditingTask.days.includes(d)} onChange={e => setGrEditingTask(t => ({ ...t, days: e.target.checked ? [...t.days, d].sort() : t.days.filter(x => x !== d) }))} />
+                                  {lbl}
+                                </label>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <input type="color" value={grEditingTask.color} onChange={e => setGrEditingTask(t => ({ ...t, color: e.target.value }))} style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
+                              <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} onClick={async () => {
+                                const res = await fetch('/api/gr-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(grEditingTask) })
+                                const data = await res.json()
+                                if (data.task) { setGrTaskDefs(prev => prev.map(t => t.id === data.task.id ? data.task : t)); setGrEditingTask(null) }
+                              }}>Salvar</button>
+                              <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setGrEditingTask(null)}>Cancelar</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: task.color, flexShrink: 0 }}></span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{task.label}</div>
+                              <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                                {task.days.map(d => ['','Seg','Ter','Qua','Qui','Sex'][d]).join(', ')}
+                              </div>
+                            </div>
+                            <button type="button" className="btn-icon" title="Editar" onClick={() => setGrEditingTask({ ...task })} style={{ color: '#94a3b8', fontSize: '1rem' }}>
+                              <i className="bx bx-edit"></i>
+                            </button>
+                            <button type="button" className="btn-icon" title="Excluir" onClick={async () => {
+                              if (!confirm(`Excluir "${task.label}"?`)) return
+                              await fetch(`/api/gr-tasks/definitions?id=${task.id}`, { method: 'DELETE' })
+                              setGrTaskDefs(prev => prev.filter(t => t.id !== task.id))
+                            }} style={{ color: '#ef4444', fontSize: '1rem' }}>
+                              <i className="bx bx-trash"></i>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           )
         })()}
 
@@ -20930,6 +21123,80 @@ export default function DashboardShell({
 
                 {!usersLoading && !filteredUsers.length && <div className="empty-panel glass-item users-empty-state compact-empty-state"><h3>Nenhum membro encontrado</h3><p>Ajuste a busca ou crie um novo acesso para o workspace.</p></div>}
               </div>
+
+              {/* Page Permissions Manager */}
+              {isMaster && usersList.filter(u => u.role !== 'master').length > 0 && (() => {
+                const PAGE_DEFS = [
+                  { key: 'notas', label: 'Notas', group: 'Geral' },
+                  { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
+                  { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
+                  { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
+                  { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
+                  { key: 'apresentacao', label: 'Dash', group: 'Performance' },
+                  { key: 'campanhas', label: 'Campanhas', group: 'Performance' },
+                  { key: 'anuncios', label: 'Anúncios', group: 'Performance' },
+                  { key: 'saldos', label: 'Saldos', group: 'Performance' },
+                  { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
+                  { key: 'gr-tarefas', label: 'G.R - Tarefas', group: 'Performance' },
+                  { key: 'editorial-dash', label: 'Painel', group: 'Social Media' },
+                  { key: 'editorial', label: 'Calendário', group: 'Social Media' },
+                  { key: 'editorial-plans', label: 'Planejamentos', group: 'Social Media' },
+                  { key: 'pac-dash', label: 'Painel', group: 'PAC' },
+                  { key: 'pac-calendario', label: 'Calendário', group: 'PAC' },
+                  { key: 'pac-tipos', label: 'Tipos', group: 'PAC' },
+                ]
+                const groups = [...new Set(PAGE_DEFS.map(p => p.group))]
+                const nonMasterUsers = usersList.filter(u => u.role !== 'master')
+                const activePermUserId = permSelectedUserId || nonMasterUsers[0]?.id || ''
+                const permUser = nonMasterUsers.find(u => u.id === activePermUserId) || nonMasterUsers[0]
+
+                return (
+                  <div className="glass-panel" style={{ marginTop: 24, padding: '20px 24px' }}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700 }}>
+                      <i className="bx bx-shield-quarter" style={{ marginRight: 8, color: '#22c55e' }}></i>
+                      Permissões de Páginas
+                    </h3>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                      {nonMasterUsers.map(u => (
+                        <button key={u.id} type="button"
+                          onClick={() => setPermSelectedUserId(u.id)}
+                          style={{ padding: '6px 14px', borderRadius: 20, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid', cursor: 'pointer',
+                            borderColor: activePermUserId === u.id ? '#22c55e' : 'rgba(255,255,255,0.12)',
+                            background: activePermUserId === u.id ? 'rgba(34,197,94,0.12)' : 'transparent',
+                            color: activePermUserId === u.id ? '#22c55e' : 'inherit' }}>
+                          {u.full_name || u.email}
+                        </button>
+                      ))}
+                    </div>
+                    {permUser && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        {groups.map(group => (
+                          <div key={group}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{group}</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
+                              {PAGE_DEFS.filter(p => p.group === group).map(page => {
+                                const perm = navPermissions.find(p2 => p2.user_id === permUser.id && p2.page_key === page.key)
+                                const granted = perm ? perm.granted : false
+                                return (
+                                  <label key={page.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', border: `1.5px solid ${granted ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all .15s' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{page.label}</span>
+                                    <div style={{ position: 'relative', width: 38, height: 22, flexShrink: 0 }}>
+                                      <input type="checkbox" checked={granted} onChange={e => toggleNavPermission(permUser.id, page.key, e.target.checked)} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+                                      <span style={{ display: 'block', width: 38, height: 22, borderRadius: 11, background: granted ? '#22c55e' : 'rgba(255,255,255,0.15)', transition: 'background .2s', cursor: 'pointer' }} onClick={() => toggleNavPermission(permUser.id, page.key, !granted)}>
+                                        <span style={{ display: 'block', width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: granted ? 19 : 3, transition: 'left .2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}></span>
+                                      </span>
+                                    </div>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {isCreateUserModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsCreateUserModalOpen(false)}><div className="modal-card glass-panel" onClick={(event) => event.stopPropagation()}>
