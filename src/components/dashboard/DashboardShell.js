@@ -17675,6 +17675,8 @@ export default function DashboardShell({
         {activeTab === 'gr-tarefas' && isMaster && (() => {
           const GR_TASKS = [
             { id: 'conferir_agenda', label: 'Conferir Agenda', days: [1,2,3,4,5], icon: 'bx-calendar-check', color: '#6366f1' },
+            { id: 'revisao_conta_diaria', label: 'Revisão de Conta (CPL, MQL, Resultado)', days: [1,2,3,4,5], icon: 'bx-bar-chart-alt-2', color: '#8b5cf6' },
+            { id: 'revisao_planilha_leads', label: 'Revisão de Planilha de Leads (MQL, SQL)', days: [1,2,3,4,5], icon: 'bx-spreadsheet', color: '#14b8a6' },
             { id: 'revisar_orcamento', label: 'Revisar Orçamento das Contas', days: [1], icon: 'bx-money', color: '#22c55e' },
             { id: 'bom_dia_clientes', label: 'Bom dia clientes', days: [1], icon: 'bx-sun', color: '#f59e0b' },
             { id: 'relatorio_saude', label: 'Relatório de Saúde dos Clientes', days: [1], icon: 'bx-heart', color: '#ec4899' },
