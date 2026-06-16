@@ -19800,7 +19800,7 @@ export default function DashboardShell({
                                   >
                                     <span className="ads-overview-ad-rank">#{index + 1}</span>
                                     <span className="ads-overview-ad-thumb">
-                                      {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.label} loading="lazy" /> : <i className="bx bx-image-alt"></i>}
+                                      {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.label} loading="lazy" onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex' }} /><i className="bx bx-image-alt" style={{ display:'none' }}></i> : <i className="bx bx-image-alt"></i>}
                                     </span>
                                     <span className="ads-overview-ad-copy">
                                       <strong>{ad.label}</strong>
@@ -23232,7 +23232,7 @@ export default function DashboardShell({
                             <i className="bx bx-loader-alt bx-spin"></i>
                             <span>Carregando preview real...</span>
                           </div>
-                        ) : metaCreativePreview?.previewHtml ? (
+                        ) : metaCreativePreview?.previewHtml && !/expired|The requested preview has expired/i.test(metaCreativePreview.previewHtml) ? (
                           <iframe
                             title={`Preview de ${activeMetaRankingDrilldownItem.label}`}
                             srcDoc={metaCreativePreview.previewHtml}

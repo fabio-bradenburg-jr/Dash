@@ -95,7 +95,8 @@ export async function GET(request) {
       if (!isExpired) return NextResponse.json(savedCreative)
       // Preview HTML expired — re-fetch only the preview and update cache
       const freshHtml = await fetchCreativePreviewHtml(adId, token, clientKey)
-      const updated = { ...savedCreative, previewHtml: freshHtml }
+      const isStillExpired = /expired|The requested preview has expired/i.test(freshHtml || '')
+      const updated = { ...savedCreative, previewHtml: isStillExpired ? '' : freshHtml }
       await saveCreative(clientKey, adId, updated)
       return NextResponse.json(updated)
     }
@@ -111,12 +112,13 @@ export async function GET(request) {
       fetchCreativePreviewHtml(adId, token, clientKey),
     ])
     const creative = adData?.creative || {}
+    const isExpiredHtml = /expired|The requested preview has expired/i.test(previewHtml || '')
 
     const payload = {
       adId,
       label: adData?.name || creative.name || 'Criativo sem nome',
       description: resolveCreativeDescription(creative),
-      previewHtml,
+      previewHtml: isExpiredHtml ? '' : previewHtml,
       imageUrl: creative.image_url || creative.thumbnail_url || '',
       previewLoaded: true,
     }
