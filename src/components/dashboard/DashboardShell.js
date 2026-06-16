@@ -17900,7 +17900,7 @@ export default function DashboardShell({
           )
         })()}
 
-        {activeTab === 'gr-tarefas' && (isMaster || role === 'gestor_resultado') && (() => {
+        {activeTab === 'gr-tarefas' && (isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (() => {
           const GR_TASKS_FALLBACK = [
             { id: 'conferir_agenda', label: 'Conferir Agenda', days: [1,2,3,4,5], icon: 'bx-calendar-check', color: '#6366f1' },
             { id: 'revisao_conta_diaria', label: 'Revisão de Conta (CPL, MQL, Resultado)', days: [1,2,3,4,5], icon: 'bx-bar-chart-alt-2', color: '#8b5cf6' },
@@ -17930,8 +17930,12 @@ export default function DashboardShell({
           weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 4)
           const fmt = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
 
-          const grUsers = (usersList || []).filter((u) => u.role === 'gestor_resultado')
-          const selectedGrUser = grSelectedUser || grUsers[0] || null
+          const grUsersFromList = (usersList || []).filter((u) => u.role === 'gestor_resultado')
+          const selfAsGr = role === 'gestor_resultado' && user && !grUsersFromList.find(u => u.id === user?.id)
+            ? [{ id: user.id, full_name: profile?.full_name || 'Eu', role: 'gestor_resultado' }]
+            : []
+          const allGrUsers = [...grUsersFromList, ...selfAsGr]
+          const selectedGrUser = grSelectedUser || allGrUsers[0] || null
 
           const userCompletions = selectedGrUser
             ? grCompletions.filter((c) => c.user_id === selectedGrUser.id && c.week_start === weekStart)
@@ -17958,7 +17962,7 @@ export default function DashboardShell({
           const todayPending = todayTasks.length - todayDone
 
           // Team overview (all GR users this week)
-          const teamStats = grUsers.map((u) => {
+          const teamStats = allGrUsers.map((u) => {
             const uDone = grCompletions.filter((c) => c.user_id === u.id && c.week_start === weekStart).length
             return { user: u, done: uDone, pct: Math.round((uDone / totalTasks) * 100) }
           })
@@ -17986,7 +17990,7 @@ export default function DashboardShell({
                   </div>
                 </div>
 
-                {grUsers.length === 0 && (
+                {allGrUsers.length === 0 && (
                   <div style={{ marginTop: 20, padding: '16px 20px', background: 'rgba(99,102,241,0.08)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.9rem', opacity: 0.8 }}>
                     <i className="bx bx-info-circle" style={{ marginRight: 8 }}></i>
                     Nenhum membro com função <strong>Gestor de Resultado</strong>. Vá em <strong>Time</strong> e defina a função de um membro.
@@ -17994,7 +17998,7 @@ export default function DashboardShell({
                 )}
 
                 {/* Main metrics panel */}
-                {grUsers.length > 0 && selectedGrUser && (
+                {allGrUsers.length > 0 && selectedGrUser && (
                   <div style={{ marginTop: 24 }}>
                     {/* Top row: big metrics */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
@@ -18021,11 +18025,11 @@ export default function DashboardShell({
                       )}
 
                       {/* Team avg */}
-                      {grUsers.length > 1 && (
+                      {allGrUsers.length > 1 && (
                         <div style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04))', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', letterSpacing: 1, textTransform: 'uppercase' }}>Média do Time</div>
                           <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{teamAvgPct}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#f59e0b' }}>%</span></div>
-                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{grUsers.length} gestores</div>
+                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{allGrUsers.length} gestores</div>
                           <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${teamAvgPct}%`, background: '#f59e0b', borderRadius: 4, transition: 'width .4s' }}></div>
                           </div>
@@ -18055,7 +18059,7 @@ export default function DashboardShell({
                     </div>
 
                     {/* Team cards row (when multiple GRs) */}
-                    {grUsers.length > 1 && (
+                    {allGrUsers.length > 1 && (
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
                         {teamStats.map(({ user: u, done, pct }) => (
                           <button key={u.id} type="button" onClick={() => setGrSelectedUser(u)}
@@ -18074,7 +18078,7 @@ export default function DashboardShell({
                     )}
 
                     {/* Single GR selector when only 1 */}
-                    {grUsers.length === 1 && (
+                    {allGrUsers.length === 1 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#6366f1', fontSize: '0.9rem' }}>
                           {(selectedGrUser?.full_name || selectedGrUser?.email || '?')[0].toUpperCase()}
