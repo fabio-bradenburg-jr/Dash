@@ -779,6 +779,7 @@ function normalizeClientRecord(client: LooseRecord): ClientRecord {
     googleAdsAccountId: payload.googleAdsAccountId || '',
     tiktokAdsAccountId: payload.tiktokAdsAccountId || '',
     linkedInAdsAccountId: payload.linkedInAdsAccountId || '',
+    leadsSheetUrl: payload.leadsSheetUrl || '',
     googleSheetsUrl: payload.googleSheetsUrl || '',
     googleSheetsHeaderRow: Number.isFinite(Number(payload.googleSheetsHeaderRow)) && Number(payload.googleSheetsHeaderRow) > 0
       ? Number(payload.googleSheetsHeaderRow)
