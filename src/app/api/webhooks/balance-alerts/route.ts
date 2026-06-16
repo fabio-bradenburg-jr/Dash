@@ -5,7 +5,10 @@ import { resolveWorkspaceForHost } from '@/lib/server/domain-config'
 
 const THRESHOLDS = [50, 100, 150] // checked from lowest to highest; zero handled separately
 // How many hours to wait before re-alerting the same account+threshold
-const COOLDOWN_HOURS = 12
+const COOLDOWN_HOURS = 6
+// Quiet hours in Brazil time (UTC-3): no alerts from 20:00 to 08:00
+const QUIET_START_HOUR = 20
+const QUIET_END_HOUR = 8
 
 function normalizeAdAccountId(value: string) {
   return String(value || '').replace(/^act_/, '').replace(/\D/g, '')
@@ -103,6 +106,14 @@ export async function GET(request: Request) {
 
   if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+
+  // Quiet hours check (Brazil UTC-3): no alerts between 20:00 and 08:00
+  const nowBrazil = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  const hourBrazil = nowBrazil.getUTCHours()
+  const isQuietHour = hourBrazil >= QUIET_START_HOUR || hourBrazil < QUIET_END_HOUR
+  if (isQuietHour) {
+    return NextResponse.json({ alerts: [], count: 0, skipped: 'quiet_hours', checkedAt: new Date().toISOString() })
   }
 
   const adminSupabase = createAdminClient()
