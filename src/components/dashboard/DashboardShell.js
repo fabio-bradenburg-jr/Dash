@@ -32711,9 +32711,9 @@ export default function DashboardShell({
         }
 
         .simple-client-health.compact {
-          min-height: 36px;
+          min-height: 48px;
           padding: 8px 12px;
-          border-radius: 999px;
+          border-radius: 14px;
           align-items: center;
         }
 
