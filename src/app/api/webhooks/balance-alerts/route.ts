@@ -30,14 +30,35 @@ async function getMetaTokenForWorkspace(adminSupabase: any, workspaceId: string)
 }
 
 async function fetchBalance(token: string, adAccountId: string) {
-  const fields = 'balance,currency,is_prepay_account,account_status'
+  const fields = 'balance,currency,is_prepay_account,account_status,funding_source_details'
   const url = `https://graph.facebook.com/v19.0/act_${adAccountId}?fields=${fields}&access_token=${encodeURIComponent(token)}`
   const account = await fetchMetaJson(url, 'Meta timeout ao buscar saldo.')
   const currency = account.currency || 'BRL'
   const isPrepay = account.is_prepay_account === true || account.is_prepay_account === 'true'
+  if (!isPrepay) return { balance: null, currency, isPrepay }
+
+  // Use funding_source_details balance when available (matches what the UI shows)
   const rawBalance = normalizeCurrencyAmount(account.balance, currency)
-  // Only prepaid accounts have meaningful balance alerts
-  return { balance: isPrepay ? rawBalance : null, currency, isPrepay }
+  const fundingDetails = account.funding_source_details
+  let fundsAvailable = rawBalance
+
+  if (fundingDetails) {
+    const labelRaw = String(fundingDetails.display_string || fundingDetails.displayString || '')
+    const labelLower = `${labelRaw} ${fundingDetails.type || ''}`.toLowerCase()
+    const isStoredFunds = /saldo dispon[ií]vel|available balance|fundos|prepaid|prepay|balance/.test(labelLower)
+    if (isStoredFunds) {
+      const match = labelRaw.match(/(?:R\$|\$|€|£)?\s*(-?\d{1,3}(?:[.\s]\d{3})*(?:,\d+)?|-?\d+(?:\.\d+)?)/)
+      if (match) {
+        const normalized = match[1].replace(/\s/g, '').includes(',')
+          ? match[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.')
+          : match[1].replace(/\s/g, '')
+        const parsed = Number(normalized)
+        if (Number.isFinite(parsed)) fundsAvailable = parsed
+      }
+    }
+  }
+
+  return { balance: Math.max(fundsAvailable, 0), currency, isPrepay }
 }
 
 async function wasAlertedRecently(
