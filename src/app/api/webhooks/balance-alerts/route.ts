@@ -170,7 +170,11 @@ export async function GET(request: Request) {
                 balance,
                 currency,
                 threshold,
-                message: `⚠️ *Alerta de Saldo Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\nSaldo atual: *R$ ${balance.toFixed(2)}*\nLimite atingido: *R$ ${threshold}*\n\nRecarregue antes que as campanhas pausem.`,
+                message: threshold === 50
+                ? `🔴 *Saldo Crítico - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\nSaldo atual: *R$ ${balance.toFixed(2)}*\n\n⛔ As campanhas vão pausar em breve. Recarregue agora!`
+                : threshold === 100
+                  ? `🟠 *Saldo Baixo - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\nSaldo atual: *R$ ${balance.toFixed(2)}*\n\n⚠️ Saldo abaixo de R$ 100. Providencie recarga para evitar pausa.`
+                  : `🟡 *Aviso de Saldo - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\nSaldo atual: *R$ ${balance.toFixed(2)}*\n\nSaldo abaixo de R$ 150. Fique de olho e recarregue em breve.`,
               })
             }
             break
