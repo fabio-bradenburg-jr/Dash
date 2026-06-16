@@ -17928,7 +17928,7 @@ export default function DashboardShell({
             ? Math.round(teamStats.reduce((s, t) => s + t.pct, 0) / teamStats.length)
             : 0
 
-          return (
+          return (<>
             <section className="weekly-dashboard-panel onboarding-panel">
               {/* Header */}
               <div style={{ padding: '32px 28px 24px', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
@@ -18180,7 +18180,7 @@ export default function DashboardShell({
                 )}
               </section>
             )}
-          )
+          </>)
         })()}
 
         {activeTab === 'offboarding' && isMaster && (() => {
