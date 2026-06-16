@@ -16633,6 +16633,10 @@ export default function DashboardShell({
             <i className="bx bx-search-alt"></i>
             {!isSidebarCollapsed && 'Busca'}
           </button>
+          <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
+            <i className="bx bx-note"></i>
+            {!isSidebarCollapsed && 'Notas'}
+          </button>
           {/* Sucesso do Cliente sub-menu group */}
           {(canAccessClientsTab || isMaster) && (
             <>
@@ -16675,79 +16679,11 @@ export default function DashboardShell({
               )}
             </>
           )}
-          <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
-            <i className="bx bx-note"></i>
-            {!isSidebarCollapsed && 'Notas'}
-          </button>
-          {/* Social Media sub-menu group */}
-          <button
-            type="button"
-            data-tooltip="Social Media"
-            aria-label="Social Media"
-            className={`nav-item nav-button nav-group-trigger ${SOCIAL_TABS.includes(activeTab) ? 'active' : ''}`}
-            onClick={() => setIsSocialMenuOpen((v) => !v)}
-          >
-            <i className="bx bx-image-alt"></i>
-            {!isSidebarCollapsed && (
-              <>
-                <span style={{ flex: 1 }}>Social Media</span>
-                <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </>
-            )}
-          </button>
-          {isSocialMenuOpen && !isSidebarCollapsed && (
-            <div className="nav-sub-group">
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
-                <i className="bx bx-bar-chart-alt-2"></i>
-                {!isSidebarCollapsed && 'Painel'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
-                <i className="bx bx-calendar-alt"></i>
-                {!isSidebarCollapsed && 'Calendário'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
-                <i className="bx bx-spreadsheet"></i>
-                {!isSidebarCollapsed && 'Planejamentos'}
-              </button>
-            </div>
-          )}
           <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
             <i className="bx bx-pulse"></i>
             {!isSidebarCollapsed && 'Controle da Operação'}
           </button>
-          {/* PAC sub-menu group */}
-          <button
-            type="button"
-            data-tooltip="PAC"
-            aria-label="PAC"
-            className={`nav-item nav-button nav-group-trigger ${PAC_TABS.includes(activeTab) ? 'active' : ''}`}
-            onClick={() => setIsPacMenuOpen((v) => !v)}
-          >
-            <i className="bx bx-book-bookmark"></i>
-            {!isSidebarCollapsed && (
-              <>
-                <span style={{ flex: 1 }}>PAC</span>
-                <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </>
-            )}
-          </button>
-          {isPacMenuOpen && !isSidebarCollapsed && (
-            <div className="nav-sub-group">
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
-                <i className="bx bx-bar-chart-alt-2"></i>
-                {!isSidebarCollapsed && 'Painel'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
-                <i className="bx bx-calendar-alt"></i>
-                {!isSidebarCollapsed && 'Calendário'}
-              </button>
-              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
-                <i className="bx bx-category"></i>
-                {!isSidebarCollapsed && 'Tipos'}
-              </button>
-            </div>
-          )}
-          {/* Anúncios sub-menu group */}
+          {/* Performance sub-menu group */}
           <button
             type="button"
             data-tooltip="Performance"
@@ -16791,6 +16727,70 @@ export default function DashboardShell({
                   {!isSidebarCollapsed && 'G.R - Tarefas'}
                 </button>
               )}
+            </div>
+          )}
+          {/* Social Media sub-menu group */}
+          <button
+            type="button"
+            data-tooltip="Social Media"
+            aria-label="Social Media"
+            className={`nav-item nav-button nav-group-trigger ${SOCIAL_TABS.includes(activeTab) ? 'active' : ''}`}
+            onClick={() => setIsSocialMenuOpen((v) => !v)}
+          >
+            <i className="bx bx-image-alt"></i>
+            {!isSidebarCollapsed && (
+              <>
+                <span style={{ flex: 1 }}>Social Media</span>
+                <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+              </>
+            )}
+          </button>
+          {isSocialMenuOpen && !isSidebarCollapsed && (
+            <div className="nav-sub-group">
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
+                <i className="bx bx-bar-chart-alt-2"></i>
+                {!isSidebarCollapsed && 'Painel'}
+              </button>
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
+                <i className="bx bx-calendar-alt"></i>
+                {!isSidebarCollapsed && 'Calendário'}
+              </button>
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
+                <i className="bx bx-spreadsheet"></i>
+                {!isSidebarCollapsed && 'Planejamentos'}
+              </button>
+            </div>
+          )}
+          {/* PAC sub-menu group */}
+          <button
+            type="button"
+            data-tooltip="PAC"
+            aria-label="PAC"
+            className={`nav-item nav-button nav-group-trigger ${PAC_TABS.includes(activeTab) ? 'active' : ''}`}
+            onClick={() => setIsPacMenuOpen((v) => !v)}
+          >
+            <i className="bx bx-book-bookmark"></i>
+            {!isSidebarCollapsed && (
+              <>
+                <span style={{ flex: 1 }}>PAC</span>
+                <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+              </>
+            )}
+          </button>
+          {isPacMenuOpen && !isSidebarCollapsed && (
+            <div className="nav-sub-group">
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
+                <i className="bx bx-bar-chart-alt-2"></i>
+                {!isSidebarCollapsed && 'Painel'}
+              </button>
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
+                <i className="bx bx-calendar-alt"></i>
+                {!isSidebarCollapsed && 'Calendário'}
+              </button>
+              <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
+                <i className="bx bx-category"></i>
+                {!isSidebarCollapsed && 'Tipos'}
+              </button>
             </div>
           )}
           {canAccessTeamTab && (
