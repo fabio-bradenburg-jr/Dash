@@ -3282,6 +3282,9 @@ export default function DashboardShell({
   const [offboardingSearch, setOffboardingSearch] = useState('')
   const [offboardingStatusFilter, setOffboardingStatusFilter] = useState('all')
   const [offboardingExpandedPhases, setOffboardingExpandedPhases] = useState(new Set())
+  const [grCompletions, setGrCompletions] = useState([])
+  const [grWeekOffset, setGrWeekOffset] = useState(0)
+  const [grSelectedUser, setGrSelectedUser] = useState(null)
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -3526,7 +3529,7 @@ export default function DashboardShell({
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
   const PAC_TABS = ['pac-dash', 'pac-calendario', 'pac-tipos']
   const [isPacMenuOpen, setIsPacMenuOpen] = useState(() => PAC_TABS.includes(initialTab))
-  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding']
+  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding', 'gr-tarefas']
   const [isSuccessMenuOpen, setIsSuccessMenuOpen] = useState(() => SUCCESS_TABS.includes(initialTab))
   const [globalIntegrations, setGlobalIntegrations] = useState({
     ...DEFAULT_PREFERENCES.globalIntegrations,
@@ -3773,6 +3776,41 @@ export default function DashboardShell({
   }, [activeTab])
 
   useEffect(() => { loadOffboardingRecords() }, [loadOffboardingRecords])
+
+  const getWeekStart = useCallback((offsetWeeks = 0) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + offsetWeeks * 7)
+    return d.toISOString().slice(0, 10)
+  }, [])
+
+  const loadGrCompletions = useCallback(async () => {
+    if (activeTab !== 'gr-tarefas') return
+    try {
+      const weekStart = getWeekStart(grWeekOffset)
+      const res = await fetch(`/api/gr-tasks?week_start=${weekStart}`, { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      setGrCompletions(Array.isArray(data.completions) ? data.completions : [])
+    } catch { setGrCompletions([]) }
+  }, [activeTab, grWeekOffset, getWeekStart])
+
+  useEffect(() => { loadGrCompletions() }, [loadGrCompletions])
+
+  const handleToggleGrTask = useCallback(async (userId, taskId, completed) => {
+    const weekStart = getWeekStart(grWeekOffset)
+    setGrCompletions((prev) => {
+      if (completed) {
+        const exists = prev.find((c) => c.user_id === userId && c.task_id === taskId && c.week_start === weekStart)
+        if (exists) return prev
+        return [...prev, { user_id: userId, task_id: taskId, week_start: weekStart }]
+      }
+      return prev.filter((c) => !(c.user_id === userId && c.task_id === taskId && c.week_start === weekStart))
+    })
+    await fetch('/api/gr-tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, taskId, weekStart, completed }),
+    })
+  }, [grWeekOffset, getWeekStart])
 
   const handleToggleOffboardingTask = useCallback(async (clientId, taskId) => {
     const record = offboardingRecords.find((r) => r.client_id === clientId)
@@ -16633,6 +16671,12 @@ export default function DashboardShell({
                       Offboarding
                     </button>
                   )}
+                  {isMaster && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
+                      <i className="bx bx-task"></i>
+                      Gestor de Resultado
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -17624,6 +17668,125 @@ export default function DashboardShell({
                   </div>
                 )
               })()}
+            </section>
+          )
+        })()}
+
+        {activeTab === 'gr-tarefas' && isMaster && (() => {
+          const GR_TASKS = [
+            { id: 'conferir_agenda', label: 'Conferir Agenda', days: [1,2,3,4,5], icon: 'bx-calendar-check', color: '#6366f1' },
+            { id: 'revisar_orcamento', label: 'Revisar Orçamento das Contas', days: [1], icon: 'bx-money', color: '#22c55e' },
+            { id: 'bom_dia_clientes', label: 'Bom dia clientes', days: [1], icon: 'bx-sun', color: '#f59e0b' },
+            { id: 'relatorio_saude', label: 'Relatório de Saúde dos Clientes', days: [1], icon: 'bx-heart', color: '#ec4899' },
+            { id: 'solicitar_qualidade_leads', label: 'Solicitar Qualidade dos Leads', days: [2], icon: 'bx-user-check', color: '#3b82f6' },
+            { id: 'revisao_otimizacao_terca', label: 'Revisão e Otimização das Contas', days: [2], icon: 'bx-trending-up', color: '#8b5cf6' },
+            { id: 'solicitar_andamento_negociacoes', label: 'Solicitar Andamento das Negociações', days: [3], icon: 'bx-chat', color: '#06b6d4' },
+            { id: 'solicitar_prints', label: 'Solicitar Prints das Conversas', days: [4], icon: 'bx-screenshot', color: '#f97316' },
+            { id: 'revisao_otimizacao_sexta', label: 'Revisão e Otimização das Contas', days: [5], icon: 'bx-trending-up', color: '#8b5cf6' },
+            { id: 'relatorio_semanal', label: 'Relatório Semanal', days: [5], icon: 'bx-file', color: '#10b981' },
+            { id: 'atualizar_formulario', label: 'Atualizar Formulário Nativo', days: [5], icon: 'bx-edit', color: '#84cc16' },
+            { id: 'bom_fds', label: 'Bom Final de Semana', days: [5], icon: 'bx-party', color: '#ef4444' },
+          ]
+
+          const DAY_LABELS = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
+          const DAY_COLORS = ['', '#6366f1', '#3b82f6', '#06b6d4', '#f59e0b', '#10b981']
+
+          const weekStart = getWeekStart(grWeekOffset)
+          const weekStartDate = new Date(weekStart + 'T00:00:00Z')
+          const weekEndDate = new Date(weekStartDate)
+          weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 4)
+          const fmt = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+
+          const grUsers = (usersList || []).filter((u) => u.role === 'gestor_resultado')
+          const selectedGrUser = grSelectedUser || grUsers[0] || null
+
+          const userCompletions = selectedGrUser
+            ? grCompletions.filter((c) => c.user_id === selectedGrUser.id && c.week_start === weekStart)
+            : []
+          const completedSet = new Set(userCompletions.map((c) => c.task_id))
+
+          const tasksByDay = [1,2,3,4,5].map((day) => ({
+            day,
+            tasks: GR_TASKS.filter((t) => t.days.includes(day)),
+          }))
+
+          const totalTasks = GR_TASKS.length
+          const doneTasks = completedSet.size
+
+          return (
+            <section className="weekly-dashboard-panel onboarding-panel">
+              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+                <span className="eyebrow" style={{ color: '#6366f1' }}><i className="bx bx-task"></i> Master · Restrito</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
+                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Tarefas recorrentes semanais por Gestor de Resultado.</p>
+
+                {grUsers.length === 0 && (
+                  <div style={{ marginTop: 20, padding: '16px 20px', background: 'rgba(99,102,241,0.08)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.9rem', opacity: 0.8 }}>
+                    <i className="bx bx-info-circle" style={{ marginRight: 8 }}></i>
+                    Nenhum membro com função <strong>Gestor de Resultado</strong> encontrado. Vá em <strong>Time</strong> e defina a função de um membro.
+                  </div>
+                )}
+
+                {/* Week navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '6px 10px' }}>
+                    <button type="button" onClick={() => setGrWeekOffset((v) => v - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, display: 'flex' }}><i className="bx bx-chevron-left"></i></button>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, minWidth: 140, textAlign: 'center' }}>
+                      {fmt(weekStartDate)} – {fmt(weekEndDate)}
+                      {grWeekOffset === 0 && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: '#6366f1', fontWeight: 800 }}>ESTA SEMANA</span>}
+                    </span>
+                    <button type="button" onClick={() => setGrWeekOffset((v) => v + 1)} disabled={grWeekOffset >= 0} style={{ background: 'none', border: 'none', cursor: grWeekOffset >= 0 ? 'default' : 'pointer', color: 'inherit', fontSize: 18, display: 'flex', opacity: grWeekOffset >= 0 ? 0.3 : 1 }}><i className="bx bx-chevron-right"></i></button>
+                  </div>
+                  {grUsers.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {grUsers.map((u) => (
+                        <button key={u.id} type="button" onClick={() => setGrSelectedUser(u)}
+                          style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, background: selectedGrUser?.id === u.id ? '#6366f1' : 'rgba(255,255,255,0.07)', color: selectedGrUser?.id === u.id ? '#fff' : 'inherit' }}>
+                          {u.full_name || u.email}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedGrUser && (
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>{doneTasks}/{totalTasks} tarefas</span>
+                      <div style={{ width: 80, height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.round((doneTasks/totalTasks)*100)}%`, background: '#6366f1', borderRadius: 4, transition: 'width .3s' }}></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedGrUser && (
+                <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 16 }}>
+                  {tasksByDay.map(({ day, tasks }) => {
+                    const dayDone = tasks.filter((t) => completedSet.has(t.id)).length
+                    return (
+                      <div key={day} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${DAY_COLORS[day]}28`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ background: `${DAY_COLORS[day]}18`, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: DAY_COLORS[day] }}>{DAY_LABELS[day]}</span>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{dayDone}/{tasks.length}</span>
+                        </div>
+                        <div style={{ padding: '8px 14px 12px' }}>
+                          {tasks.map((task) => {
+                            const checked = completedSet.has(task.id)
+                            return (
+                              <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                <input type="checkbox" checked={checked} onChange={() => handleToggleGrTask(selectedGrUser.id, task.id, !checked)} style={{ display: 'none' }} />
+                                <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked ? task.color : 'rgba(255,255,255,0.2)'}`, background: checked ? task.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s', boxShadow: checked ? `0 0 8px ${task.color}80` : 'none' }}>
+                                  {checked && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
+                                </span>
+                                <span style={{ fontSize: '0.86rem', opacity: checked ? 0.4 : 0.9, textDecoration: checked ? 'line-through' : 'none' }}>{task.label}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </section>
           )
         })()}
@@ -20677,6 +20840,7 @@ export default function DashboardShell({
                       <div className="input-group"><label>Nome</label><input type="text" value={userForm.fullName} onChange={(event) => setUserForm((current) => ({ ...current, fullName: event.target.value, role: 'visualizador' }))} placeholder="Nome completo" /></div>
                       <div className="input-group"><label>E-mail</label><input type="email" value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value, role: 'visualizador' }))} placeholder="usuario@empresa.com" /></div>
                       <div className="input-group"><label>Senha inicial opcional</label><input type="password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} placeholder="Gerada automaticamente se ficar vazio" /></div>
+                      <div className="input-group"><label>Função</label><select className="client-select-input" value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}><option value="visualizador">Visualizador</option><option value="operador">Operador</option><option value="gestor_resultado">Gestor de Resultado</option><option value="cliente">Cliente</option></select></div>
                       <div className="input-group"><label>IA</label><select className="client-select-input" value={userForm.aiAccessLevel} onChange={(event) => setUserForm((current) => ({ ...current, aiAccessLevel: event.target.value }))}><option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
                       <div className="input-group"><label>Integrações</label><select className="client-select-input" value={userForm.canEditIntegrations ? 'enabled' : 'disabled'} onChange={(event) => setUserForm((current) => ({ ...current, canEditIntegrations: event.target.value === 'enabled' }))}><option value="disabled">Bloqueadas</option><option value="enabled">Liberadas</option></select></div>
                     </div>
@@ -20693,6 +20857,7 @@ export default function DashboardShell({
                   <div className="user-admin-head"><div><strong>{selectedManagedUser.full_name || selectedManagedUser.email}</strong><span>{selectedManagedUser.email}</span></div>{selectedManagedUser.id !== user?.id && <button type="button" className="btn btn-secondary" onClick={() => handleDeleteUser(selectedManagedUser.id)}>Excluir</button>}</div>
                   <div className="form-grid user-admin-grid">
                     <div className="input-group"><label>Nome</label><input type="text" value={selectedManagedUser.full_name || ''} onChange={(event) => handleManagedUserChange(selectedManagedUser.id, (item) => ({ ...item, full_name: event.target.value }))} /></div>
+                    {selectedManagedUser.role !== 'master' && <div className="input-group"><label>Função</label><select className="client-select-input" value={selectedManagedUser.role || 'visualizador'} onChange={(event) => handleManagedUserChange(selectedManagedUser.id, (item) => ({ ...item, role: event.target.value }))}><option value="visualizador">Visualizador</option><option value="operador">Operador</option><option value="gestor_resultado">Gestor de Resultado</option><option value="cliente">Cliente</option></select></div>}
                     <div className="input-group"><label>IA</label><select className="client-select-input" value={selectedManagedUser.ai_access_level || (selectedManagedUser.role === 'master' ? 'master' : 'team')} onChange={(event) => handleManagedUserChange(selectedManagedUser.id, (item) => ({ ...item, ai_access_level: event.target.value }))}>{selectedManagedUser.role === 'master' && <option value="master">IA Master</option>}<option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
                     <div className="input-group"><label>Integrações</label><select className="client-select-input" value={(selectedManagedUser.role === 'master' || selectedManagedUser.can_edit_integrations) ? 'enabled' : 'disabled'} disabled={selectedManagedUser.role === 'master'} onChange={(event) => handleManagedUserChange(selectedManagedUser.id, (item) => ({ ...item, can_edit_integrations: event.target.value === 'enabled' }))}><option value="disabled">Bloqueadas</option><option value="enabled">Liberadas</option></select></div>
                   </div>

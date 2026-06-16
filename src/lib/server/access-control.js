@@ -3,6 +3,7 @@ export const USER_ROLES = {
   OPERATOR: 'operador',
   VIEWER: 'visualizador',
   CLIENT: 'cliente',
+  GESTOR_RESULTADO: 'gestor_resultado',
 }
 
 export const AI_ACCESS_LEVELS = {
