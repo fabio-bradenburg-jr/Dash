@@ -17335,56 +17335,26 @@ export default function DashboardShell({
                     const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
                     const completedCount = completedTasks.length
                     const progress = Math.round((completedCount / totalTasks) * 100)
-                    const isExpanded = onboardingExpandedClient === client.id
                     return (
-                      <div key={client.id} style={{ borderRadius: 14, border: '1px solid rgba(129,216,167,0.1)', background: 'rgba(255,255,255,0.02)', overflow: 'hidden' }}>
-                        <button
-                          type="button"
-                          onClick={() => setOnboardingExpandedClient(isExpanded ? null : client.id)}
-                          style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
-                        >
-                          <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.18)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                            {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 14 }}></i>}
-                          </span>
-                          <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>{client.name}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
-                            <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4 }} />
-                            </div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                      <button
+                        key={client.id}
+                        type="button"
+                        onClick={() => setOnboardingExpandedClient(client.id)}
+                        style={{ borderRadius: 14, border: '1px solid rgba(129,216,167,0.1)', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', color: 'inherit', width: '100%' }}
+                      >
+                        <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.18)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                          {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 14 }}></i>}
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>{client.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
+                          <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4 }} />
                           </div>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'right' }}>{progress}%</span>
-                          <i className={`bx ${isExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.5 }}></i>
-                        </button>
-                        {isExpanded && (
-                          <div style={{ borderTop: '1px solid rgba(129,216,167,0.08)', padding: '10px 16px 14px' }}>
-                            {ONBOARDING_PHASES.map((phase) => {
-                              const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
-                              return (
-                                <div key={phase.id} style={{ marginBottom: 14 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.55 }}>
-                                    <i className={`bx ${phase.icon}`}></i>{phase.label}
-                                    {phase.deadline && <span style={{ fontWeight: 600, fontSize: '0.65rem', color: '#f59e0b', opacity: 1, textTransform: 'none', letterSpacing: 0, background: 'rgba(245,158,11,0.12)', borderRadius: 5, padding: '1px 5px' }}>{phase.deadline}</span>}
-                                    <span style={{ marginLeft: 'auto' }}>{phaseDone}/{phase.tasks.length}</span>
-                                  </div>
-                                  {phase.tasks.map((task) => {
-                                    const done = completedTasks.includes(task.id)
-                                    return (
-                                      <button key={task.id} type="button" onClick={() => handleToggleOnboardingTask(client.id, task.id)}
-                                        style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 2px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left', opacity: done ? 0.5 : 1 }}>
-                                        <span style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${done ? '#22c55e' : 'rgba(129,216,167,0.3)'}`, background: done ? '#22c55e' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1 }}>
-                                          {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff' }}></i>}
-                                        </span>
-                                        <span style={{ fontSize: '0.83rem', lineHeight: 1.4, textDecoration: done ? 'line-through' : 'none' }}>{task.label}</span>
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                        </div>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'right' }}>{progress}%</span>
+                        <i className="bx bx-chevron-right" style={{ fontSize: 18, opacity: 0.4 }}></i>
+                      </button>
                     )
                   })}
                 </div>
@@ -17392,88 +17362,118 @@ export default function DashboardShell({
 
               {/* CARDS VIEW */}
               {onboardingView === 'cards' && (
-              <div style={{ display: 'grid', gap: 16, padding: '24px 28px', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gap: 16, padding: '24px 28px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', alignItems: 'start' }}>
                 {filteredOnboardingClients.map((client) => {
                   const record = onboardingRecords.find((r) => r.client_id === client.id)
                   const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
                   const completedCount = completedTasks.length
                   const progress = Math.round((completedCount / totalTasks) * 100)
-                  const isExpanded = onboardingExpandedClient === client.id
 
                   return (
-                    <div key={client.id} style={{ borderRadius: 18, border: '1px solid rgba(129,216,167,0.14)', background: 'rgba(255,255,255,0.025)', overflow: 'hidden' }}>
-                      {/* Card header */}
-                      <button
-                        type="button"
-                        onClick={() => setOnboardingExpandedClient(isExpanded ? null : client.id)}
-                        style={{ width: '100%', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
-                      >
-                        <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.2)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                          {client.logoUrl
-                            ? <img src={client.logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
-                            : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 18 }}></i>
-                          }
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: '0.97rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                            <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4, transition: 'width 0.3s' }} />
-                            </div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => setOnboardingExpandedClient(client.id)}
+                      style={{ borderRadius: 18, border: '1px solid rgba(129,216,167,0.14)', background: 'rgba(255,255,255,0.025)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', color: 'inherit', width: '100%' }}
+                    >
+                      <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.2)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                        {client.logoUrl
+                          ? <img src={client.logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
+                          : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 18 }}></i>
+                        }
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.97rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                          <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4, transition: 'width 0.3s' }} />
                           </div>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
                         </div>
-                        <i className={`bx ${isExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 20, opacity: 0.6, flexShrink: 0 }}></i>
-                      </button>
-
-                      {/* Checklist expandido */}
-                      {isExpanded && (
-                        <div style={{ borderTop: '1px solid rgba(129,216,167,0.1)', padding: '12px 18px 18px' }}>
-                          {ONBOARDING_PHASES.map((phase) => {
-                            const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
-                            return (
-                              <div key={phase.id} style={{ marginBottom: 16 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', opacity: 0.6 }}>
-                                  <i className={`bx ${phase.icon}`}></i>
-                                  {phase.label}
-                                  {phase.deadline && <span style={{ fontWeight: 600, fontSize: '0.65rem', color: '#f59e0b', opacity: 1, textTransform: 'none', letterSpacing: 0, background: 'rgba(245,158,11,0.12)', borderRadius: 5, padding: '1px 5px' }}>{phase.deadline}</span>}
-                                  <span style={{ marginLeft: 'auto', fontWeight: 700 }}>{phaseDone}/{phase.tasks.length}</span>
-                                </div>
-                                {phase.tasks.map((task) => {
-                                  const done = completedTasks.includes(task.id)
-                                  return (
-                                    <button
-                                      key={task.id}
-                                      type="button"
-                                      onClick={() => handleToggleOnboardingTask(client.id, task.id)}
-                                      style={{
-                                        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
-                                        padding: '7px 4px', background: 'transparent', border: 'none',
-                                        cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                                        opacity: done ? 0.5 : 1, transition: 'opacity 0.15s',
-                                      }}
-                                    >
-                                      <span style={{
-                                        width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? '#22c55e' : 'rgba(129,216,167,0.35)'}`,
-                                        background: done ? '#22c55e' : 'transparent', display: 'grid', placeItems: 'center',
-                                        flexShrink: 0, marginTop: 1, transition: 'all 0.15s',
-                                      }}>
-                                        {done && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
-                                      </span>
-                                      <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none' }}>{task.label}</span>
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                      <i className="bx bx-chevron-right" style={{ fontSize: 20, opacity: 0.4, flexShrink: 0 }}></i>
+                    </button>
                   )
                 })}
               </div>
               )}
+
+              {/* ONBOARDING TASK MODAL */}
+              {(() => {
+                const modalClient = onboardingExpandedClient ? onboardingClients.find((c) => c.id === onboardingExpandedClient) : null
+                if (!modalClient) return null
+                const record = onboardingRecords.find((r) => r.client_id === modalClient.id)
+                const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+                const completedCount = completedTasks.length
+                const progress = Math.round((completedCount / totalTasks) * 100)
+                return (
+                  <div
+                    onClick={() => setOnboardingExpandedClient(null)}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
+                  >
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '100%', maxWidth: 680, borderRadius: 22, background: '#111827', border: '1px solid rgba(129,216,167,0.18)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', overflow: 'hidden', marginBottom: 24 }}
+                    >
+                      {/* Modal header */}
+                      <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid rgba(129,216,167,0.1)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <span style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.25)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                          {modalClient.logoUrl ? <img src={modalClient.logoUrl} alt="" style={{ width: 48, height: 48, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 22 }}></i>}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 6 }}>{modalClient.name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1, height: 5, borderRadius: 5, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : 'linear-gradient(90deg,#26c281,#22c55e)', borderRadius: 5, transition: 'width 0.3s' }} />
+                            </div>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: progress === 100 ? '#22c55e' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks} · {progress}%</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOnboardingExpandedClient(null)}
+                          style={{ width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'inherit', display: 'grid', placeItems: 'center', flexShrink: 0 }}
+                        >
+                          <i className="bx bx-x" style={{ fontSize: 18 }}></i>
+                        </button>
+                      </div>
+
+                      {/* Modal body — phases + tasks */}
+                      <div style={{ padding: '16px 24px 24px', maxHeight: '70vh', overflowY: 'auto' }}>
+                        {ONBOARDING_PHASES.map((phase) => {
+                          const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
+                          return (
+                            <div key={phase.id} style={{ marginBottom: 20 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(148,163,184,0.7)' }}>
+                                <i className={`bx ${phase.icon}`}></i>
+                                {phase.label}
+                                {phase.deadline && <span style={{ fontWeight: 600, fontSize: '0.65rem', color: '#f59e0b', textTransform: 'none', letterSpacing: 0, background: 'rgba(245,158,11,0.12)', borderRadius: 5, padding: '1px 6px' }}>{phase.deadline}</span>}
+                                <span style={{ marginLeft: 'auto', color: phaseDone === phase.tasks.length ? '#22c55e' : 'rgba(148,163,184,0.5)' }}>{phaseDone}/{phase.tasks.length}</span>
+                              </div>
+                              {phase.tasks.map((task) => {
+                                const done = completedTasks.includes(task.id)
+                                return (
+                                  <button
+                                    key={task.id}
+                                    type="button"
+                                    onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 6px', background: done ? 'rgba(34,197,94,0.04)' : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'inherit', textAlign: 'left', transition: 'background 0.15s', marginBottom: 2 }}
+                                  >
+                                    <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${done ? '#22c55e' : 'rgba(129,216,167,0.3)'}`, background: done ? '#22c55e' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1, transition: 'all 0.15s' }}>
+                                      {done && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
+                                    </span>
+                                    <span style={{ fontSize: '0.88rem', lineHeight: 1.5, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.45 : 1, transition: 'opacity 0.15s' }}>{task.label}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </section>
           )
         })()}
