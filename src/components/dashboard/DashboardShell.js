@@ -3275,6 +3275,7 @@ export default function DashboardShell({
   const [onboardingView, setOnboardingView] = useState('cards')
   const [onboardingSearch, setOnboardingSearch] = useState('')
   const [onboardingStatusFilter, setOnboardingStatusFilter] = useState('all')
+  const [onboardingExpandedPhases, setOnboardingExpandedPhases] = useState(new Set())
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -17251,13 +17252,13 @@ export default function DashboardShell({
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   {/* Search input */}
                   <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
-                    <i className="bx bx-search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
+                    <i className="bx bx-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
                     <input
                       type="text"
                       value={onboardingSearch}
                       onChange={(e) => setOnboardingSearch(e.target.value)}
                       placeholder="Buscar cliente..."
-                      style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 12px 8px 38px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                   {/* Status filter chips */}
@@ -17491,10 +17492,21 @@ export default function DashboardShell({
                           const phaseComplete = phaseDone === phase.tasks.length
                           const phaseColors = ['#26c281','#6366f1','#f59e0b','#ec4899','#3b82f6','#10b981','#8b5cf6','#f97316','#06b6d4','#84cc16','#ef4444','#a855f7','#14b8a6','#fb923c']
                           const color = phaseColors[phaseIndex % phaseColors.length]
+                          const isPhaseOpen = onboardingExpandedPhases.has(phase.id)
+                          const togglePhase = () => setOnboardingExpandedPhases((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(phase.id)) next.delete(phase.id)
+                            else next.add(phase.id)
+                            return next
+                          })
                           return (
-                            <div key={phase.id} style={{ marginBottom: 10 }}>
-                              {/* Phase header */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: phaseComplete ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${phaseComplete ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`, marginBottom: 4 }}>
+                            <div key={phase.id} style={{ marginBottom: 6 }}>
+                              {/* Phase header — clickable */}
+                              <button
+                                type="button"
+                                onClick={togglePhase}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: isPhaseOpen ? '12px 12px 0 0' : 12, background: phaseComplete ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${phaseComplete ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`, borderBottom: isPhaseOpen ? 'none' : undefined, cursor: 'pointer', color: 'inherit', textAlign: 'left' }}
+                              >
                                 <span style={{ width: 30, height: 30, borderRadius: 9, background: `${color}1a`, border: `1.5px solid ${color}40`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                                   <i className={`bx ${phase.icon}`} style={{ color, fontSize: 15 }}></i>
                                 </span>
@@ -17507,30 +17519,35 @@ export default function DashboardShell({
                                     <div style={{ height: '100%', width: `${(phaseDone / phase.tasks.length) * 100}%`, background: phaseComplete ? '#22c55e' : color, borderRadius: 3, transition: 'width 0.3s' }} />
                                   </div>
                                   <span style={{ fontSize: '0.72rem', fontWeight: 800, color: phaseComplete ? '#22c55e' : 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', minWidth: 32, textAlign: 'right' }}>{phaseDone}/{phase.tasks.length}</span>
-                                  {phaseComplete && <i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 16 }}></i>}
+                                  {phaseComplete
+                                    ? <i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 16 }}></i>
+                                    : <i className={`bx ${isPhaseOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 16, opacity: 0.4 }}></i>
+                                  }
                                 </div>
-                              </div>
-                              {/* Tasks */}
-                              <div style={{ paddingLeft: 8 }}>
-                                {phase.tasks.map((task) => {
-                                  const done = completedTasks.includes(task.id)
-                                  return (
-                                    <button
-                                      key={task.id}
-                                      type="button"
-                                      onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
-                                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'inherit', textAlign: 'left', transition: 'background 0.12s', marginBottom: 1 }}
-                                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                      <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? color : 'rgba(255,255,255,0.15)'}`, background: done ? color : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s', boxShadow: done ? `0 0 8px ${color}60` : 'none' }}>
-                                        {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff', fontWeight: 900 }}></i>}
-                                      </span>
-                                      <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.4 : 0.85, transition: 'all 0.15s', flex: 1 }}>{task.label}</span>
-                                    </button>
-                                  )
-                                })}
-                              </div>
+                              </button>
+                              {/* Tasks — only shown when expanded */}
+                              {isPhaseOpen && (
+                                <div style={{ paddingLeft: 8, background: 'rgba(255,255,255,0.02)', border: `1px solid ${phaseComplete ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`, borderTop: 'none', borderRadius: '0 0 12px 12px', paddingTop: 4, paddingBottom: 4 }}>
+                                  {phase.tasks.map((task) => {
+                                    const done = completedTasks.includes(task.id)
+                                    return (
+                                      <button
+                                        key={task.id}
+                                        type="button"
+                                        onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'inherit', textAlign: 'left', transition: 'background 0.12s', marginBottom: 1 }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                      >
+                                        <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? color : 'rgba(255,255,255,0.15)'}`, background: done ? color : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s', boxShadow: done ? `0 0 8px ${color}60` : 'none' }}>
+                                          {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff', fontWeight: 900 }}></i>}
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.4 : 0.85, transition: 'all 0.15s', flex: 1 }}>{task.label}</span>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              )}
                             </div>
                           )
                         })}
