@@ -17972,7 +17972,7 @@ export default function DashboardShell({
                             </span>
                             <div>
                               <strong>{row.clientName}</strong>
-                              <small>act_{row.metaAdAccountId} • {formatNumber(campaigns.length)} campanha(s)</small>
+                              <small>{row.isGhost ? '👻 Conta fantasma · Sem integração' : `act_${row.metaAdAccountId} • ${formatNumber(campaigns.length)} campanha(s)`}</small>
                             </div>
                           </div>
                           <div className="campaign-overview-client-metrics">
@@ -17999,7 +17999,12 @@ export default function DashboardShell({
                         </button>
 
                         {isExpanded ? (
-                          row.error ? (
+                          row.isGhost ? (
+                            <div className="ads-overview-no-ads" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '28px 20px', opacity: 0.7 }}>
+                              <i className="bx bx-link-alt" style={{ fontSize: 28 }}></i>
+                              <span>Conta fantasma — vincule a conta de anúncio real no cadastro do cliente para ativar a integração.</span>
+                            </div>
+                          ) : row.error ? (
                             <div className="api-error-banner ads-overview-client-error" role="status">
                               <i className="bx bx-error-circle"></i>
                               <span>{row.error}</span>
@@ -19028,6 +19033,7 @@ export default function DashboardShell({
                       <label>Conta de anúncio</label>
                       <select className="client-select-input" value={activeClient.metaAdAccountId || ''} onChange={(event) => handleClientFieldChange('metaAdAccountId', event.target.value)} disabled={!canEditActiveClient}>
                         <option value="">{hasMetaManualToken || hasMetaOauthConnection ? 'Selecione uma conta' : 'Conecte a Meta em Configurações'}</option>
+                        <option value="__ghost__">👻 Conta fantasma (sem integração)</option>
                         {adAccounts.map((account) => (
                           <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>
                         ))}

@@ -100,6 +100,8 @@ function buildBaseParams({ token, datePreset, since, until }) {
   return params
 }
 
+const GHOST_AD_ACCOUNT_ID = '__ghost__'
+
 function normalizeClientStatus(value) {
   return String(value || '').trim().toLowerCase()
 }
@@ -108,7 +110,7 @@ function isVisibleClient(client) {
   const status = normalizeClientStatus(client?.status)
   return Boolean(
     client?.id &&
-    client?.metaAdAccountId &&
+    (client?.metaAdAccountId === GHOST_AD_ACCOUNT_ID || client?.metaAdAccountId) &&
     client?.dashboardEnabled !== false &&
     status !== 'churn' &&
     status !== 'pausado'
@@ -224,6 +226,20 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 }
 
 async function fetchClientCampaignTree({ client, token, datePreset, since, until }) {
+  if (client.metaAdAccountId === GHOST_AD_ACCOUNT_ID) {
+    return {
+      clientId: client.id,
+      clientName: client.name || 'Cliente sem nome',
+      clientLogoUrl: client.logoUrl || '',
+      clientStatus: client.status || '',
+      metaAdAccountId: GHOST_AD_ACCOUNT_ID,
+      totals: emptyMetrics(),
+      campaigns: [],
+      isGhost: true,
+      error: '',
+    }
+  }
+
   const adAccountId = String(client.metaAdAccountId || '').replace(/^act_/, '')
   const params = buildBaseParams({ token, datePreset, since, until })
   const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/insights?${params.toString()}`
