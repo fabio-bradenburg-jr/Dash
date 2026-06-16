@@ -21441,8 +21441,6 @@ export default function DashboardShell({
                   <div className="modal-foot"><span className="form-note">Os acessos do time são salvos no Supabase e aplicados no login deste usuário.</span><div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsEditUserModalOpen(false)}>Cancelar</button><button type="button" className="btn btn-primary" onClick={() => handleUpdateUser(selectedManagedUser)}>Salvar membro</button></div></div>
                 </div></div>
               )}
-
-              )}
             </section>
           ) : (
             <section className="clients-layout users-management-layout simple-team-layout"><div className="empty-panel glass-panel"><h3>Acesso do time</h3><p>Seu usuário tem acesso aos dashboards liberados pelo master. Para alterar permissões, fale com o administrador.</p></div></section>
