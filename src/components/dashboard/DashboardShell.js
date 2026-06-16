@@ -8047,7 +8047,7 @@ export default function DashboardShell({
   ), [teamProfiles])
 
   const loadUsers = useCallback(async () => {
-    if (!canPersistClientChanges) return
+    if (!canPersistClientChanges && role !== 'gestor_resultado') return
 
     try {
       setUsersLoading(true)
@@ -8676,7 +8676,7 @@ export default function DashboardShell({
   }
 
   useEffect(() => {
-    if (!(canManageUsers || canPersistClientChanges) || !['usuarios', 'operacao', 'clientes', 'gr-tarefas'].includes(activeTab)) return
+    if (!(canManageUsers || canPersistClientChanges || role === 'gestor_resultado') || !['usuarios', 'operacao', 'clientes', 'gr-tarefas'].includes(activeTab)) return
     loadUsers()
   }, [canManageUsers, canPersistClientChanges, activeTab, loadUsers])
 
@@ -16721,7 +16721,7 @@ export default function DashboardShell({
                 <i className="bx bx-file"></i>
                 {!isSidebarCollapsed && 'Relatórios'}
               </button>
-              {isMaster && (
+              {(isMaster || role === 'gestor_resultado') && (
                 <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
                   <i className="bx bx-task"></i>
                   {!isSidebarCollapsed && 'G.R - Tarefas'}
