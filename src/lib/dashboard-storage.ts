@@ -924,6 +924,7 @@ export function createClientRecord(overrides: ClientRecordOverrides = {}): Clien
     googleAdsAccountId: '',
     tiktokAdsAccountId: '',
     linkedInAdsAccountId: '',
+    leadsSheetUrl: '',
     googleSheetsUrl: '',
     rdStationAccountId: '',
     rdPipelineId: '',
