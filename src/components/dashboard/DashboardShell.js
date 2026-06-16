@@ -3276,6 +3276,12 @@ export default function DashboardShell({
   const [onboardingSearch, setOnboardingSearch] = useState('')
   const [onboardingStatusFilter, setOnboardingStatusFilter] = useState('all')
   const [onboardingExpandedPhases, setOnboardingExpandedPhases] = useState(new Set())
+  const [offboardingRecords, setOffboardingRecords] = useState([])
+  const [offboardingExpandedClient, setOffboardingExpandedClient] = useState(null)
+  const [offboardingSaving, setOffboardingSaving] = useState(false)
+  const [offboardingSearch, setOffboardingSearch] = useState('')
+  const [offboardingStatusFilter, setOffboardingStatusFilter] = useState('all')
+  const [offboardingExpandedPhases, setOffboardingExpandedPhases] = useState(new Set())
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -3520,6 +3526,8 @@ export default function DashboardShell({
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
   const PAC_TABS = ['pac-dash', 'pac-calendario', 'pac-tipos']
   const [isPacMenuOpen, setIsPacMenuOpen] = useState(() => PAC_TABS.includes(initialTab))
+  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding']
+  const [isSuccessMenuOpen, setIsSuccessMenuOpen] = useState(() => SUCCESS_TABS.includes(initialTab))
   const [globalIntegrations, setGlobalIntegrations] = useState({
     ...DEFAULT_PREFERENCES.globalIntegrations,
   })
@@ -3754,6 +3762,36 @@ export default function DashboardShell({
       })
     } finally { setOnboardingSaving(false) }
   }, [onboardingRecords])
+
+  const loadOffboardingRecords = useCallback(async () => {
+    if (activeTab !== 'offboarding') return
+    try {
+      const res = await fetch('/api/client-offboarding', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      setOffboardingRecords(Array.isArray(data.records) ? data.records : [])
+    } catch { setOffboardingRecords([]) }
+  }, [activeTab])
+
+  useEffect(() => { loadOffboardingRecords() }, [loadOffboardingRecords])
+
+  const handleToggleOffboardingTask = useCallback(async (clientId, taskId) => {
+    const record = offboardingRecords.find((r) => r.client_id === clientId)
+    const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+    const next = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    setOffboardingRecords((prev) => {
+      const exists = prev.find((r) => r.client_id === clientId)
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: next } : r)
+      return [...prev, { client_id: clientId, completed_tasks: next, notes: '' }]
+    })
+    setOffboardingSaving(true)
+    try {
+      await fetch('/api/client-offboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, completedTasks: next }),
+      })
+    } finally { setOffboardingSaving(false) }
+  }, [offboardingRecords])
 
   useEffect(() => {
     if (!weeklyForm.clientId) return
@@ -16557,11 +16595,47 @@ export default function DashboardShell({
             <i className="bx bx-search-alt"></i>
             {!isSidebarCollapsed && 'Busca'}
           </button>
-          {canAccessClientsTab && (
-            <button type="button" data-tooltip="Clientes" aria-label="Clientes" className={`nav-item nav-button ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
-              <i className="bx bxs-buildings"></i>
-              {!isSidebarCollapsed && 'Clientes'}
-            </button>
+          {/* Sucesso do Cliente sub-menu group */}
+          {(canAccessClientsTab || isMaster) && (
+            <>
+              <button
+                type="button"
+                data-tooltip="Sucesso do Cliente"
+                aria-label="Sucesso do Cliente"
+                className={`nav-item nav-button nav-group-trigger ${SUCCESS_TABS.includes(activeTab) ? 'active' : ''}`}
+                onClick={() => setIsSuccessMenuOpen((v) => !v)}
+              >
+                <i className="bx bx-heart"></i>
+                {!isSidebarCollapsed && (
+                  <>
+                    <span style={{ flex: 1 }}>Sucesso do Cliente</span>
+                    <i className={`bx bx-chevron-${isSuccessMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
+                  </>
+                )}
+              </button>
+              {isSuccessMenuOpen && !isSidebarCollapsed && (
+                <div className="nav-sub-group">
+                  {canAccessClientsTab && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
+                      <i className="bx bxs-buildings"></i>
+                      Clientes
+                    </button>
+                  )}
+                  {isMaster && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
+                      <i className="bx bx-log-in"></i>
+                      Onboarding
+                    </button>
+                  )}
+                  {isMaster && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'offboarding' ? 'active' : ''}`} onClick={() => setActiveTab('offboarding')}>
+                      <i className="bx bx-log-out"></i>
+                      Offboarding
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
           <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
             <i className="bx bx-note"></i>
@@ -16603,12 +16677,6 @@ export default function DashboardShell({
             <i className="bx bx-pulse"></i>
             {!isSidebarCollapsed && 'Controle da Operação'}
           </button>
-          {isMaster && (
-            <button type="button" data-tooltip="Onboarding" aria-label="Onboarding" className={`nav-item nav-button ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
-              <i className="bx bx-list-check"></i>
-              {!isSidebarCollapsed && 'Onboarding'}
-            </button>
-          )}
           {/* PAC sub-menu group */}
           <button
             type="button"
@@ -17544,6 +17612,254 @@ export default function DashboardShell({
                                         </span>
                                         <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.4 : 0.85, transition: 'all 0.15s', flex: 1 }}>{task.label}</span>
                                       </button>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </section>
+          )
+        })()}
+
+        {activeTab === 'offboarding' && isMaster && (() => {
+          const OFFBOARDING_PHASES = [
+            {
+              id: 'off1', label: 'Etapa 1 — Comunicação Inicial', icon: 'bx-message-dots',
+              tasks: [
+                { id: 'off1_msg_inicial', label: 'Enviar mensagem inicial de offboarding (WhatsApp)' },
+                { id: 'off1_data_final', label: 'Alinhar data final da operação' },
+              ],
+            },
+            {
+              id: 'off2', label: 'Etapa 2 — Transição de Acessos', icon: 'bx-transfer',
+              tasks: [
+                { id: 'off2_acesso_admin', label: 'Verificar se o cliente possui acesso administrador (BM, página, etc.)' },
+                { id: 'off2_pausar_manter', label: 'Alinhar com cliente: pausar ou manter rodando' },
+                { id: 'off2_pausar_camp', label: 'Pausar Campanhas (se aplicável)' },
+                { id: 'off2_remover_equipe', label: 'Remover equipe LP do Gerenciador de Negócios' },
+                { id: 'off2_remover_crm', label: 'Remover acessos de CRM / planilhas' },
+                { id: 'off2_confirmar_controle', label: 'Confirmar que cliente mantém controle total' },
+              ],
+            },
+            {
+              id: 'off3', label: 'Etapa 3 — Encerramento Relacional', icon: 'bx-heart',
+              tasks: [
+                { id: 'off3_msg_agradecimento', label: 'Enviar mensagem final de agradecimento' },
+                { id: 'off3_disponibilidade', label: 'Reforçar disponibilidade futura' },
+                { id: 'off3_encerrar_wpp', label: 'Encerrar grupo do WhatsApp' },
+              ],
+            },
+            {
+              id: 'off4', label: 'Etapa 4 — Arquivamento Interno', icon: 'bx-archive',
+              tasks: [
+                { id: 'off4_remover_db', label: 'Remover cliente da Data Base' },
+                { id: 'off4_remover_reportei', label: 'Remover cliente do Reportei' },
+                { id: 'off4_arquivar_materiais', label: 'Arquivar materiais de criação' },
+                { id: 'off4_remover_tarefas', label: 'Remover tarefas recorrentes do ClickUp' },
+                { id: 'off4_doc_churn', label: 'Documentar motivo do churn' },
+                { id: 'off4_doc_aprendizado', label: 'Documentar aprendizado envolvido com o cliente' },
+              ],
+            },
+          ]
+          const totalTasks = OFFBOARDING_PHASES.reduce((s, p) => s + p.tasks.length, 0)
+          const PHASE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#64748b']
+          const churnClients = (dashboardState?.clients || []).filter((c) => {
+            const status = String(c?.status || '').trim().toLowerCase()
+            return status === 'churn'
+          }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+
+          const filteredChurnClients = churnClients.filter((c) => {
+            if (offboardingSearch && !String(c.name || '').toLowerCase().includes(offboardingSearch.toLowerCase())) return false
+            if (offboardingStatusFilter !== 'all') {
+              const rec = offboardingRecords.find((r) => r.client_id === c.id)
+              const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+              if (offboardingStatusFilter === 'complete' && done < totalTasks) return false
+              if (offboardingStatusFilter === 'in_progress' && (done === 0 || done >= totalTasks)) return false
+              if (offboardingStatusFilter === 'not_started' && done > 0) return false
+            }
+            return true
+          })
+
+          const totalDone = churnClients.reduce((s, c) => {
+            const rec = offboardingRecords.find((r) => r.client_id === c.id)
+            return s + (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0)
+          }, 0)
+          const completeCount = churnClients.filter((c) => {
+            const rec = offboardingRecords.find((r) => r.client_id === c.id)
+            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            return done >= totalTasks
+          }).length
+          const inProgressCount = churnClients.filter((c) => {
+            const rec = offboardingRecords.find((r) => r.client_id === c.id)
+            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            return done > 0 && done < totalTasks
+          }).length
+          const notStartedCount = churnClients.length - completeCount - inProgressCount
+          const overallProgress = churnClients.length > 0 ? Math.round((totalDone / (churnClients.length * totalTasks)) * 100) : 0
+
+          return (
+            <section className="weekly-dashboard-panel onboarding-panel">
+              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)' }}>
+                <span className="eyebrow" style={{ color: '#ef4444' }}><i className="bx bx-log-out"></i> Master · Restrito</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Offboarding de clientes</h2>
+                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Checklist de encerramento para clientes com status Churn.</p>
+
+                {/* Metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12, marginTop: 20 }}>
+                  {[
+                    { label: 'Clientes em Churn', value: churnClients.length, icon: 'bx-user-x', color: '#ef4444' },
+                    { label: 'Concluídos', value: completeCount, icon: 'bx-check-circle', color: '#22c55e' },
+                    { label: 'Em andamento', value: inProgressCount, icon: 'bx-loader-circle', color: '#f59e0b' },
+                    { label: 'Não iniciados', value: notStartedCount, icon: 'bx-circle', color: '#64748b' },
+                    { label: 'Tarefas concluídas', value: `${totalDone}/${churnClients.length * totalTasks}`, icon: 'bx-list-check', color: '#8b5cf6' },
+                    { label: 'Progresso geral', value: `${overallProgress}%`, icon: 'bx-trending-up', color: '#06b6d4' },
+                  ].map((m) => (
+                    <div key={m.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '14px 16px', border: `1px solid ${m.color}22` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 18 }}></i>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{m.label}</span>
+                      </div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: m.color }}>{m.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Filter bar */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 20 }}>
+                  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
+                    <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
+                    <input
+                      type="text"
+                      value={offboardingSearch}
+                      onChange={(e) => setOffboardingSearch(e.target.value)}
+                      placeholder="Buscar cliente..."
+                      style={{ width: '100%', padding: '8px 12px 8px 42px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[
+                      { id: 'all', label: 'Todos', count: churnClients.length },
+                      { id: 'complete', label: 'Concluídos', count: completeCount },
+                      { id: 'in_progress', label: 'Em andamento', count: inProgressCount },
+                      { id: 'not_started', label: 'Não iniciados', count: notStartedCount },
+                    ].map((f) => (
+                      <button key={f.id} type="button" onClick={() => setOffboardingStatusFilter(f.id)}
+                        style={{ padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, background: offboardingStatusFilter === f.id ? '#ef4444' : 'rgba(255,255,255,0.07)', color: offboardingStatusFilter === f.id ? '#fff' : 'inherit', whiteSpace: 'nowrap' }}>
+                        {f.label} <span style={{ opacity: 0.7 }}>({f.count})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cards */}
+              <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 16 }}>
+                {filteredChurnClients.length === 0 && (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px 0', opacity: 0.5 }}>
+                    {churnClients.length === 0 ? 'Nenhum cliente com status Churn encontrado.' : 'Nenhum cliente encontrado com este filtro.'}
+                  </div>
+                )}
+                {filteredChurnClients.map((client) => {
+                  const rec = offboardingRecords.find((r) => r.client_id === client.id)
+                  const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+                  const pct = Math.round((done / totalTasks) * 100)
+                  const isComplete = done >= totalTasks
+                  return (
+                    <button key={client.id} type="button" onClick={() => { setOffboardingExpandedClient(client); setOffboardingExpandedPhases(new Set()) }}
+                      style={{ textAlign: 'left', background: 'rgba(255,255,255,0.04)', border: `1px solid ${isComplete ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 14, padding: '16px 18px', cursor: 'pointer', color: 'inherit', transition: 'border-color .15s,background .15s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} /> : <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#ef4444' }}><i className="bx bx-user-x"></i></div>}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>CHURN</div>
+                        </div>
+                        {isComplete && <i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 20 }}></i>}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: 6, opacity: 0.7 }}>
+                        <span>{done}/{totalTasks} tarefas</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: isComplete ? '#22c55e' : '#ef4444', borderRadius: 4, transition: 'width .3s' }}></div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Modal */}
+              {offboardingExpandedClient && (() => {
+                const client = offboardingExpandedClient
+                const rec = offboardingRecords.find((r) => r.client_id === client.id)
+                const completedSet = new Set(Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : [])
+                const totalDoneClient = completedSet.size
+                const pct = Math.round((totalDoneClient / totalTasks) * 100)
+                return (
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                    onClick={() => setOffboardingExpandedClient(null)}>
+                    <div style={{ background: 'linear-gradient(160deg,#1a0505 0%,#0f172a 100%)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+                      onClick={(e) => e.stopPropagation()}>
+                      {/* Modal header */}
+                      <div style={{ background: 'linear-gradient(135deg,rgba(239,68,68,0.25) 0%,rgba(239,68,68,0.05) 100%)', padding: '24px 24px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)', position: 'sticky', top: 0, backdropFilter: 'blur(12px)', zIndex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover' }} /> : <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#ef4444' }}><i className="bx bx-user-x"></i></div>}
+                            <div>
+                              <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, letterSpacing: 1 }}>OFFBOARDING · CHURN</div>
+                              <div style={{ fontWeight: 800, fontSize: '1.2rem' }}>{client.name}</div>
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => setOffboardingExpandedClient(null)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <i className="bx bx-x" style={{ fontSize: 20 }}></i>
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 14 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 6, opacity: 0.7 }}>
+                            <span>{totalDoneClient}/{totalTasks} tarefas concluídas</span>
+                            <span style={{ fontWeight: 700, color: '#ef4444' }}>{pct}%</span>
+                          </div>
+                          <div style={{ height: 7, background: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#22c55e' : 'linear-gradient(90deg,#ef4444,#f97316)', borderRadius: 6, transition: 'width .4s' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Phases */}
+                      <div style={{ padding: '16px 24px 24px' }}>
+                        {OFFBOARDING_PHASES.map((phase, pi) => {
+                          const phaseColor = PHASE_COLORS[pi % PHASE_COLORS.length]
+                          const phaseDone = phase.tasks.filter((t) => completedSet.has(t.id)).length
+                          const isPhaseOpen = offboardingExpandedPhases.has(phase.id)
+                          const togglePhase = () => setOffboardingExpandedPhases((prev) => { const next = new Set(prev); if (next.has(phase.id)) next.delete(phase.id); else next.add(phase.id); return next })
+                          return (
+                            <div key={phase.id} style={{ marginBottom: 12, border: `1px solid ${phaseColor}28`, borderRadius: 12, overflow: 'hidden' }}>
+                              <button type="button" onClick={togglePhase} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: `${phaseColor}14`, border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+                                <i className={`bx ${phase.icon}`} style={{ color: phaseColor, fontSize: 18, flexShrink: 0 }}></i>
+                                <span style={{ flex: 1, fontWeight: 700, fontSize: '0.88rem' }}>{phase.label}</span>
+                                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{phaseDone}/{phase.tasks.length}</span>
+                                <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden', marginLeft: 8 }}>
+                                  <div style={{ height: '100%', width: `${Math.round((phaseDone / phase.tasks.length) * 100)}%`, background: phaseColor, borderRadius: 3 }}></div>
+                                </div>
+                                <i className={`bx bx-chevron-${isPhaseOpen ? 'up' : 'down'}`} style={{ fontSize: 16, opacity: 0.5, marginLeft: 4 }}></i>
+                              </button>
+                              {isPhaseOpen && (
+                                <div style={{ padding: '8px 14px 12px' }}>
+                                  {phase.tasks.map((task) => {
+                                    const checked = completedSet.has(task.id)
+                                    return (
+                                      <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <input type="checkbox" checked={checked} onChange={() => handleToggleOffboardingTask(client.id, task.id)} style={{ display: 'none' }} />
+                                        <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked ? phaseColor : 'rgba(255,255,255,0.2)'}`, background: checked ? phaseColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s', boxShadow: checked ? `0 0 8px ${phaseColor}80` : 'none' }}>
+                                          {checked && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
+                                        </span>
+                                        <span style={{ fontSize: '0.88rem', opacity: checked ? 0.5 : 0.9, textDecoration: checked ? 'line-through' : 'none', transition: 'opacity .15s' }}>{task.label}</span>
+                                      </label>
                                     )
                                   })}
                                 </div>
