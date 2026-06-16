@@ -16788,7 +16788,7 @@ export default function DashboardShell({
               {isMaster && (
                 <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
                   <i className="bx bx-task"></i>
-                  {!isSidebarCollapsed && 'Gestor de Resultado'}
+                  {!isSidebarCollapsed && 'G.R - Tarefas'}
                 </button>
               )}
             </div>
@@ -17712,61 +17712,164 @@ export default function DashboardShell({
 
           const totalTasks = GR_TASKS.length
           const doneTasks = completedSet.size
+          const weekPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+
+          // Today's day of week (1=Mon...5=Fri, 0/6=weekend)
+          const todayUTC = new Date()
+          const todayDow = todayUTC.getUTCDay() === 0 ? 7 : todayUTC.getUTCDay()
+          const isThisWeek = grWeekOffset === 0
+          const todayTasks = isThisWeek && todayDow >= 1 && todayDow <= 5
+            ? GR_TASKS.filter((t) => t.days.includes(todayDow))
+            : []
+          const todayDone = todayTasks.filter((t) => completedSet.has(t.id)).length
+          const todayPending = todayTasks.length - todayDone
+
+          // Team overview (all GR users this week)
+          const teamStats = grUsers.map((u) => {
+            const uDone = grCompletions.filter((c) => c.user_id === u.id && c.week_start === weekStart).length
+            return { user: u, done: uDone, pct: Math.round((uDone / totalTasks) * 100) }
+          })
+          const teamAvgPct = teamStats.length > 0
+            ? Math.round(teamStats.reduce((s, t) => s + t.pct, 0) / teamStats.length)
+            : 0
 
           return (
             <section className="weekly-dashboard-panel onboarding-panel">
-              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
-                <span className="eyebrow" style={{ color: '#6366f1' }}><i className="bx bx-task"></i> Master · Restrito</span>
-                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
-                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Tarefas recorrentes semanais por Gestor de Resultado.</p>
+              {/* Header */}
+              <div style={{ padding: '32px 28px 24px', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                  <div>
+                    <span className="eyebrow" style={{ color: '#6366f1' }}><i className="bx bx-task"></i> Performance · Master</span>
+                    <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
+                    <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Tarefas recorrentes semanais — semana de {fmt(weekStartDate)} a {fmt(weekEndDate)}</p>
+                  </div>
+                  {/* Week nav */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '6px 10px', flexShrink: 0 }}>
+                    <button type="button" onClick={() => setGrWeekOffset((v) => v - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, display: 'flex' }}><i className="bx bx-chevron-left"></i></button>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {grWeekOffset === 0 ? 'Esta semana' : grWeekOffset === -1 ? 'Semana passada' : `${Math.abs(grWeekOffset)} sem. atrás`}
+                    </span>
+                    <button type="button" onClick={() => setGrWeekOffset((v) => v + 1)} disabled={grWeekOffset >= 0} style={{ background: 'none', border: 'none', cursor: grWeekOffset >= 0 ? 'default' : 'pointer', color: 'inherit', fontSize: 18, display: 'flex', opacity: grWeekOffset >= 0 ? 0.3 : 1 }}><i className="bx bx-chevron-right"></i></button>
+                  </div>
+                </div>
 
                 {grUsers.length === 0 && (
                   <div style={{ marginTop: 20, padding: '16px 20px', background: 'rgba(99,102,241,0.08)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.9rem', opacity: 0.8 }}>
                     <i className="bx bx-info-circle" style={{ marginRight: 8 }}></i>
-                    Nenhum membro com função <strong>Gestor de Resultado</strong> encontrado. Vá em <strong>Time</strong> e defina a função de um membro.
+                    Nenhum membro com função <strong>Gestor de Resultado</strong>. Vá em <strong>Time</strong> e defina a função de um membro.
                   </div>
                 )}
 
-                {/* Week navigation */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '6px 10px' }}>
-                    <button type="button" onClick={() => setGrWeekOffset((v) => v - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, display: 'flex' }}><i className="bx bx-chevron-left"></i></button>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 700, minWidth: 140, textAlign: 'center' }}>
-                      {fmt(weekStartDate)} – {fmt(weekEndDate)}
-                      {grWeekOffset === 0 && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: '#6366f1', fontWeight: 800 }}>ESTA SEMANA</span>}
-                    </span>
-                    <button type="button" onClick={() => setGrWeekOffset((v) => v + 1)} disabled={grWeekOffset >= 0} style={{ background: 'none', border: 'none', cursor: grWeekOffset >= 0 ? 'default' : 'pointer', color: 'inherit', fontSize: 18, display: 'flex', opacity: grWeekOffset >= 0 ? 0.3 : 1 }}><i className="bx bx-chevron-right"></i></button>
-                  </div>
-                  {grUsers.length > 0 && (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {grUsers.map((u) => (
-                        <button key={u.id} type="button" onClick={() => setGrSelectedUser(u)}
-                          style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, background: selectedGrUser?.id === u.id ? '#6366f1' : 'rgba(255,255,255,0.07)', color: selectedGrUser?.id === u.id ? '#fff' : 'inherit' }}>
-                          {u.full_name || u.email}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {selectedGrUser && (
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>{doneTasks}/{totalTasks} tarefas</span>
-                      <div style={{ width: 80, height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${Math.round((doneTasks/totalTasks)*100)}%`, background: '#6366f1', borderRadius: 4, transition: 'width .3s' }}></div>
+                {/* Main metrics panel */}
+                {grUsers.length > 0 && selectedGrUser && (
+                  <div style={{ marginTop: 24 }}>
+                    {/* Top row: big metrics */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
+                      {/* Progress donut-style */}
+                      <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.15),rgba(99,102,241,0.05))', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', letterSpacing: 1, textTransform: 'uppercase' }}>Semana atual</div>
+                        <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{weekPct}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#6366f1' }}>%</span></div>
+                        <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{doneTasks} de {totalTasks} tarefas</div>
+                        <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${weekPct}%`, background: 'linear-gradient(90deg,#6366f1,#8b5cf6)', borderRadius: 4, transition: 'width .4s' }}></div>
+                        </div>
+                      </div>
+
+                      {/* Today */}
+                      {isThisWeek && todayDow >= 1 && todayDow <= 5 && (
+                        <div style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04))', border: `1px solid ${todayPending === 0 ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.2)'}`, borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#22c55e', letterSpacing: 1, textTransform: 'uppercase' }}>Hoje · {DAY_LABELS[todayDow]}</div>
+                          <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{todayDone}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#22c55e' }}>/{todayTasks.length}</span></div>
+                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{todayPending === 0 ? '✓ Tudo concluído!' : `${todayPending} pendente${todayPending > 1 ? 's' : ''}`}</div>
+                          <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: todayTasks.length > 0 ? `${Math.round((todayDone/todayTasks.length)*100)}%` : '0%', background: '#22c55e', borderRadius: 4, transition: 'width .4s' }}></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Team avg */}
+                      {grUsers.length > 1 && (
+                        <div style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04))', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', letterSpacing: 1, textTransform: 'uppercase' }}>Média do Time</div>
+                          <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{teamAvgPct}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#f59e0b' }}>%</span></div>
+                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{grUsers.length} gestores</div>
+                          <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${teamAvgPct}%`, background: '#f59e0b', borderRadius: 4, transition: 'width .4s' }}></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Day-by-day heatmap */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(148,163,184,0.8)', letterSpacing: 1, textTransform: 'uppercase' }}>Por dia</div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flex: 1 }}>
+                          {[1,2,3,4,5].map((d) => {
+                            const dt = GR_TASKS.filter((t) => t.days.includes(d))
+                            const dd = dt.filter((t) => completedSet.has(t.id)).length
+                            const pct = dt.length > 0 ? Math.round((dd / dt.length) * 100) : 0
+                            const isToday = isThisWeek && d === todayDow
+                            return (
+                              <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                                  <div style={{ width: '100%', height: `${pct}%`, background: isToday ? '#6366f1' : DAY_COLORS[d], borderRadius: 4, transition: 'height .4s', minHeight: pct > 0 ? 4 : 0 }}></div>
+                                </div>
+                                <span style={{ fontSize: '0.6rem', fontWeight: isToday ? 800 : 600, color: isToday ? '#6366f1' : 'rgba(148,163,184,0.6)' }}>{DAY_LABELS[d].slice(0,3)}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Team cards row (when multiple GRs) */}
+                    {grUsers.length > 1 && (
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                        {teamStats.map(({ user: u, done, pct }) => (
+                          <button key={u.id} type="button" onClick={() => setGrSelectedUser(u)}
+                            style={{ flex: '1 1 160px', textAlign: 'left', padding: '12px 14px', borderRadius: 12, border: `1px solid ${selectedGrUser?.id === u.id ? '#6366f1' : 'rgba(255,255,255,0.08)'}`, background: selectedGrUser?.id === u.id ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', color: 'inherit' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{u.full_name || u.email}</span>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct}%</span>
+                            </div>
+                            <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#6366f1', borderRadius: 3, transition: 'width .3s' }}></div>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', opacity: 0.5, marginTop: 4 }}>{done}/{totalTasks} tarefas</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Single GR selector when only 1 */}
+                    {grUsers.length === 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#6366f1', fontSize: '0.9rem' }}>
+                          {(selectedGrUser?.full_name || selectedGrUser?.email || '?')[0].toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 700 }}>{selectedGrUser?.full_name || selectedGrUser?.email}</span>
+                        <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>· Gestor de Resultado</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Task grid by day */}
               {selectedGrUser && (
-                <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 16 }}>
+                <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 14 }}>
                   {tasksByDay.map(({ day, tasks }) => {
                     const dayDone = tasks.filter((t) => completedSet.has(t.id)).length
+                    const isToday = isThisWeek && day === todayDow
+                    const isPast = isThisWeek && day < todayDow
                     return (
-                      <div key={day} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${DAY_COLORS[day]}28`, borderRadius: 14, overflow: 'hidden' }}>
-                        <div style={{ background: `${DAY_COLORS[day]}18`, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: 800, fontSize: '0.9rem', color: DAY_COLORS[day] }}>{DAY_LABELS[day]}</span>
-                          <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{dayDone}/{tasks.length}</span>
+                      <div key={day} style={{ background: isToday ? 'rgba(99,102,241,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isToday ? 'rgba(99,102,241,0.35)' : DAY_COLORS[day] + '28'}`, borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ background: isToday ? 'rgba(99,102,241,0.18)' : `${DAY_COLORS[day]}18`, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: isToday ? '#818cf8' : DAY_COLORS[day] }}>{DAY_LABELS[day]}</span>
+                            {isToday && <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#6366f1', color: '#fff', padding: '2px 6px', borderRadius: 8 }}>HOJE</span>}
+                            {isPast && dayDone < tasks.length && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', opacity: 0.8 }}>⚠ pendente</span>}
+                          </div>
+                          <span style={{ fontSize: '0.75rem', opacity: 0.7, fontWeight: 700 }}>{dayDone}/{tasks.length}</span>
                         </div>
                         <div style={{ padding: '8px 14px 12px' }}>
                           {tasks.map((task) => {
