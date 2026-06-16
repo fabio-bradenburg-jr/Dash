@@ -19894,7 +19894,7 @@ export default function DashboardShell({
                                   >
                                     <span className="ads-overview-ad-rank">#{index + 1}</span>
                                     <span className="ads-overview-ad-thumb">
-                                      {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.label} loading="lazy" onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex' }} /><i className="bx bx-image-alt" style={{ display:'none' }}></i> : <i className="bx bx-image-alt"></i>}
+                                      {ad.imageUrl ? <><img src={ad.imageUrl} alt={ad.label} loading="lazy" onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex' }} /><i className="bx bx-image-alt" style={{ display:'none' }}></i></> : <i className="bx bx-image-alt"></i>}
                                     </span>
                                     <span className="ads-overview-ad-copy">
                                       <strong>{ad.label}</strong>
