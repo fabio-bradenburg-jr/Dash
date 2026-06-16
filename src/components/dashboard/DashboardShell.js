@@ -17799,23 +17799,23 @@ export default function DashboardShell({
           }
 
           return (
-            <section className="ads-overview-page">
-              <div className="ads-overview-hero glass-panel">
-                <div className="ads-overview-hero-copy">
-                  <span className="management-card-kicker">Performance</span>
-                  <h2>Planilha de Leads</h2>
-                  <p>Visualize as planilhas de leads de cada cliente diretamente no app. Configure o link no cadastro do cliente.</p>
+            <section style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)', minHeight: 400, gap: 12 }}>
+              {/* Compact top bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Planilha de Leads</h2>
+                  <p style={{ fontSize: '0.78rem', opacity: 0.5, margin: '2px 0 0' }}>Configure o link no cadastro do cliente → Integrações.</p>
                 </div>
               </div>
 
               {sheetClients.length === 0 ? (
-                <div className="empty-panel glass-item" style={{ marginTop: 24 }}>
+                <div className="empty-panel glass-item">
                   <i className="bx bx-table" style={{ fontSize: '2rem', opacity: 0.3 }}></i>
                   <h3>Nenhuma planilha cadastrada</h3>
                   <p>Vá em <strong>Clientes → Integrações</strong> e cole o link do Google Sheets para cada cliente.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, marginTop: 24, height: 'calc(100vh - 280px)', minHeight: 400 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 12, flex: 1, minHeight: 0 }}>
                   {/* Client list */}
                   <div className="glass-panel" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 8px' }}>Clientes</div>
