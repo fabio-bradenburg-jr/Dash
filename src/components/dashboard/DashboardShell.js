@@ -21280,6 +21280,58 @@ export default function DashboardShell({
                   <div className="modal-foot"><span className="form-note">Os acessos do time são salvos no Supabase e aplicados no login deste usuário.</span><div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsEditUserModalOpen(false)}>Cancelar</button><button type="button" className="btn btn-primary" onClick={() => handleUpdateUser(selectedManagedUser)}>Salvar membro</button></div></div>
                 </div></div>
               )}
+
+              {isMaster && (
+                <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:24,marginTop:24,marginLeft:0,marginRight:0}}>
+                  <h3 style={{margin:'0 0 16px',fontSize:16,color:'#fff'}}>Permissões de Acesso</h3>
+                  <div style={{marginBottom:16}}>
+                    <label style={{fontSize:13,color:'rgba(255,255,255,0.6)',display:'block',marginBottom:6}}>Selecionar usuário</label>
+                    <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:8,padding:'8px 12px',color:'#fff',fontSize:13,width:'100%',maxWidth:300}}>
+                      <option value=''>-- escolha um usuário --</option>
+                      {usersList.filter(u => u.role !== 'master').map(u => (
+                        <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedUserId && (
+                    <div>
+                      <p style={{fontSize:13,color:'rgba(255,255,255,0.5)',margin:'0 0 12px'}}>Marque as páginas que este usuário pode acessar:</p>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:8}}>
+                        {[
+                          {key:'assistant',label:'Assistente IA'},
+                          {key:'notas',label:'Notas'},
+                          {key:'clientes',label:'Clientes'},
+                          {key:'onboarding',label:'Onboarding'},
+                          {key:'offboarding',label:'Offboarding'},
+                          {key:'semanal',label:'Semanal'},
+                          {key:'apresentacao',label:'Apresentação'},
+                          {key:'campanhas',label:'Campanhas'},
+                          {key:'anuncios',label:'Anúncios'},
+                          {key:'saldos',label:'Saldos'},
+                          {key:'relatorios',label:'Relatórios'},
+                          {key:'gr-tarefas',label:'GR Tarefas'},
+                          {key:'editorial-dash',label:'Editorial Dashboard'},
+                          {key:'editorial',label:'Editorial'},
+                          {key:'editorial-plans',label:'Editorial Plans'},
+                          {key:'pac-dash',label:'PAC Dashboard'},
+                          {key:'pac-calendario',label:'PAC Calendário'},
+                          {key:'pac-tipos',label:'PAC Tipos'},
+                          {key:'usuarios',label:'Usuários'},
+                        ].map(({key,label}) => {
+                          const perm = navPermissions.find(p => p.user_id === selectedUserId && p.page_key === key)
+                          const granted = perm ? perm.granted : false
+                          return (
+                            <label key={key} style={{display:'flex',alignItems:'center',gap:10,background:granted?'rgba(99,102,241,0.15)':'rgba(255,255,255,0.04)',border:`1px solid ${granted?'rgba(99,102,241,0.4)':'rgba(255,255,255,0.08)'}`,borderRadius:8,padding:'8px 12px',cursor:'pointer',transition:'all 0.15s'}}>
+                              <input type='checkbox' checked={granted} onChange={e => toggleNavPermission(selectedUserId, key, e.target.checked)} style={{accentColor:'#6366f1'}} />
+                              <span style={{fontSize:13,color:'rgba(255,255,255,0.8)'}}>{label}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
           ) : (
             <section className="clients-layout users-management-layout simple-team-layout"><div className="empty-panel glass-panel"><h3>Acesso do time</h3><p>Seu usuário tem acesso aos dashboards liberados pelo master. Para alterar permissões, fale com o administrador.</p></div></section>
