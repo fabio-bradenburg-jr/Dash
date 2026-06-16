@@ -21342,8 +21342,8 @@ export default function DashboardShell({
                                   <label key={page.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', border: `1.5px solid ${granted ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '10px 14px', cursor: 'pointer', transition: 'all .15s' }}>
                                     <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{page.label}</span>
                                     <div style={{ position: 'relative', width: 38, height: 22, flexShrink: 0 }}>
-                                      <input type="checkbox" checked={granted} onChange={e => toggleNavPermission(permUser.id, page.key, e.target.checked)} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
-                                      <span style={{ display: 'block', width: 38, height: 22, borderRadius: 11, background: granted ? '#22c55e' : 'rgba(255,255,255,0.15)', transition: 'background .2s', cursor: 'pointer' }} onClick={() => toggleNavPermission(permUser.id, page.key, !granted)}>
+                                      <input type="checkbox" checked={granted} onChange={() => {}} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+                                      <span style={{ display: 'block', width: 38, height: 22, borderRadius: 11, background: granted ? '#22c55e' : 'rgba(255,255,255,0.15)', transition: 'background .2s', cursor: 'pointer' }} onClick={e => { e.preventDefault(); toggleNavPermission(permUser.id, page.key, !granted) }}>
                                         <span style={{ display: 'block', width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: granted ? 19 : 3, transition: 'left .2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}></span>
                                       </span>
                                     </div>
