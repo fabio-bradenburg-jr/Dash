@@ -16691,10 +16691,12 @@ export default function DashboardShell({
         </div>
 
         <nav className="nav-menu">
+          {(isMaster || hasNavAccess('assistant')) && (
           <button type="button" data-tooltip="Busca" aria-label="Busca" className={`nav-item nav-button ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}>
             <i className="bx bx-search-alt"></i>
             {!isSidebarCollapsed && 'Busca'}
           </button>
+          )}
           {(isMaster || hasNavAccess('notas')) && (
             <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
               <i className="bx bx-note"></i>
@@ -16906,10 +16908,12 @@ export default function DashboardShell({
             </button>
           )}
 
+          {(isMaster || hasNavAccess('settings')) && (
           <button type="button" data-tooltip="Configurações" aria-label="Configurações" className={"nav-item nav-button " + (activeTab === "settings" ? "active" : "")} onClick={() => setActiveTab('settings')}>
             <i className="bx bx-cog"></i>
             {!isSidebarCollapsed && 'Configurações'}
           </button>
+          )}
         </nav>
 
         {!isSidebarCollapsed && activeTab === 'notas' && (
@@ -17166,20 +17170,20 @@ export default function DashboardShell({
         )}
 
 
-        {activeTab === 'assistant' && (
+        {activeTab === 'assistant' && (isMaster || hasNavAccess('assistant')) && (
           <section style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <AssistantPage embeddedOverride={true} />
           </section>
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === 'settings' && (isMaster || hasNavAccess('settings')) && (
           <section style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <SettingsPage embeddedOverride={true} />
           </section>
         )}
 
 
-        {activeTab === 'semanal' && renderWeeklyClientPanel()}
+        {activeTab === 'semanal' && (isMaster || hasNavAccess('semanal')) && renderWeeklyClientPanel()}
 
         {activeTab === 'onboarding' && isMaster && (() => {
           const ONBOARDING_PHASES = [
@@ -17778,7 +17782,7 @@ export default function DashboardShell({
           )
         })()}
 
-        {activeTab === 'planilha-leads' && (() => {
+        {activeTab === 'planilha-leads' && (isMaster || hasNavAccess('planilha-leads')) && (() => {
           const sheetClients = (clients || []).filter(c => c.leadsSheetUrl && String(c.leadsSheetUrl).trim())
           const activeSheetId = selectedSheetClientId || sheetClients[0]?.id || ''
           const selectedSheetClient = sheetClients.find(c => c.id === activeSheetId) || sheetClients[0] || null
@@ -19417,7 +19421,7 @@ export default function DashboardShell({
 
         {activeTab === 'monday' && renderMondayOperationalPanel()}
 
-        {activeTab === 'campanhas' && (
+        {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <section className="campaign-overview-page ads-overview-page">
             <div className="ads-overview-hero campaign-overview-hero glass-panel">
               <div className="ads-overview-hero-copy">
@@ -19773,7 +19777,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'anuncios' && (
+        {activeTab === 'anuncios' && (isMaster || hasNavAccess('anuncios')) && (
           <section className="ads-overview-page">
             <div className="ads-overview-hero glass-panel">
               <div className="ads-overview-hero-copy">
@@ -19970,7 +19974,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'saldos' && (
+        {activeTab === 'saldos' && (isMaster || hasNavAccess('saldos')) && (
           <section className="ad-balance-page">
             <div className="ad-balance-hero glass-panel">
               <div className="ad-balance-hero-copy">
@@ -20189,7 +20193,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'notas' && (
+        {activeTab === 'notas' && (isMaster || hasNavAccess('notas')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <ClientNotesPanel
               clientId={activeClient?.id || null}
@@ -20200,7 +20204,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'editorial' && (
+        {activeTab === 'editorial' && (isMaster || hasNavAccess('editorial')) && (
           <section style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <EditorialCalendar
               clients={clients}
@@ -20209,7 +20213,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'editorial-dash' && (
+        {activeTab === 'editorial-dash' && (isMaster || hasNavAccess('editorial-dash')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <EditorialCalendar
               clients={clients}
@@ -20219,7 +20223,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'editorial-plans' && (
+        {activeTab === 'editorial-plans' && (isMaster || hasNavAccess('editorial-plans')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <EditorialCalendar
               clients={clients}
@@ -20229,7 +20233,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'pac-dash' && (
+        {activeTab === 'pac-dash' && (isMaster || hasNavAccess('pac-dash')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <PACCalendar
               clients={clients}
@@ -20239,7 +20243,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'pac-calendario' && (
+        {activeTab === 'pac-calendario' && (isMaster || hasNavAccess('pac-calendario')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <PACCalendar
               clients={clients}
@@ -20249,7 +20253,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'pac-tipos' && (
+        {activeTab === 'pac-tipos' && (isMaster || hasNavAccess('pac-tipos')) && (
           <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
             <PACCalendar
               clients={clients}
@@ -20259,7 +20263,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'relatorios' && (
+        {activeTab === 'relatorios' && (isMaster || hasNavAccess('relatorios')) && (
           <section style={{ padding: '24px' }}>
             <ReportsTab clients={clients} />
           </section>
@@ -21305,6 +21309,8 @@ export default function DashboardShell({
                   { key: 'pac-dash', label: 'Painel', group: 'PAC' },
                   { key: 'pac-calendario', label: 'Calendário', group: 'PAC' },
                   { key: 'pac-tipos', label: 'Tipos', group: 'PAC' },
+                  { key: 'assistant', label: 'Busca', group: 'Geral' },
+                  { key: 'settings', label: 'Configurações', group: 'Geral' },
                 ]
                 const groups = [...new Set(PAGE_DEFS.map(p => p.group))]
                 const nonMasterUsers = usersList.filter(u => u.role !== 'master')
@@ -21457,7 +21463,7 @@ export default function DashboardShell({
           )
         )}
 
-        {activeTab === 'apresentacao' && (
+        {activeTab === 'apresentacao' && (isMaster || hasNavAccess('apresentacao')) && (
           <div ref={dashboardRef} className="dashboard-pdf-export-area" data-dashboard-pdf-area="true">
             <section className="glass-panel hero-panel">
               <div className="hero-copy">
