@@ -17055,13 +17055,60 @@ export default function DashboardShell({
             ? onboardingClients.filter((c) => c.id === onboardingClientFilter)
             : onboardingClients
 
+          // General metrics
+          const totalClients = onboardingClients.length
+          const completedClients = onboardingClients.filter((c) => {
+            const rec = onboardingRecords.find((r) => r.client_id === c.id)
+            return Array.isArray(rec?.completed_tasks) && rec.completed_tasks.length >= totalTasks
+          }).length
+          const inProgressClients = onboardingClients.filter((c) => {
+            const rec = onboardingRecords.find((r) => r.client_id === c.id)
+            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            return done > 0 && done < totalTasks
+          }).length
+          const notStartedClients = totalClients - completedClients - inProgressClients
+          const totalTasksDone = onboardingClients.reduce((sum, c) => {
+            const rec = onboardingRecords.find((r) => r.client_id === c.id)
+            return sum + (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0)
+          }, 0)
+          const overallProgress = totalClients > 0 ? Math.round((totalTasksDone / (totalClients * totalTasks)) * 100) : 0
+
           return (
             <section className="weekly-dashboard-panel onboarding-panel">
               <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(129,216,167,0.1)' }}>
                 <span className="eyebrow" style={{ color: '#22c55e' }}><i className="bx bx-list-check"></i> Master · Restrito</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
                 <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
-                <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+
+                {/* Metrics panel */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
+                  {[
+                    { icon: 'bx-group', label: 'Total de clientes', value: totalClients, color: '#94a3b8' },
+                    { icon: 'bx-check-circle', label: 'Concluídos', value: completedClients, color: '#22c55e' },
+                    { icon: 'bx-loader-alt', label: 'Em andamento', value: inProgressClients, color: '#f59e0b' },
+                    { icon: 'bx-time', label: 'Não iniciados', value: notStartedClients, color: '#64748b' },
+                    { icon: 'bx-task', label: 'Tarefas concluídas', value: `${totalTasksDone}/${totalClients * totalTasks}`, color: '#818cf8' },
+                    { icon: 'bx-trending-up', label: 'Progresso geral', value: `${overallProgress}%`, color: overallProgress === 100 ? '#22c55e' : '#26c281' },
+                  ].map((m) => (
+                    <div key={m.label} style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 13 }}></i>
+                        {m.label}
+                      </span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 900, color: m.color, lineHeight: 1 }}>{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Progress bar geral */}
+                <div style={{ margin: '14px 0 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1, height: 6, borderRadius: 6, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${overallProgress}%`, background: overallProgress === 100 ? '#22c55e' : 'linear-gradient(90deg,#26c281,#22c55e)', borderRadius: 6, transition: 'width 0.4s' }} />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{overallProgress}% completo</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <select
                     value={onboardingClientFilter}
                     onChange={(e) => setOnboardingClientFilter(e.target.value)}
