@@ -91,7 +91,13 @@ export async function GET(request) {
 
     const savedCreative = await readSavedCreative(clientKey, adId)
     if (savedCreative?.previewLoaded) {
-      return NextResponse.json(savedCreative)
+      const isExpired = /expired|The requested preview has expired/i.test(savedCreative.previewHtml || '')
+      if (!isExpired) return NextResponse.json(savedCreative)
+      // Preview HTML expired — re-fetch only the preview and update cache
+      const freshHtml = await fetchCreativePreviewHtml(adId, token, clientKey)
+      const updated = { ...savedCreative, previewHtml: freshHtml }
+      await saveCreative(clientKey, adId, updated)
+      return NextResponse.json(updated)
     }
 
     const fields = 'id,name,creative{name,body,title,thumbnail_url,image_url,effective_object_story_id,object_story_spec}'
