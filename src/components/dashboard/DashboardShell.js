@@ -20331,6 +20331,7 @@ export default function DashboardShell({
                     const metaAccount = adAccounts.find((account) => account.id === client.metaAdAccountId)
                     const hasMeta = Boolean(client.metaAdAccountId)
                     const hasAgendor = Boolean(client.agendorAccountId || client.integrations?.agendorToken)
+                    const hasLeadsSheet = Boolean(client.leadsSheetUrl && String(client.leadsSheetUrl).trim())
                     const isChurnClient = String(client.status || '').trim().toLowerCase() === 'churn'
                     const latestHealthRecord = latestWeeklyHealthByClientId.get(client.id)
                     const latestHealth = isChurnClient
@@ -20402,6 +20403,9 @@ export default function DashboardShell({
                           </span>
                           <span className={hasAgendor ? 'simple-client-icon active' : 'simple-client-icon'} title={hasAgendor ? 'Agendor cadastrado' : 'Agendor não cadastrado'}>
                             <i className="bx bx-git-branch"></i>
+                          </span>
+                          <span className={hasLeadsSheet ? 'simple-client-icon active' : 'simple-client-icon'} title={hasLeadsSheet ? 'Planilha de leads cadastrada' : 'Sem planilha de leads'}>
+                            <i className="bx bx-table"></i>
                           </span>
                         </div>
                         <div className="simple-client-actions">
