@@ -8676,7 +8676,7 @@ export default function DashboardShell({
   }
 
   useEffect(() => {
-    if (!(canManageUsers || canPersistClientChanges) || !['usuarios', 'operacao', 'clientes'].includes(activeTab)) return
+    if (!(canManageUsers || canPersistClientChanges) || !['usuarios', 'operacao', 'clientes', 'gr-tarefas'].includes(activeTab)) return
     loadUsers()
   }, [canManageUsers, canPersistClientChanges, activeTab, loadUsers])
 
