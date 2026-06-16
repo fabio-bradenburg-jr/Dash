@@ -3335,6 +3335,8 @@ export default function DashboardShell({
   const [newClientGroupName, setNewClientGroupName] = useState('')
   const [newClientMetaAdAccountId, setNewClientMetaAdAccountId] = useState('')
   const [newClientGoogleAdsAccountId, setNewClientGoogleAdsAccountId] = useState('')
+  const [newClientLeadsSheetUrl, setNewClientLeadsSheetUrl] = useState('')
+  const [selectedSheetClientId, setSelectedSheetClientId] = useState('')
   const [newClientDashboardColor, setNewClientDashboardColor] = useState('#10B981')
   const [newClientLogoUrl, setNewClientLogoUrl] = useState('')
   const [newClientResultManagerUserId, setNewClientResultManagerUserId] = useState('')
@@ -3531,7 +3533,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -7285,6 +7287,7 @@ export default function DashboardShell({
       logoUrl: newClientLogoUrl,
       metaAdAccountId: newClientMetaAdAccountId,
       googleAdsAccountId: newClientGoogleAdsAccountId,
+      leadsSheetUrl: newClientLeadsSheetUrl.trim(),
       resultManagerUserId: newClientResultManagerUserId,
       dashboardColor: normalizedNewClientDashboardColor,
       operationEnabled: false,
@@ -16795,6 +16798,12 @@ export default function DashboardShell({
                       {!isSidebarCollapsed && 'Relatórios'}
                     </button>
                   )}
+                  {(isMaster || hasNavAccess('planilha-leads')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'planilha-leads' ? 'active' : ''}`} onClick={() => setActiveTab('planilha-leads')}>
+                      <i className="bx bx-table"></i>
+                      {!isSidebarCollapsed && 'Planilha de Leads'}
+                    </button>
+                  )}
                   {(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
                       <i className="bx bx-task"></i>
@@ -17764,6 +17773,91 @@ export default function DashboardShell({
                   </div>
                 )
               })()}
+            </section>
+          )
+        })()}
+
+        {activeTab === 'planilha-leads' && (() => {
+          const sheetClients = (clients || []).filter(c => c.leadsSheetUrl && String(c.leadsSheetUrl).trim())
+          const activeSheetId = selectedSheetClientId || sheetClients[0]?.id || ''
+          const selectedSheetClient = sheetClients.find(c => c.id === activeSheetId) || sheetClients[0] || null
+
+          function toEmbedUrl(url) {
+            const s = String(url || '').trim()
+            if (!s) return ''
+            // Already an embed URL
+            if (s.includes('/pubhtml') || s.includes('output=html') || s.includes('/htmlview')) return s
+            // Convert /edit or /view to embed
+            const match = s.match(/\/spreadsheets\/d\/([^/]+)/)
+            if (match) return `https://docs.google.com/spreadsheets/d/${match[1]}/htmlview?rm=minimal`
+            return s
+          }
+
+          return (
+            <section className="ads-overview-page">
+              <div className="ads-overview-hero glass-panel">
+                <div className="ads-overview-hero-copy">
+                  <span className="management-card-kicker">Performance</span>
+                  <h2>Planilha de Leads</h2>
+                  <p>Visualize as planilhas de leads de cada cliente diretamente no app. Configure o link no cadastro do cliente.</p>
+                </div>
+              </div>
+
+              {sheetClients.length === 0 ? (
+                <div className="empty-panel glass-item" style={{ marginTop: 24 }}>
+                  <i className="bx bx-table" style={{ fontSize: '2rem', opacity: 0.3 }}></i>
+                  <h3>Nenhuma planilha cadastrada</h3>
+                  <p>Vá em <strong>Clientes → Integrações</strong> e cole o link do Google Sheets para cada cliente.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, marginTop: 24, height: 'calc(100vh - 280px)', minHeight: 400 }}>
+                  {/* Client list */}
+                  <div className="glass-panel" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 8px' }}>Clientes</div>
+                    {sheetClients.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedSheetClientId(c.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
+                          background: activeSheetId === c.id ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
+                          color: 'inherit',
+                          outline: activeSheetId === c.id ? '1.5px solid rgba(34,197,94,0.4)' : '1px solid transparent',
+                        }}
+                      >
+                        {c.logoUrl ? (
+                          <img src={c.logoUrl} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <span style={{ width: 28, height: 28, borderRadius: 6, background: c.dashboardColor || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                            {(c.name || '?')[0].toUpperCase()}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                        <i className="bx bx-table" style={{ fontSize: '0.85rem', opacity: 0.4, flexShrink: 0 }}></i>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Sheet viewer */}
+                  <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
+                    {selectedSheetClient ? (
+                      <iframe
+                        key={selectedSheetClient.id}
+                        src={toEmbedUrl(selectedSheetClient.leadsSheetUrl)}
+                        title={`Planilha de leads — ${selectedSheetClient.name}`}
+                        style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                        allow="autoplay"
+                      />
+                    ) : (
+                      <div className="meta-ranking-preview-fallback" style={{ height: '100%' }}>
+                        <i className="bx bx-table" style={{ fontSize: '2rem', opacity: 0.3 }}></i>
+                        <span>Selecione um cliente</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
           )
         })()}
@@ -20481,6 +20575,22 @@ export default function DashboardShell({
                     </div>
                   </div>
 
+                  <div className="integration-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: '#22c55e', borderColor: '#22c55e33' }}>
+                        <i className="bx bx-table"></i>
+                      </div>
+                      <div>
+                        <h3>Planilha de Leads</h3>
+                        <p>Cole o link de compartilhamento do Google Sheets para exibir dentro do app.</p>
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label>Link da planilha</label>
+                      <input type="url" className="client-text-input" placeholder="https://docs.google.com/spreadsheets/d/..." value={activeClient.leadsSheetUrl || ''} onChange={(event) => handleClientFieldChange('leadsSheetUrl', event.target.value)} disabled={!canEditActiveClient} />
+                    </div>
+                  </div>
+
                   <div className="integration-block manual-crm-toggle-block">
                     <label className={'manual-crm-toggle ' + (activeClientUsesManualCrm ? 'active' : '')}>
                       <input type="checkbox" checked={activeClientUsesManualCrm} onChange={(event) => handleToggleManualCrmForActiveClient(event.target.checked)} disabled={!canEditActiveClient} />
@@ -20977,6 +21087,22 @@ export default function DashboardShell({
                         </div>
                       </div>
 
+                      <div className="integration-block client-create-integration-card">
+                        <div className="integration-heading">
+                          <div className="integration-icon" style={{ color: '#22c55e', borderColor: '#22c55e33' }}>
+                            <i className="bx bx-table"></i>
+                          </div>
+                          <div>
+                            <h3>Planilha de Leads</h3>
+                            <p>Cole o link de compartilhamento do Google Sheets.</p>
+                          </div>
+                        </div>
+                        <div className="input-group">
+                          <label>Link da planilha</label>
+                          <input type="url" className="client-text-input" placeholder="https://docs.google.com/spreadsheets/d/..." value={newClientLeadsSheetUrl || ''} onChange={(event) => setNewClientLeadsSheetUrl(event.target.value)} disabled={!isMaster} />
+                        </div>
+                      </div>
+
                       <div className="integration-block client-create-integration-card manual-crm-create-card">
                         <label className={'manual-crm-toggle ' + (newClientManualCrmEnabled ? 'active' : '')}>
                           <input type="checkbox" checked={newClientManualCrmEnabled} onChange={(event) => setNewClientManualCrmEnabled(event.target.checked)} disabled={!isMaster} />
@@ -21137,6 +21263,7 @@ export default function DashboardShell({
                   { key: 'anuncios', label: 'Anúncios', group: 'Performance' },
                   { key: 'saldos', label: 'Saldos', group: 'Performance' },
                   { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
+                  { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
                   { key: 'gr-tarefas', label: 'G.R - Tarefas', group: 'Performance' },
                   { key: 'editorial-dash', label: 'Painel', group: 'Social Media' },
                   { key: 'editorial', label: 'Calendário', group: 'Social Media' },
