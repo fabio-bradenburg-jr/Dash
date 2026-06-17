@@ -16674,6 +16674,7 @@ export default function DashboardShell({
         '--text-primary': externalAppTextColor || effectiveWorkspaceBranding.textColor || undefined,
         '--accent-orange': `rgb(${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b})`,
         '--accent': `rgb(${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b})`,
+        '--accent-rgb': `${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b}`,
       }}
     >
       <aside
