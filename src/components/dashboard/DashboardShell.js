@@ -24593,11 +24593,11 @@ export default function DashboardShell({
           height: 44px;
           min-width: 52px;
           max-width: 52px;
-          padding: 0;
+          padding: 0 0 0 14px;
           border-radius: 10px;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           gap: 0;
           overflow: hidden;
         }
