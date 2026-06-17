@@ -35071,9 +35071,11 @@ export default function DashboardShell({
           gap: 12px;
           padding: 16px;
           border-radius: 16px;
-          background: rgba(255, 255, 255, 0.04);
+          background:
+            radial-gradient(ellipse 140% 60% at 50% -10%, rgba(148,163,184,0.06) 0%, transparent 65%),
+            rgba(255,255,255,0.04);
           border: 1px solid rgba(148, 163, 184, 0.13);
-          transition: background 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
           position: relative;
           overflow: hidden;
         }
@@ -35088,14 +35090,32 @@ export default function DashboardShell({
           transition: background 0.2s ease;
         }
 
+        .ad-balance-account-card.danger {
+          background:
+            radial-gradient(ellipse 140% 65% at 50% -10%, rgba(239,68,68,0.18) 0%, transparent 65%),
+            rgba(239,68,68,0.05);
+          border-color: rgba(239,68,68,0.28);
+        }
         .ad-balance-account-card.danger::before {
-          background: rgba(248, 113, 113, 0.9);
+          background: rgba(248,113,113,0.9);
         }
 
+        .ad-balance-account-card.warning {
+          background:
+            radial-gradient(ellipse 140% 65% at 50% -10%, rgba(245,158,11,0.18) 0%, transparent 65%),
+            rgba(245,158,11,0.05);
+          border-color: rgba(245,158,11,0.28);
+        }
         .ad-balance-account-card.warning::before {
-          background: rgba(245, 158, 11, 0.9);
+          background: rgba(245,158,11,0.9);
         }
 
+        .ad-balance-account-card.success {
+          background:
+            radial-gradient(ellipse 140% 65% at 50% -10%, rgba(38,194,129,0.18) 0%, transparent 65%),
+            rgba(38,194,129,0.05);
+          border-color: rgba(38,194,129,0.28);
+        }
         .ad-balance-account-card.success::before {
           background: color-mix(in srgb, var(--accent-emerald) 85%, white 5%);
         }
