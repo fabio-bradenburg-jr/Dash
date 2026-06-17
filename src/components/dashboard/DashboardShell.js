@@ -24434,8 +24434,9 @@ export default function DashboardShell({
             box-shadow 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .dashboard-container .sidebar:hover {
-          width: 224px;
+        .dashboard-container .sidebar:hover,
+        .dashboard-container .sidebar.sidebar-collapsed:hover {
+          width: 224px !important;
           border-color: rgba(38,194,129,0.18);
           box-shadow: 1px 0 18px rgba(38,194,129,0.06);
         }
