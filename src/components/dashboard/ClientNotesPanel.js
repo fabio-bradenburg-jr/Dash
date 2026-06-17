@@ -727,8 +727,10 @@ export default function ClientNotesPanel({ clientId: initialClientId, clientName
           height: calc(100vh - 80px);
           border-radius: 16px;
           overflow: hidden;
-          border: 1px solid var(--border-color, rgba(255,255,255,0.08));
-          background: var(--bg-panel, #111113);
+          border: 1px solid rgba(38,194,129,0.16);
+          background:
+            radial-gradient(ellipse 90% 35% at 50% 0%, rgba(38,194,129,0.07) 0%, transparent 60%),
+            var(--bg-panel, #111113);
         }
 
         /* ── Left panel ── */
@@ -746,7 +748,8 @@ export default function ClientNotesPanel({ clientId: initialClientId, clientName
           align-items: center;
           justify-content: space-between;
           padding: 18px 16px 12px;
-          border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.06));
+          border-bottom: 1px solid rgba(38,194,129,0.12);
+          background: linear-gradient(135deg, rgba(38,194,129,0.06) 0%, transparent 70%);
           gap: 8px;
         }
 

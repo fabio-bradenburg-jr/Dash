@@ -461,8 +461,8 @@ export default function PACCalendar({ clients = [], isLightMode = false, default
         @keyframes pac-fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .pac-shell { font-family: inherit; }
         .pac-card {
-          background: var(--card-bg, rgba(255,255,255,0.04));
-          border: 1px solid var(--lumina-dark-border, rgba(255,255,255,0.08));
+          background: linear-gradient(145deg, rgba(38,194,129,0.05) 0%, rgba(255,255,255,0.025) 100%);
+          border: 1px solid rgba(38,194,129,0.16);
           border-radius: 14px; padding: 20px;
           animation: pac-fadein 0.2s ease;
         }
@@ -564,10 +564,17 @@ export default function PACCalendar({ clients = [], isLightMode = false, default
         @media (max-width: 700px) { .pac-summary-grid { grid-template-columns: repeat(2, 1fr); } }
         .pac-summary-card {
           padding: 18px; border-radius: 12px; text-align: center;
-          background: var(--card-bg, rgba(255,255,255,0.04));
-          border: 1px solid var(--lumina-dark-border, rgba(255,255,255,0.08));
+          background:
+            radial-gradient(ellipse 140% 65% at 50% -10%, rgba(38,194,129,0.12) 0%, transparent 65%),
+            rgba(255,255,255,0.03);
+          border: 1px solid rgba(38,194,129,0.18);
+          transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .pac-summary-card .num { font-size: 28px; font-weight: 800; }
+        .pac-summary-card:hover {
+          border-color: rgba(38,194,129,0.32);
+          box-shadow: 0 6px 24px rgba(38,194,129,0.09);
+        }
+        .pac-summary-card .num { font-size: 28px; font-weight: 800; color: var(--saas-primary, #26c281); }
         .pac-summary-card .lbl { font-size: 11px; font-weight: 600; opacity: 0.55; margin-top: 2px; }
         .pac-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .pac-cal-header { text-align: center; font-size: 11px; font-weight: 700; opacity: 0.45; padding: 6px 0; }

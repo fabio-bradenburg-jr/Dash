@@ -918,7 +918,7 @@ export default function AssistantPage({ embeddedOverride = null }: AssistantPage
 
         .assistant-shell {
           background:
-            radial-gradient(circle at top center, rgba(59, 130, 246, 0.08), transparent 22%),
+            radial-gradient(ellipse 80% 40% at 50% 0%, rgba(38,194,129,0.1) 0%, transparent 55%),
             linear-gradient(180deg, var(--bg-primary) 0%, #12151c 100%);
         }
 
@@ -1005,6 +1005,10 @@ export default function AssistantPage({ embeddedOverride = null }: AssistantPage
         .assistant-empty {
           padding: 28px;
           border-radius: 24px;
+          border: 1px solid rgba(38,194,129,0.16);
+          background:
+            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.1) 0%, transparent 60%),
+            rgba(255,255,255,0.03);
         }
 
         .assistant-content {

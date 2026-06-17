@@ -1065,6 +1065,25 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
+          padding: 22px 24px;
+          border-radius: 20px;
+          background:
+            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.12) 0%, transparent 60%),
+            linear-gradient(135deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
+          border: 1px solid rgba(38,194,129,0.2);
+          box-shadow: 0 16px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(38,194,129,0.05);
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 16px;
+        }
+        .editorial-header::after {
+          content: '';
+          position: absolute;
+          top: -50px; right: -50px;
+          width: 180px; height: 180px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
         .editorial-title {
           font-size: 20px;
@@ -1073,7 +1092,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           margin: 0 0 4px;
           color: var(--text-primary);
         }
-        .editorial-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+        .editorial-subtitle { font-size: 13px; color: var(--text-secondary); opacity: 0.7; margin: 0; }
         .editorial-new-btn {
           display: inline-flex; align-items: center; gap: 7px;
           padding: 9px 18px; border-radius: 10px; border: none;
@@ -1383,14 +1402,21 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         }
         .editorial-stat-card {
           position: relative;
-          background: var(--theme-surface, rgba(255,255,255,0.04));
-          border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+          background:
+            radial-gradient(ellipse 140% 60% at 50% -10%, rgba(38,194,129,0.1) 0%, transparent 65%),
+            rgba(255,255,255,0.03);
+          border: 1px solid rgba(38,194,129,0.16);
           border-radius: 16px; padding: 16px 18px;
           display: flex; flex-direction: column; gap: 4px;
           overflow: hidden;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .editorial-stat-card:hover {
+          border-color: rgba(38,194,129,0.3);
+          box-shadow: 0 6px 24px rgba(38,194,129,0.08);
         }
         .editorial-stat-total {
-          border-color: rgba(255,255,255,0.12);
+          border-color: rgba(38,194,129,0.22);
         }
         .editorial-stat-icon {
           font-size: 18px; opacity: 0.7; margin-bottom: 2px;
@@ -1420,8 +1446,8 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         }
         .editorial-dash-right { display: flex; flex-direction: column; gap: 16px; }
         .editorial-dash-panel {
-          background: var(--theme-surface, rgba(255,255,255,0.04));
-          border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+          background: linear-gradient(145deg, rgba(38,194,129,0.05) 0%, rgba(255,255,255,0.025) 100%);
+          border: 1px solid rgba(38,194,129,0.14);
           border-radius: 16px; padding: 18px 20px;
           display: flex; flex-direction: column; gap: 14px;
         }

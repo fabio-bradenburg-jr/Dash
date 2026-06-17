@@ -3372,6 +3372,21 @@ export default function SettingsPage({ embeddedOverride = false }: { embeddedOve
 
         .settings-block-hero {
           gap: 26px;
+          background:
+            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.1) 0%, transparent 60%),
+            linear-gradient(145deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93)) !important;
+          border: 1px solid rgba(38,194,129,0.18) !important;
+          position: relative;
+          overflow: hidden;
+        }
+        .settings-block-hero::after {
+          content: '';
+          position: absolute;
+          top: -50px; right: -50px;
+          width: 200px; height: 200px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.07) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .settings-block-obsidian {
@@ -3388,10 +3403,10 @@ export default function SettingsPage({ embeddedOverride = false }: { embeddedOve
 
         .settings-hero-kicker,
         .settings-obsidian-head span {
-          color: var(--accent-blue);
+          color: var(--saas-primary, #26c281);
           font-size: 10px;
           font-weight: 700;
-          letter-spacing: 0.07em;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
         }
 

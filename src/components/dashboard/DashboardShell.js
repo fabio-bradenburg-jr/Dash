@@ -17983,12 +17983,13 @@ export default function DashboardShell({
           return (<>
             <section className="weekly-dashboard-panel onboarding-panel">
               {/* Header */}
-              <div style={{ padding: '32px 28px 24px', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+              <div style={{ padding: '28px 28px 24px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(99,102,241,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
                   <div>
-                    <span className="eyebrow" style={{ color: '#6366f1' }}><i className="bx bx-task"></i> Performance · Master</span>
-                    <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
-                    <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Tarefas recorrentes semanais — semana de {fmt(weekStartDate)} a {fmt(weekEndDate)}</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6366f1', marginBottom: 6, opacity: 0.9 }}><i className="bx bx-task"></i>G.R — Performance</span>
+                    <h2 style={{ margin: '4px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
+                    <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Tarefas recorrentes semanais — semana de {fmt(weekStartDate)} a {fmt(weekEndDate)}</p>
                   </div>
                   {/* Week nav */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '6px 10px', flexShrink: 0 }}>
