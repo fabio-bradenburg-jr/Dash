@@ -17226,7 +17226,7 @@ export default function DashboardShell({
                 { id: 'acesso_ig_pro', label: 'Pegar acesso: Instagram profissional' },
                 { id: 'acesso_google', label: 'Pegar acesso: Google (se necessário)' },
                 { id: 'acesso_site', label: 'Pegar acesso: Site ou landing page (se necessário)' },
-                { id: 'acesso_wpp_business', label: 'Pegar acesso: WhatsApp Business (se necessário)' },
+                { id: 'acesso_wpp_business', label: 'WhatsApp Business (se necessário)' },
                 { id: 'acesso_crm', label: 'Pegar acesso: CRM atual (se existir)' },
               ],
             },
