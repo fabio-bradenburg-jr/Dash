@@ -17406,7 +17406,8 @@ export default function DashboardShell({
           const notStartedClients = totalClients - completedClients - inProgressClients
           const totalTasksDone = onboardingClients.reduce((sum, c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            return sum + (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0)
+            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            return sum + Math.min(done, totalTasks)
           }, 0)
           const overallProgress = totalClients > 0 ? Math.round((totalTasksDone / (totalClients * totalTasks)) * 100) : 0
 
@@ -17570,7 +17571,7 @@ export default function DashboardShell({
                   {filteredOnboardingClients.map((client) => {
                     const record = onboardingRecords.find((r) => r.client_id === client.id)
                     const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                    const completedCount = completedTasks.length
+                    const completedCount = Math.min(completedTasks.length, totalTasks)
                     const progress = Math.round((completedCount / totalTasks) * 100)
                     return (
                       <button
@@ -17603,7 +17604,7 @@ export default function DashboardShell({
                 {filteredOnboardingClients.map((client) => {
                   const record = onboardingRecords.find((r) => r.client_id === client.id)
                   const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                  const completedCount = completedTasks.length
+                  const completedCount = Math.min(completedTasks.length, totalTasks)
                   const progress = Math.round((completedCount / totalTasks) * 100)
 
                   return (
