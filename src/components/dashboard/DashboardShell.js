@@ -24595,15 +24595,16 @@ export default function DashboardShell({
         }
 
         .dashboard-container .sidebar-collapsed :global(.nav-item) {
-          width: 52px;
+          width: 44px;
           height: 44px;
-          min-width: 52px;
-          max-width: 52px;
-          padding: 0 0 0 14px;
+          min-width: 44px;
+          max-width: 44px;
+          padding: 0 0 0 12px !important;
           border-radius: 10px;
           display: flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: flex-start !important;
+          margin: 0 !important;
           gap: 0;
           overflow: hidden;
         }
@@ -25533,17 +25534,16 @@ export default function DashboardShell({
         }
 
         .sidebar-collapsed :global(.nav-item) {
-          justify-content: center;
+          justify-content: flex-start;
           width: 44px;
           height: 44px;
-          margin: 0 auto;
-          padding: 0;
+          margin: 0;
+          padding: 0 0 0 12px;
           border-radius: 10px;
           position: relative;
           transition:
             width 1s cubic-bezier(0.16, 1, 0.3, 1),
             padding 1s cubic-bezier(0.16, 1, 0.3, 1),
-            justify-content 1s cubic-bezier(0.16, 1, 0.3, 1),
             background 0.2s ease,
             color 0.2s ease,
             border-color 0.2s ease;
