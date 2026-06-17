@@ -24585,23 +24585,26 @@ export default function DashboardShell({
         }
 
         .dashboard-container .sidebar-collapsed {
-          width: 112px;
+          width: 92px;
         }
 
         .dashboard-container .sidebar-collapsed :global(.nav-item) {
-          width: 44px;
+          width: 52px;
           height: 44px;
-          min-width: 44px;
+          min-width: 52px;
+          max-width: 52px;
           padding: 0;
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0;
+          overflow: hidden;
         }
 
         .dashboard-container .sidebar-collapsed :global(.nav-item i) {
           margin: 0;
+          flex-shrink: 0;
         }
 
         .dashboard-container .sidebar-bottom-actions {
@@ -25522,22 +25525,26 @@ export default function DashboardShell({
         .sidebar-collapsed :global(.sidebar-reveal) {
           opacity: 0;
           max-width: 0;
+          font-size: 0;
           overflow: hidden;
           white-space: nowrap;
           pointer-events: none;
-          transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), max-width 1s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), max-width 1.5s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.1s;
         }
 
         .sidebar:hover.sidebar-collapsed :global(.nav-item) {
           width: auto;
+          max-width: none;
           padding: 0 12px;
           justify-content: flex-start;
+          overflow: visible;
         }
 
         .sidebar:hover.sidebar-collapsed :global(.nav-label),
         .sidebar:hover.sidebar-collapsed :global(.sidebar-reveal) {
           opacity: 1;
           max-width: 200px;
+          font-size: 13px;
           pointer-events: auto;
         }
 
