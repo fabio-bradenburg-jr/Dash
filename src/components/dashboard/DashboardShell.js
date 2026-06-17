@@ -17250,7 +17250,6 @@ export default function DashboardShell({
               label: '5. Comunicação adicional',
               icon: 'bx-chat',
               tasks: [
-                { id: 'reunioes_recorrentes', label: 'Agendar reuniões recorrentes' },
                 { id: 'resposta_integracao_gr', label: 'Enviar Resposta de Integração para o G.R' },
               ],
             },
