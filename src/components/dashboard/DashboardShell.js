@@ -19543,6 +19543,7 @@ export default function DashboardShell({
                   Carregando campanhas dos clientes ativos...
                 </div>
               ) : filteredCampaignOverviewRows.length ? (
+                <>
                 {campaignViewMode === 'compact' && (
                   <div className="campaign-compact-header">
                     <span className="campaign-compact-logo" />
@@ -19932,6 +19933,7 @@ export default function DashboardShell({
                     )
                   })}
                 </div>
+                </>
               ) : (
                 <div className="ranking-empty ads-overview-empty">
                   Nenhum cliente encontrado para os filtros selecionados.
