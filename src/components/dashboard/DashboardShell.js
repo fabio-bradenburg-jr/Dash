@@ -24626,6 +24626,11 @@ export default function DashboardShell({
           transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), max-width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
+        /* Hide sub-menus entirely when collapsed */
+        .dashboard-container .sidebar-collapsed .nav-sub-group {
+          display: none !important;
+        }
+
         /* Expand nav items and show labels on sidebar hover */
         .dashboard-container .sidebar:hover .nav-item {
           width: auto !important;
@@ -24641,6 +24646,11 @@ export default function DashboardShell({
           max-width: 200px;
           font-size: 13px !important;
           pointer-events: auto;
+        }
+
+        /* Show sub-menus on hover */
+        .dashboard-container .sidebar:hover .nav-sub-group {
+          display: flex !important;
         }
 
         .dashboard-container .sidebar-bottom-actions {
