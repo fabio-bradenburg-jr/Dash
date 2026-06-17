@@ -24505,7 +24505,7 @@ export default function DashboardShell({
 
         .dashboard-container .sidebar :global(.nav-item i) {
           color: rgba(241, 241, 241, 0.4);
-          font-size: 18px;
+          font-size: 20px;
         }
 
         .dashboard-container .sidebar :global(.nav-item:hover) {
