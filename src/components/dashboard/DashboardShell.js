@@ -3431,6 +3431,7 @@ export default function DashboardShell({
   const [campaignOverviewExpandedClientIds, setCampaignOverviewExpandedClientIds] = useState([])
   const [campaignOverviewExpandedCampaignIds, setCampaignOverviewExpandedCampaignIds] = useState([])
   const [campaignOverviewExpandedAdsetIds, setCampaignOverviewExpandedAdsetIds] = useState([])
+  const [campaignViewMode, setCampaignViewMode] = useState('list')
   const [campaignChartOpenKeys, setCampaignChartOpenKeys] = useState({})
   const [campaignChartData, setCampaignChartData] = useState({})
   const [campaignChartMetric, setCampaignChartMetric] = useState({})
@@ -19516,6 +19517,17 @@ export default function DashboardShell({
                     placeholder="Buscar cliente, campanha, conjunto ou anúncio..."
                   />
                 </div>
+                <div className="campaign-view-mode-toggle">
+                  <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'list' ? ' active' : '')} onClick={() => setCampaignViewMode('list')} title="Visualização em lista">
+                    <i className="bx bx-list-ul"></i>
+                  </button>
+                  <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'grid' ? ' active' : '')} onClick={() => setCampaignViewMode('grid')} title="Visualização em grade">
+                    <i className="bx bx-grid-alt"></i>
+                  </button>
+                  <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'compact' ? ' active' : '')} onClick={() => setCampaignViewMode('compact')} title="Visualização compacta">
+                    <i className="bx bx-table"></i>
+                  </button>
+                </div>
               </div>
 
               <div className="ads-overview-status-row">
@@ -19531,7 +19543,19 @@ export default function DashboardShell({
                   Carregando campanhas dos clientes ativos...
                 </div>
               ) : filteredCampaignOverviewRows.length ? (
-                <div className="ads-overview-client-list campaign-overview-client-list">
+                {campaignViewMode === 'compact' && (
+                  <div className="campaign-compact-header">
+                    <span className="campaign-compact-logo" />
+                    <span className="campaign-compact-name">Cliente</span>
+                    <span className="campaign-compact-cell">Investimento</span>
+                    <span className="campaign-compact-cell">Resultados</span>
+                    <span className="campaign-compact-cell">CPR</span>
+                    <span className="campaign-compact-cell campaign-compact-meta">Meta CPR</span>
+                    <span className="campaign-compact-health">Saúde</span>
+                    <span style={{ width: 20 }} />
+                  </div>
+                )}
+                <div className={`ads-overview-client-list campaign-overview-client-list campaign-view-${campaignViewMode}`}>
                   {filteredCampaignOverviewRows.map((row) => {
                     const latestHealthRecord = latestWeeklyHealthByClientId.get(row.clientId)
                     const healthConfig = latestHealthRecord
@@ -19554,6 +19578,94 @@ export default function DashboardShell({
                       ? `Input semanal: ${formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)}`
                       : 'Sem input semanal preenchido'
 
+                    if (campaignViewMode === 'grid') {
+                      return (
+                        <article key={`campaign-client-${row.clientId}`} className={'campaign-grid-card glass-item ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')}>
+                          <button type="button" className="campaign-grid-card-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
+                            <div className="campaign-grid-identity">
+                              <span className="campaign-grid-logo">
+                                {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt={`Logo ${row.clientName}`} /> : <i className="bx bx-building-house"></i>}
+                              </span>
+                              <div className="campaign-grid-name">
+                                <strong>{row.clientName}</strong>
+                                <small>{row.isGhost ? '👻 Fantasma' : `${formatNumber(campaigns.length)} campanha(s)`}</small>
+                              </div>
+                              {healthConfig && (
+                                <span className="campaign-grid-health-dot" style={{ background: healthConfig.color }} title={healthConfig.label} />
+                              )}
+                            </div>
+                            <div className="campaign-grid-metrics">
+                              <div className="campaign-grid-metric">
+                                <span>Investimento</span>
+                                <strong>{formatCurrency(totals.spend || 0)}</strong>
+                              </div>
+                              <div className="campaign-grid-metric">
+                                <span>Resultados</span>
+                                <strong>{formatNumber(totals.results || 0)}</strong>
+                              </div>
+                              <div className="campaign-grid-metric">
+                                <span>CPR</span>
+                                <strong style={clientCprColor ? { color: clientCprColor } : undefined}>
+                                  {totals.results > 0 ? formatCurrency((totals.spend || 0) / totals.results) : '—'}
+                                </strong>
+                              </div>
+                              {clientCprBench > 0 && (
+                                <div className="campaign-grid-metric campaign-grid-meta" style={{ borderColor: `${clientCprColor || '#6b7280'}44` }}>
+                                  <span style={{ color: clientCprColor || undefined }}>Meta</span>
+                                  <strong style={{ color: clientCprColor || undefined }}>R${Number(clientCprBench).toFixed(2)}</strong>
+                                </div>
+                              )}
+                            </div>
+                            <div className="campaign-grid-footer">
+                              <span className={'campaign-grid-health-badge ' + (healthConfig ? healthConfig.key : 'empty')} style={healthConfig ? { '--client-health-color': healthConfig.color } : undefined}>
+                                {healthConfig?.label || 'Sem saúde'}
+                              </span>
+                              <i className={'bx ' + (isExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
+                            </div>
+                          </button>
+                          {isExpanded ? (
+                            row.isGhost ? (
+                              <div className="ads-overview-no-ads" style={{ padding: '20px 16px', opacity: 0.7, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                <i className="bx bx-link-alt" style={{ fontSize: 24 }}></i>
+                                <span style={{ fontSize: 12, textAlign: 'center' }}>Vincule a conta de anúncio real</span>
+                              </div>
+                            ) : null
+                          ) : null}
+                        </article>
+                      )
+                    }
+
+                    if (campaignViewMode === 'compact') {
+                      return (
+                        <article key={`campaign-client-${row.clientId}`} className={'campaign-compact-row ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')}>
+                          <button type="button" className="campaign-compact-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
+                            <span className="campaign-compact-logo">
+                              {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" /> : <i className="bx bx-building-house"></i>}
+                            </span>
+                            <span className="campaign-compact-name">
+                              <strong>{row.clientName}</strong>
+                              <small>{row.isGhost ? '👻' : `${formatNumber(campaigns.length)} camp.`}</small>
+                            </span>
+                            <span className="campaign-compact-cell">{formatCurrency(totals.spend || 0)}</span>
+                            <span className="campaign-compact-cell">{formatNumber(totals.results || 0)}</span>
+                            <span className="campaign-compact-cell" style={clientCprColor ? { color: clientCprColor, fontWeight: 600 } : undefined}>
+                              {totals.results > 0 ? formatCurrency((totals.spend || 0) / totals.results) : '—'}
+                            </span>
+                            <span className="campaign-compact-cell campaign-compact-meta">
+                              {clientCprBench > 0 ? <span style={{ color: clientCprColor || 'rgba(241,241,241,0.4)' }}>R${Number(clientCprBench).toFixed(2)}</span> : '—'}
+                            </span>
+                            <span className="campaign-compact-health">
+                              {healthConfig ? (
+                                <span className="campaign-compact-health-pill" style={{ background: `${healthConfig.color}22`, color: healthConfig.color, borderColor: `${healthConfig.color}44` }}>{healthConfig.label}</span>
+                              ) : <span className="campaign-compact-health-pill empty">—</span>}
+                            </span>
+                            <i className={'bx ' + (isExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
+                          </button>
+                        </article>
+                      )
+                    }
+
+                    // Default: list mode
                     return (
                       <article key={`campaign-client-${row.clientId}`} className={'ads-overview-client-card campaign-overview-client-card glass-item ' + (isExpanded ? 'expanded' : '')}>
                         <button type="button" className="ads-overview-client-head ads-overview-client-toggle campaign-overview-client-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
@@ -34700,7 +34812,321 @@ export default function DashboardShell({
         }
 
         .campaign-overview-toolbar {
-          grid-template-columns: minmax(260px, 1fr);
+          grid-template-columns: minmax(260px, 1fr) auto;
+          align-items: center;
+        }
+
+        /* View mode toggle */
+        .campaign-view-mode-toggle {
+          display: flex;
+          gap: 4px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px;
+          padding: 3px;
+        }
+
+        .campaign-view-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 7px;
+          border: 1px solid transparent;
+          background: transparent;
+          color: rgba(241,241,241,0.4);
+          cursor: pointer;
+          font-size: 16px;
+          transition: all 0.18s ease;
+        }
+
+        .campaign-view-btn:hover {
+          color: rgba(241,241,241,0.8);
+          background: rgba(255,255,255,0.07);
+        }
+
+        .campaign-view-btn.active {
+          background: rgba(38,194,129,0.15);
+          border-color: rgba(38,194,129,0.3);
+          color: #26c281;
+        }
+
+        /* ── GRID MODE ── */
+        .campaign-view-grid {
+          display: grid !important;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 14px;
+        }
+
+        .campaign-grid-card {
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          overflow: hidden;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .campaign-grid-card:hover {
+          border-color: rgba(38,194,129,0.22);
+          box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        }
+
+        .campaign-grid-card-head {
+          width: 100%;
+          background: none;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          padding: 16px;
+          text-align: left;
+        }
+
+        .campaign-grid-identity {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .campaign-grid-logo {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          overflow: hidden;
+          background: rgba(38,194,129,0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .campaign-grid-logo img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .campaign-grid-logo i {
+          font-size: 18px;
+          color: rgba(38,194,129,0.6);
+        }
+
+        .campaign-grid-name {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .campaign-grid-name strong {
+          display: block;
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .campaign-grid-name small {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+
+        .campaign-grid-health-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .campaign-grid-metrics {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .campaign-grid-metric {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 10px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .campaign-grid-metric span {
+          font-size: 10px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .campaign-grid-metric strong {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .campaign-grid-meta {
+          border-color: rgba(255,255,255,0.12) !important;
+        }
+
+        .campaign-grid-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .campaign-grid-health-badge {
+          font-size: 11.5px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.06);
+          color: var(--text-muted);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .campaign-grid-health-badge.saudavel { background: rgba(34,197,94,0.12); color: #22c55e; border-color: rgba(34,197,94,0.3); }
+        .campaign-grid-health-badge.atencao  { background: rgba(245,158,11,0.12); color: #f59e0b; border-color: rgba(245,158,11,0.3); }
+        .campaign-grid-health-badge.critico  { background: rgba(239,68,68,0.12);  color: #ef4444; border-color: rgba(239,68,68,0.3); }
+        .campaign-grid-health-badge.com_resultado { background: rgba(96,165,250,0.12); color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+        .campaign-grid-health-badge.integracao { background: rgba(139,92,246,0.12); color: #8b5cf6; border-color: rgba(139,92,246,0.3); }
+
+        .campaign-grid-footer i {
+          font-size: 18px;
+          color: var(--text-muted);
+        }
+
+        /* ── COMPACT MODE ── */
+        .campaign-compact-header,
+        .campaign-compact-head {
+          display: grid;
+          grid-template-columns: 30px minmax(160px,1fr) 120px 90px 120px 110px minmax(110px,auto) 20px;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 0 16px;
+        }
+
+        .campaign-compact-header {
+          padding: 8px 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          margin-bottom: 4px;
+        }
+
+        .campaign-compact-header span {
+          font-size: 10.5px;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        .campaign-compact-row {
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1px solid transparent;
+          transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .campaign-compact-row:hover {
+          background: rgba(255,255,255,0.025);
+          border-color: rgba(255,255,255,0.07);
+        }
+
+        .campaign-compact-head {
+          background: none;
+          border: none;
+          cursor: pointer;
+          height: 48px;
+          color: var(--text-primary);
+          text-align: left;
+        }
+
+        .campaign-compact-logo {
+          width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          overflow: hidden;
+          background: rgba(38,194,129,0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .campaign-compact-logo img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .campaign-compact-logo i {
+          font-size: 14px;
+          color: rgba(38,194,129,0.6);
+        }
+
+        .campaign-compact-name {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+        }
+
+        .campaign-compact-name strong {
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .campaign-compact-name small {
+          font-size: 10.5px;
+          color: var(--text-muted);
+        }
+
+        .campaign-compact-cell {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-primary);
+          white-space: nowrap;
+        }
+
+        .campaign-compact-meta {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+
+        .campaign-compact-health {
+          display: flex;
+          align-items: center;
+        }
+
+        .campaign-compact-health-pill {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 2px 9px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.05);
+          color: var(--text-muted);
+          white-space: nowrap;
+        }
+
+        .campaign-compact-health-pill.empty { opacity: 0.4; }
+
+        .campaign-compact-head i {
+          font-size: 16px;
+          color: var(--text-muted);
+          justify-self: end;
+        }
+
+        .campaign-view-compact .campaign-compact-row + .campaign-compact-row {
+          border-top: 1px solid rgba(255,255,255,0.04);
         }
 
         .campaign-overview-client-head {
