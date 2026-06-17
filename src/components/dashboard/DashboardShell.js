@@ -17318,6 +17318,7 @@ export default function DashboardShell({
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-bolt-circle',
               tasks: [
+                { id: 'ft1_narrativa_vendas', label: 'Narrativa de vendas' },
                 { id: 'ft1_acessos', label: 'Acessos (BM, conta de anúncios, página, Instagram)' },
                 { id: 'ft1_wpp_bm', label: 'Configuração WhatsApp Business na conta de anúncios' },
                 { id: 'ft1_dominio', label: 'Verificação de domínio' },
