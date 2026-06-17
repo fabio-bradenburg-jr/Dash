@@ -17194,14 +17194,12 @@ export default function DashboardShell({
               tasks: [
                 { id: 'drive_criar', label: 'Criar o Drive do cliente (Assessoria LP - [Nome])' },
                 { id: 'drive_pastas', label: 'Criar as pastas padrão: Documentos, Materiais, IDV, Criativos, Reuniões, Script Padrão' },
-                { id: 'drive_link', label: 'Copiar o link do Drive' },
                 { id: 'wpp_criar', label: 'Criar o grupo do WhatsApp (Assessoria LP - [Nome])' },
                 { id: 'wpp_equipe_interna', label: 'Adicionar a equipe interna da LP no grupo' },
                 { id: 'wpp_gestor', label: 'Adicionar o gestor de tráfego responsável' },
                 { id: 'wpp_descricao', label: 'Inserir o link do Drive na descrição do grupo' },
                 { id: 'clickup_add', label: 'Adicionar o cliente no ClickUp' },
                 { id: 'app_add', label: 'Adicionar o cliente no app da assessoria' },
-                { id: 'wpp_cliente', label: 'Adicionar os responsáveis do cliente no grupo' },
               ],
             },
             {
