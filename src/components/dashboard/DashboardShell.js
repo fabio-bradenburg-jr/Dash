@@ -17426,10 +17426,11 @@ export default function DashboardShell({
 
           return (
             <section className="weekly-dashboard-panel onboarding-panel">
-              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(129,216,167,0.1)' }}>
-                <span className="eyebrow" style={{ color: '#22c55e' }}><i className="bx bx-list-check"></i> Master · Restrito</span>
-                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
-                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
+              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <span className="management-hero-kicker"><i className="bx bx-list-check" style={{ marginRight: 5 }}></i>Onboarding</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
+                <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
 
                 {/* Metrics panel */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
@@ -17441,8 +17442,8 @@ export default function DashboardShell({
                     { icon: 'bx-task', label: 'Tarefas concluídas', value: `${totalTasksDone}/${totalClients * totalTasks}`, color: '#818cf8' },
                     { icon: 'bx-trending-up', label: 'Progresso geral', value: `${overallProgress}%`, color: overallProgress === 100 ? '#22c55e' : '#26c281' },
                   ].map((m) => (
-                    <div key={m.label} style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div key={m.label} className="management-stat-card" style={{ gap: 6 }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
                         <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 13 }}></i>
                         {m.label}
                       </span>
@@ -18312,10 +18313,11 @@ export default function DashboardShell({
 
           return (
             <section className="weekly-dashboard-panel onboarding-panel">
-              <div style={{ padding: '32px 28px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)' }}>
-                <span className="eyebrow" style={{ color: '#ef4444' }}><i className="bx bx-log-out"></i> Master · Restrito</span>
-                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.6rem,2.5vw,2.2rem)', fontWeight: 900 }}>Offboarding de clientes</h2>
-                <p style={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.92rem' }}>Checklist de encerramento para clientes com status Churn.</p>
+              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)', background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,68,68,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <span style={{ display: 'inline-block', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#ef4444', marginBottom: 6, opacity: 0.85 }}><i className="bx bx-log-out" style={{ marginRight: 5 }}></i>Offboarding</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Offboarding de clientes</h2>
+                <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist de encerramento para clientes com status Churn.</p>
 
                 {/* Metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12, marginTop: 20 }}>
@@ -18327,12 +18329,12 @@ export default function DashboardShell({
                     { label: 'Tarefas concluídas', value: `${totalDone}/${churnClients.length * totalTasks}`, icon: 'bx-list-check', color: '#8b5cf6' },
                     { label: 'Progresso geral', value: `${overallProgress}%`, icon: 'bx-trending-up', color: '#06b6d4' },
                   ].map((m) => (
-                    <div key={m.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '14px 16px', border: `1px solid ${m.color}22` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 18 }}></i>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{m.label}</span>
-                      </div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: m.color }}>{m.value}</div>
+                    <div key={m.label} className="management-stat-card" style={{ borderColor: `${m.color}22` }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 13 }}></i>
+                        {m.label}
+                      </span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 900, color: m.color, lineHeight: 1 }}>{m.value}</span>
                     </div>
                   ))}
                 </div>
