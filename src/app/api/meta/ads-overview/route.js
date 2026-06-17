@@ -222,7 +222,7 @@ async function fetchClientTopAds({ client, token, datePreset, since, until, user
           campaignId: row.campaign_id || '',
           adsetId: row.adset_id || '',
           label: row.ad_name || saved.label || 'Criativo sem nome',
-          imageUrl: saved.imageUrl || buildCreativeThumbnailUrl(adAccountId, row.ad_id),
+          imageUrl: buildCreativeThumbnailUrl(adAccountId, row.ad_id),
           spend: Number.parseFloat(formatted.spend || 0),
           impressions: Number.parseInt(formatted.impressions || 0, 10),
           clicks: Number.parseInt(formatted.clicks || 0, 10),
