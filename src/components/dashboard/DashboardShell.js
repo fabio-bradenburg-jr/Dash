@@ -19575,10 +19575,16 @@ export default function DashboardShell({
                               <small>Resultados</small>
                               <strong>{formatNumber(totals.results || 0)}</strong>
                             </span>
-                            <span className="campaign-overview-total-pill" style={clientCprColor ? { background: `${clientCprColor}18`, border: `1px solid ${clientCprColor}44`, borderRadius: 8, padding: '2px 8px' } : undefined}>
-                              <small style={clientCprColor ? { color: clientCprColor, opacity: 1 } : undefined}>Custo/resultado{clientCprBench ? ` · meta R$${Number(clientCprBench).toFixed(2)}` : ''}</small>
+                            <span className="campaign-overview-total-pill">
+                              <small>Custo/resultado</small>
                               <strong style={clientCprColor ? { color: clientCprColor } : undefined}>{totals.results > 0 ? formatCurrency((totals.spend || 0) / totals.results) : '—'}</strong>
                             </span>
+                            {clientCprBench > 0 && (
+                              <span className="campaign-overview-total-pill" style={{ background: `${clientCprColor || '#6b7280'}18`, border: `1px solid ${clientCprColor || '#6b7280'}44` }}>
+                                <small style={{ color: clientCprColor || 'rgba(241,241,241,0.5)' }}>Meta CPR</small>
+                                <strong style={{ color: clientCprColor || 'rgba(241,241,241,0.7)' }}>R${Number(clientCprBench).toFixed(2)}</strong>
+                              </span>
+                            )}
                             <span className={'simple-client-health compact ' + (healthConfig ? 'active ' + healthConfig.key : 'empty')} style={healthConfig ? { '--client-health-color': healthConfig.color } : undefined}>
                               <b>{healthConfig?.label || 'Sem saúde'}</b>
                               <small>{healthDetail}</small>
