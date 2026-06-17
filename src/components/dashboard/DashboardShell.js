@@ -17246,16 +17246,8 @@ export default function DashboardShell({
               ],
             },
             {
-              id: 'kickoff_extra',
-              label: '5. Comunicação adicional',
-              icon: 'bx-chat',
-              tasks: [
-                { id: 'resposta_integracao_gr', label: 'Enviar Resposta de Integração para o G.R' },
-              ],
-            },
-            {
               id: 'organico_gmb',
-              label: '6. Google Meu Negócio',
+              label: '5. Google Meu Negócio',
               icon: 'bx-map-pin',
               tasks: [
                 { id: 'gmb_acesso', label: 'Coletar acesso ao Google Meu Negócio' },
@@ -17268,7 +17260,7 @@ export default function DashboardShell({
             },
             {
               id: 'organico_redes',
-              label: '7. Configuração de redes sociais',
+              label: '6. Configuração de redes sociais',
               icon: 'bx-share-alt',
               tasks: [
                 { id: 'ig_foto', label: 'Instagram: Foto de perfil' },
@@ -17299,7 +17291,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_1',
-              label: '8. Fast Traffic — Etapa 1',
+              label: '7. Fast Traffic — Etapa 1',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-bolt-circle',
               tasks: [
@@ -17314,7 +17306,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_2',
-              label: '9. Fast Traffic — Etapa 2',
+              label: '8. Fast Traffic — Etapa 2',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-spreadsheet',
               tasks: [
@@ -17328,7 +17320,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_3',
-              label: '10. Fast Traffic — Etapa 3',
+              label: '9. Fast Traffic — Etapa 3',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-rocket',
               tasks: [
@@ -17349,7 +17341,7 @@ export default function DashboardShell({
             },
             {
               id: 'treinamento',
-              label: '11. Treinamento & Ativação',
+              label: '10. Treinamento & Ativação',
               icon: 'bx-chalkboard',
               tasks: [
                 { id: 'trei_comercial', label: 'Treinamento comercial' },
@@ -17360,7 +17352,7 @@ export default function DashboardShell({
             },
             {
               id: 'pos_onboarding',
-              label: '12. Pós-Onboarding & Relacionamento',
+              label: '11. Pós-Onboarding & Relacionamento',
               icon: 'bx-heart',
               tasks: [
                 { id: 'pos_acompanhamento', label: 'Acompanhamento dos primeiros resultados' },
