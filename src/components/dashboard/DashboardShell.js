@@ -3761,18 +3761,41 @@ export default function DashboardShell({
   const handleToggleOnboardingTask = useCallback(async (clientId, taskId) => {
     const record = onboardingRecords.find((r) => r.client_id === clientId)
     const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-    const next = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    const na = Array.isArray(record?.na_tasks) ? record.na_tasks : []
+    const nextCompleted = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    const nextNa = na.filter((t) => t !== taskId)
     setOnboardingRecords((prev) => {
       const exists = prev.find((r) => r.client_id === clientId)
-      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: next } : r)
-      return [...prev, { client_id: clientId, completed_tasks: next, notes: '' }]
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: nextCompleted, na_tasks: nextNa } : r)
+      return [...prev, { client_id: clientId, completed_tasks: nextCompleted, na_tasks: nextNa, notes: '' }]
     })
     setOnboardingSaving(true)
     try {
       await fetch('/api/client-onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, completedTasks: next }),
+        body: JSON.stringify({ clientId, completedTasks: nextCompleted, naTasks: nextNa }),
+      })
+    } finally { setOnboardingSaving(false) }
+  }, [onboardingRecords])
+
+  const handleToggleOnboardingTaskNA = useCallback(async (clientId, taskId) => {
+    const record = onboardingRecords.find((r) => r.client_id === clientId)
+    const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+    const na = Array.isArray(record?.na_tasks) ? record.na_tasks : []
+    const nextNa = na.includes(taskId) ? na.filter((t) => t !== taskId) : [...na, taskId]
+    const nextCompleted = completed.filter((t) => t !== taskId)
+    setOnboardingRecords((prev) => {
+      const exists = prev.find((r) => r.client_id === clientId)
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: nextCompleted, na_tasks: nextNa } : r)
+      return [...prev, { client_id: clientId, completed_tasks: nextCompleted, na_tasks: nextNa, notes: '' }]
+    })
+    setOnboardingSaving(true)
+    try {
+      await fetch('/api/client-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, completedTasks: nextCompleted, naTasks: nextNa }),
       })
     } finally { setOnboardingSaving(false) }
   }, [onboardingRecords])
@@ -17630,8 +17653,11 @@ export default function DashboardShell({
                 if (!modalClient) return null
                 const record = onboardingRecords.find((r) => r.client_id === modalClient.id)
                 const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+                const naTasks = Array.isArray(record?.na_tasks) ? record.na_tasks : []
                 const completedCount = completedTasks.length
-                const progress = Math.round((completedCount / totalTasks) * 100)
+                const naCount = naTasks.length
+                const effectiveTotal = totalTasks - naCount
+                const progress = effectiveTotal > 0 ? Math.round((completedCount / effectiveTotal) * 100) : 100
                 return (
                   <div
                     onClick={() => setOnboardingExpandedClient(null)}
@@ -17659,7 +17685,8 @@ export default function DashboardShell({
                             </div>
                             <div style={{ marginTop: 6, display: 'flex', gap: 12 }}>
                               <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ color: '#22c55e', fontWeight: 700 }}>{completedCount}</span> concluídas</span>
-                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ fontWeight: 700 }}>{totalTasks - completedCount}</span> pendentes</span>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ fontWeight: 700 }}>{effectiveTotal - completedCount}</span> pendentes</span>
+                              {naCount > 0 && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ color: '#94a3b8', fontWeight: 700 }}>{naCount}</span> n/a</span>}
                             </div>
                           </div>
                           <button
@@ -17676,7 +17703,9 @@ export default function DashboardShell({
                       <div style={{ padding: '20px 28px 28px', maxHeight: '65vh', overflowY: 'auto' }}>
                         {ONBOARDING_PHASES.map((phase, phaseIndex) => {
                           const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
-                          const phaseComplete = phaseDone === phase.tasks.length
+                          const phaseNa = phase.tasks.filter((t) => naTasks.includes(t.id)).length
+                          const phaseEffectiveTotal = phase.tasks.length - phaseNa
+                          const phaseComplete = phaseEffectiveTotal > 0 ? phaseDone === phaseEffectiveTotal : true
                           const phaseColors = ['#26c281','#6366f1','#f59e0b','#ec4899','#3b82f6','#10b981','#8b5cf6','#f97316','#06b6d4','#84cc16','#ef4444','#a855f7','#14b8a6','#fb923c']
                           const color = phaseColors[phaseIndex % phaseColors.length]
                           const isPhaseOpen = onboardingExpandedPhases.has(phase.id)
@@ -17703,9 +17732,9 @@ export default function DashboardShell({
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <div style={{ width: 60, height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${(phaseDone / phase.tasks.length) * 100}%`, background: phaseComplete ? '#22c55e' : color, borderRadius: 3, transition: 'width 0.3s' }} />
+                                    <div style={{ height: '100%', width: `${phaseEffectiveTotal > 0 ? (phaseDone / phaseEffectiveTotal) * 100 : 100}%`, background: phaseComplete ? '#22c55e' : color, borderRadius: 3, transition: 'width 0.3s' }} />
                                   </div>
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: phaseComplete ? '#22c55e' : 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', minWidth: 32, textAlign: 'right' }}>{phaseDone}/{phase.tasks.length}</span>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: phaseComplete ? '#22c55e' : 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', minWidth: 32, textAlign: 'right' }}>{phaseDone}/{phaseEffectiveTotal}</span>
                                   {phaseComplete
                                     ? <i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 16 }}></i>
                                     : <i className={`bx ${isPhaseOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 16, opacity: 0.4 }}></i>
@@ -17717,20 +17746,34 @@ export default function DashboardShell({
                                 <div style={{ paddingLeft: 8, background: 'rgba(255,255,255,0.02)', border: `1px solid ${phaseComplete ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)'}`, borderTop: 'none', borderRadius: '0 0 12px 12px', paddingTop: 4, paddingBottom: 4 }}>
                                   {phase.tasks.map((task) => {
                                     const done = completedTasks.includes(task.id)
+                                    const isNa = naTasks.includes(task.id)
                                     return (
-                                      <button
+                                      <div
                                         key={task.id}
-                                        type="button"
-                                        onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
-                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'inherit', textAlign: 'left', transition: 'background 0.12s', marginBottom: 1 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 1, borderRadius: 8, transition: 'background 0.12s' }}
                                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                       >
-                                        <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? color : 'rgba(255,255,255,0.15)'}`, background: done ? color : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s', boxShadow: done ? `0 0 8px ${color}60` : 'none' }}>
-                                          {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff', fontWeight: 900 }}></i>}
-                                        </span>
-                                        <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.4 : 0.85, transition: 'all 0.15s', flex: 1 }}>{task.label}</span>
-                                      </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
+                                          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: isNa ? 'default' : 'pointer', color: 'inherit', textAlign: 'left', opacity: isNa ? 0.35 : 1 }}
+                                          disabled={isNa}
+                                        >
+                                          <span style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${done ? color : 'rgba(255,255,255,0.15)'}`, background: done ? color : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s', boxShadow: done ? `0 0 8px ${color}60` : 'none' }}>
+                                            {done && <i className="bx bx-check" style={{ fontSize: 11, color: '#fff', fontWeight: 900 }}></i>}
+                                          </span>
+                                          <span style={{ fontSize: '0.85rem', lineHeight: 1.45, textDecoration: done ? 'line-through' : isNa ? 'line-through' : 'none', opacity: done ? 0.4 : 0.85, transition: 'all 0.15s', flex: 1 }}>{task.label}</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title={isNa ? 'Clique para remover N/A' : 'Não se aplica'}
+                                          onClick={() => handleToggleOnboardingTaskNA(modalClient.id, task.id)}
+                                          style={{ width: 22, height: 22, borderRadius: 6, border: `1.5px solid ${isNa ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, background: isNa ? 'rgba(239,68,68,0.15)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s', marginRight: 8, color: isNa ? '#ef4444' : 'rgba(255,255,255,0.25)' }}
+                                        >
+                                          <i className="bx bx-x" style={{ fontSize: 14 }}></i>
+                                        </button>
+                                      </div>
                                     )
                                   })}
                                 </div>
