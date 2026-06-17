@@ -5115,10 +5115,13 @@ export default function DashboardShell({
     return campaignOverviewRows
       .map((row) => {
         const client = clientsById.get(row.clientId)
+        const accentHex = client?.dashboardAccentColor
+        const accentRgb = accentHex ? hexToRgb(accentHex) : null
         return {
           ...row,
           client: client || null,
           clientLogoUrl: client?.logoUrl || row.clientLogoUrl || '',
+          clientAccentRgb: accentRgb,
         }
       })
       .filter((row) => !row.client?.isArchived)
@@ -19578,10 +19581,14 @@ export default function DashboardShell({
                     const healthDetail = latestHealthRecord
                       ? `Input semanal: ${formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)}`
                       : 'Sem input semanal preenchido'
+                    const accentRgb = row.clientAccentRgb
+                    const accentGlow = accentRgb
+                      ? { '--card-accent-r': accentRgb.r, '--card-accent-g': accentRgb.g, '--card-accent-b': accentRgb.b }
+                      : {}
 
                     if (campaignViewMode === 'grid') {
                       return (
-                        <article key={`campaign-client-${row.clientId}`} className={'campaign-grid-card glass-item ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')}>
+                        <article key={`campaign-client-${row.clientId}`} className={'campaign-grid-card glass-item ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')} style={accentGlow}>
                           <button type="button" className="campaign-grid-card-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
                             <div className="campaign-grid-identity">
                               <span className="campaign-grid-logo">
@@ -19638,7 +19645,7 @@ export default function DashboardShell({
 
                     if (campaignViewMode === 'compact') {
                       return (
-                        <article key={`campaign-client-${row.clientId}`} className={'campaign-compact-row ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')}>
+                        <article key={`campaign-client-${row.clientId}`} className={'campaign-compact-row ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')} style={accentGlow}>
                           <button type="button" className="campaign-compact-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
                             <span className="campaign-compact-logo">
                               {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" /> : <i className="bx bx-building-house"></i>}
@@ -19668,7 +19675,7 @@ export default function DashboardShell({
 
                     // Default: list mode
                     return (
-                      <article key={`campaign-client-${row.clientId}`} className={'ads-overview-client-card campaign-overview-client-card glass-item ' + (isExpanded ? 'expanded' : '')}>
+                      <article key={`campaign-client-${row.clientId}`} className={'ads-overview-client-card campaign-overview-client-card glass-item ' + (isExpanded ? 'expanded' : '')} style={accentGlow}>
                         <button type="button" className="ads-overview-client-head ads-overview-client-toggle campaign-overview-client-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
                           <div className="ads-overview-client-identity">
                             <span className="ads-overview-client-logo">
@@ -34577,12 +34584,18 @@ export default function DashboardShell({
           display: grid;
           gap: 0;
           overflow: hidden;
+          border-color: rgba(var(--card-accent-r,129),var(--card-accent-g,216),var(--card-accent-b,167),0.12);
+          background: radial-gradient(ellipse 100% 60% at 100% 0%, rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.06) 0%, transparent 65%);
+        }
+
+        .ads-overview-client-card:hover {
+          border-color: rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.22);
         }
 
         .ads-overview-client-card.expanded {
           gap: 14px;
           padding-bottom: 14px;
-          border-color: rgba(129, 216, 167, 0.26);
+          border-color: rgba(var(--card-accent-r,129),var(--card-accent-g,216),var(--card-accent-b,167),0.28);
         }
 
         .ads-overview-client-head {
@@ -34863,15 +34876,15 @@ export default function DashboardShell({
 
         .campaign-grid-card {
           border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(var(--card-accent-r,255),var(--card-accent-g,255),var(--card-accent-b,255),0.1);
+          background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.08) 0%, transparent 70%), rgba(255,255,255,0.03);
           overflow: hidden;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .campaign-grid-card:hover {
-          border-color: rgba(38,194,129,0.22);
-          box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+          border-color: rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.28);
+          box-shadow: 0 4px 28px rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.1);
         }
 
         .campaign-grid-card-head {
@@ -35035,8 +35048,8 @@ export default function DashboardShell({
         }
 
         .campaign-compact-row:hover {
-          background: rgba(255,255,255,0.025);
-          border-color: rgba(255,255,255,0.07);
+          background: rgba(var(--card-accent-r,255),var(--card-accent-g,255),var(--card-accent-b,255),0.03);
+          border-color: rgba(var(--card-accent-r,38),var(--card-accent-g,194),var(--card-accent-b,129),0.18);
         }
 
         .campaign-compact-head {
