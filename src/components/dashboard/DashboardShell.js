@@ -3234,6 +3234,12 @@ export default function DashboardShell({
   const [metric1, setMetric1] = useState('spend')
   const [metric2, setMetric2] = useState('roas')
   const [campaignSearch, setCampaignSearch] = useState('')
+  const [cprBenchmarks, setCprBenchmarks] = useState({}) // { clientId: number }
+  const [cprSettings, setCprSettings] = useState({ green_threshold: 15, yellow_threshold: 35 })
+  const [showCprPanel, setShowCprPanel] = useState(false)
+  const [draftCprBenchmarks, setDraftCprBenchmarks] = useState({})
+  const [draftCprSettings, setDraftCprSettings] = useState({ green_threshold: 15, yellow_threshold: 35 })
+  const [cprSaving, setCprSaving] = useState(false)
   const [campaignStatusFilter, setCampaignStatusFilter] = useState('ACTIVE')
   const [campaignSortBy, setCampaignSortBy] = useState('spend')
   const [isCampaignColumnLibraryOpen, setIsCampaignColumnLibraryOpen] = useState(false)
@@ -3748,6 +3754,19 @@ export default function DashboardShell({
   useEffect(() => {
     loadWeeklyRecords()
   }, [loadWeeklyRecords])
+
+  const loadCprBenchmarks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cpr-benchmarks', { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      const map = {}
+      for (const b of (data.benchmarks || [])) map[b.client_id] = Number(b.benchmark_cpr)
+      setCprBenchmarks(map)
+      if (data.settings) setCprSettings(data.settings)
+    } catch {}
+  }, [])
+
+  useEffect(() => { loadCprBenchmarks() }, [loadCprBenchmarks])
 
   const loadOnboardingRecords = useCallback(async () => {
     if (activeTab !== 'onboarding') return
@@ -19462,6 +19481,20 @@ export default function DashboardShell({
                   <i className={'bx ' + (campaignOverviewLoading ? 'bx-loader-alt bx-spin' : 'bx-refresh')}></i>
                   {campaignOverviewLoading ? 'Atualizando' : 'Atualizar campanhas'}
                 </button>
+                {isMaster && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setDraftCprBenchmarks({ ...cprBenchmarks })
+                      setDraftCprSettings({ ...cprSettings })
+                      setShowCprPanel(true)
+                    }}
+                  >
+                    <i className="bx bx-target-lock"></i>
+                    Média de CPR
+                  </button>
+                )}
               </div>
             </div>
 
@@ -19507,6 +19540,16 @@ export default function DashboardShell({
                     const campaigns = Array.isArray(row.campaigns) ? row.campaigns : []
                     const totals = row.totals || {}
                     const isExpanded = campaignOverviewExpandedClientIds.includes(row.clientId)
+                    const clientCprBench = cprBenchmarks[row.clientId]
+                    const getCprColor = (actualCpr) => {
+                      if (!clientCprBench || clientCprBench <= 0 || !actualCpr || actualCpr <= 0) return null
+                      const pct = ((actualCpr - clientCprBench) / clientCprBench) * 100
+                      if (pct <= cprSettings.green_threshold) return '#22c55e'
+                      if (pct <= cprSettings.yellow_threshold) return '#f59e0b'
+                      return '#ef4444'
+                    }
+                    const clientActualCpr = totals.results > 0 ? (totals.spend || 0) / totals.results : null
+                    const clientCprColor = getCprColor(clientActualCpr)
                     const healthDetail = latestHealthRecord
                       ? `Input semanal: ${formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)}`
                       : 'Sem input semanal preenchido'
@@ -19532,9 +19575,9 @@ export default function DashboardShell({
                               <small>Resultados</small>
                               <strong>{formatNumber(totals.results || 0)}</strong>
                             </span>
-                            <span className="campaign-overview-total-pill">
-                              <small>Custo/resultado</small>
-                              <strong>{totals.results > 0 ? formatCurrency((totals.spend || 0) / totals.results) : '—'}</strong>
+                            <span className="campaign-overview-total-pill" style={clientCprColor ? { background: `${clientCprColor}18`, border: `1px solid ${clientCprColor}44`, borderRadius: 8, padding: '2px 8px' } : undefined}>
+                              <small style={clientCprColor ? { color: clientCprColor, opacity: 1 } : undefined}>Custo/resultado{clientCprBench ? ` · meta R$${Number(clientCprBench).toFixed(2)}` : ''}</small>
+                              <strong style={clientCprColor ? { color: clientCprColor } : undefined}>{totals.results > 0 ? formatCurrency((totals.spend || 0) / totals.results) : '—'}</strong>
                             </span>
                             <span className={'simple-client-health compact ' + (healthConfig ? 'active ' + healthConfig.key : 'empty')} style={healthConfig ? { '--client-health-color': healthConfig.color } : undefined}>
                               <b>{healthConfig?.label || 'Sem saúde'}</b>
@@ -19592,10 +19635,16 @@ export default function DashboardShell({
                                           <small>Resultados</small>
                                           <strong>{formatNumber(campaign.results || 0)}</strong>
                                         </span>
-                                        <span className="campaign-overview-metric">
-                                          <small>Custo/resultado</small>
-                                          <strong>{campaign.results > 0 ? formatCurrency((campaign.spend || 0) / campaign.results) : '—'}</strong>
-                                        </span>
+                                        {(() => {
+                                          const campCpr = campaign.results > 0 ? (campaign.spend || 0) / campaign.results : null
+                                          const campColor = getCprColor(campCpr)
+                                          return (
+                                            <span className="campaign-overview-metric" style={campColor ? { background: `${campColor}14`, borderRadius: 6, padding: '2px 6px' } : undefined}>
+                                              <small style={campColor ? { color: campColor, opacity: 1 } : undefined}>Custo/resultado</small>
+                                              <strong style={campColor ? { color: campColor } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</strong>
+                                            </span>
+                                          )
+                                        })()}
                                         <span className="campaign-overview-metric">
                                           <small>Cliques</small>
                                           <strong>{formatNumber(campaign.clicks || 0)}</strong>
@@ -40197,6 +40246,129 @@ export default function DashboardShell({
           }
         }
       `}</style>
+
+      {/* CPR Benchmark Panel */}
+      {showCprPanel && (
+        <div className="modal-overlay" onClick={() => setShowCprPanel(false)} style={{ zIndex: 9999 }}>
+          <div className="modal-card glass-panel" style={{ maxWidth: 560, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ borderBottom: '1px solid rgba(38,194,129,0.12)', paddingBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#26c281', marginBottom: 4 }}>Performance</div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Média de CPR por cliente</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', opacity: 0.55 }}>Defina o CPR médio esperado de cada cliente e as faixas de tolerância.</p>
+              </div>
+              <button type="button" className="modal-close" onClick={() => setShowCprPanel(false)}><i className="bx bx-x"></i></button>
+            </div>
+
+            {/* Thresholds */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'block', marginBottom: 6 }}>
+                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: '#22c55e', marginRight: 6 }}></span>
+                  Verde — até % acima da meta
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number" min="0" max="100" step="1"
+                    value={draftCprSettings.green_threshold}
+                    onChange={(e) => setDraftCprSettings((s) => ({ ...s, green_threshold: Number(e.target.value) }))}
+                    className="client-text-input"
+                    style={{ width: 80 }}
+                  />
+                  <span style={{ opacity: 0.5, fontSize: '0.85rem' }}>%</span>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'block', marginBottom: 6 }}>
+                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: '#f59e0b', marginRight: 6 }}></span>
+                  Amarelo — até % acima da meta
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number" min="0" max="200" step="1"
+                    value={draftCprSettings.yellow_threshold}
+                    onChange={(e) => setDraftCprSettings((s) => ({ ...s, yellow_threshold: Number(e.target.value) }))}
+                    className="client-text-input"
+                    style={{ width: 80 }}
+                  />
+                  <span style={{ opacity: 0.5, fontSize: '0.85rem' }}>%</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '6px 20px 10px', fontSize: '0.75rem', opacity: 0.4 }}>
+              Acima de {draftCprSettings.yellow_threshold}% da meta → vermelho
+            </div>
+
+            {/* Client list */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(clients || []).filter((c) => {
+                const st = String(c?.status || '').trim().toLowerCase()
+                return c?.id && st !== 'churn' && st !== 'pausado'
+              }).map((client) => (
+                <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {client.logoUrl
+                    ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    : <span style={{ width: 32, height: 32, borderRadius: 8, background: client.dashboardColor || '#26c281', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>{(client.name || '?')[0]}</span>
+                  }
+                  <span style={{ flex: 1, fontSize: '0.88rem', fontWeight: 600 }}>{client.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.78rem', opacity: 0.45 }}>R$</span>
+                    <input
+                      type="number" min="0" step="0.01"
+                      placeholder="0.00"
+                      value={draftCprBenchmarks[client.id] ?? ''}
+                      onChange={(e) => setDraftCprBenchmarks((prev) => ({ ...prev, [client.id]: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                      className="client-text-input"
+                      style={{ width: 100, textAlign: 'right' }}
+                    />
+                  </div>
+                  {draftCprBenchmarks[client.id] > 0 && (() => {
+                    const bench = draftCprBenchmarks[client.id]
+                    return (
+                      <div style={{ fontSize: '0.7rem', opacity: 0.45, minWidth: 120, textAlign: 'right' }}>
+                        <div style={{ color: '#22c55e' }}>Verde: ≤ R${(bench * (1 + draftCprSettings.green_threshold / 100)).toFixed(2)}</div>
+                        <div style={{ color: '#f59e0b' }}>Amarelo: ≤ R${(bench * (1 + draftCprSettings.yellow_threshold / 100)).toFixed(2)}</div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowCprPanel(false)}>Cancelar</button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={cprSaving}
+                onClick={async () => {
+                  setCprSaving(true)
+                  try {
+                    const benchmarks = Object.entries(draftCprBenchmarks)
+                      .filter(([, v]) => v !== undefined && v !== '')
+                      .map(([client_id, benchmark_cpr]) => ({ client_id, benchmark_cpr: Number(benchmark_cpr) }))
+                    await fetch('/api/cpr-benchmarks', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ benchmarks, settings: draftCprSettings }),
+                    })
+                    const map = {}
+                    for (const b of benchmarks) map[b.client_id] = b.benchmark_cpr
+                    setCprBenchmarks(map)
+                    setCprSettings(draftCprSettings)
+                    setShowCprPanel(false)
+                  } finally {
+                    setCprSaving(false)
+                  }
+                }}
+              >
+                <i className={cprSaving ? 'bx bx-loader-alt bx-spin' : 'bx bx-check'}></i>
+                {cprSaving ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

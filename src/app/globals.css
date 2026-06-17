@@ -3711,13 +3711,13 @@ textarea:focus {
 }
 
 /* Nav items — tighter, smaller radius */
-.dashboard-container .sidebar :global(.nav-item) {
+.dashboard-container .sidebar .nav-item {
     padding: 8px 10px !important;
     border-radius: 10px !important;
     font-size: 13px !important;
     margin-bottom: 1px !important;
 }
-.dashboard-container .sidebar :global(.nav-item i) {
+.dashboard-container .sidebar .nav-item i {
     font-size: 17px !important;
     min-width: 20px !important;
 }
@@ -3813,7 +3813,7 @@ textarea:focus {
 .dashboard-container .main-content-expanded {
     margin-left: 72px !important;
 }
-.dashboard-container .sidebar-collapsed :global(.nav-item) {
+.dashboard-container .sidebar-collapsed .nav-item {
     width: 48px !important;
     height: 44px !important;
     border-radius: 12px !important;
@@ -3822,12 +3822,12 @@ textarea:focus {
     align-items: center !important;
     justify-content: center !important;
 }
-.dashboard-container .sidebar-collapsed :global(.nav-item i) {
+.dashboard-container .sidebar-collapsed .nav-item i {
     font-size: 20px !important;
 }
 
 /* Nav items spacing in expanded mode */
-.dashboard-container .sidebar:not(.sidebar-collapsed) :global(.nav-item) {
+.dashboard-container .sidebar:not(.sidebar-collapsed) .nav-item {
     padding: 8px 10px !important;
     border-radius: 10px !important;
     font-size: 13px !important;
@@ -3867,20 +3867,20 @@ textarea:focus {
 }
 
 /* Dark mode sidebar: pure black/neutral — remove green tints */
-.dashboard-container:not(.dashboard-light-mode) .sidebar :global(.nav-item:hover) {
+.dashboard-container:not(.dashboard-light-mode) .sidebar .nav-item:hover {
     background: rgba(255, 255, 255, 0.06) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     box-shadow: none !important;
     color: #f1f1f1 !important;
 }
-.dashboard-container:not(.dashboard-light-mode) .sidebar :global(.nav-item.active) {
+.dashboard-container:not(.dashboard-light-mode) .sidebar .nav-item.active {
     background: rgba(255, 255, 255, 0.09) !important;
     border-color: rgba(255, 255, 255, 0.14) !important;
     box-shadow: none !important;
     color: #ffffff !important;
 }
-.dashboard-container:not(.dashboard-light-mode) .sidebar :global(.nav-item.active i),
-.dashboard-container:not(.dashboard-light-mode) .sidebar :global(.nav-item:hover i) {
+.dashboard-container:not(.dashboard-light-mode) .sidebar .nav-item.active i,
+.dashboard-container:not(.dashboard-light-mode) .sidebar .nav-item:hover i {
     color: #ffffff !important;
 }
 .dashboard-container:not(.dashboard-light-mode) .sidebar {
