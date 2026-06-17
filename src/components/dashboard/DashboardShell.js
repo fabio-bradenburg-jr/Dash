@@ -30152,8 +30152,23 @@ export default function DashboardShell({
           display: grid;
           gap: 20px;
           grid-template-columns: 1.8fr 1fr;
-          background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), radial-gradient(circle at top right, rgba(124, 77, 255, 0.14), transparent 34%);
+          background:
+            radial-gradient(ellipse 100% 60% at 15% -10%, rgba(38,194,129,0.13) 0%, transparent 60%),
+            linear-gradient(145deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
+          border: 1px solid rgba(38,194,129,0.18);
           border-radius: 24px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.28), 0 0 0 1px rgba(38,194,129,0.06);
+          position: relative;
+          overflow: hidden;
+        }
+        .hero-panel::after {
+          content: '';
+          position: absolute;
+          top: -50px; right: -50px;
+          width: 200px; height: 200px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .hero-panel-controls-only {
@@ -31633,8 +31648,8 @@ export default function DashboardShell({
         .hero-stat {
           padding: 18px;
           border-radius: 16px;
-          background: rgba(11, 13, 19, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: linear-gradient(145deg, rgba(38,194,129,0.07) 0%, rgba(255,255,255,0.02) 100%);
+          border: 1px solid rgba(38,194,129,0.16);
         }
 
         .hero-stat-empty {
@@ -34202,9 +34217,22 @@ export default function DashboardShell({
           align-items: center;
           justify-content: space-between;
           gap: 24px;
+          border: 1px solid rgba(38,194,129,0.2);
           background:
-            radial-gradient(circle at top right, rgba(38, 194, 129, 0.14), transparent 36%),
-            linear-gradient(135deg, rgba(13, 17, 16, 0.96), rgba(7, 9, 8, 0.92));
+            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.14) 0%, transparent 60%),
+            linear-gradient(135deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(38,194,129,0.06);
+          position: relative;
+          overflow: hidden;
+        }
+        .ads-overview-hero::after {
+          content: '';
+          position: absolute;
+          top: -60px; right: -60px;
+          width: 220px; height: 220px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .ads-overview-hero-copy {
@@ -34895,9 +34923,22 @@ export default function DashboardShell({
           gap: 18px;
           padding: 28px;
           border-radius: 28px;
+          border: 1px solid rgba(38,194,129,0.2);
           background:
-            radial-gradient(circle at top right, color-mix(in srgb, var(--accent-emerald) 20%, transparent), transparent 34%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.13) 0%, transparent 60%),
+            linear-gradient(135deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(38,194,129,0.06);
+          position: relative;
+          overflow: hidden;
+        }
+        .ad-balance-hero::after {
+          content: '';
+          position: absolute;
+          top: -60px; right: -60px;
+          width: 220px; height: 220px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
+          pointer-events: none;
         }
 
         .ad-balance-hero-copy {
@@ -34934,8 +34975,13 @@ export default function DashboardShell({
           gap: 14px;
           padding: 22px;
           border-radius: 24px;
-          border: 1px solid rgba(148, 163, 184, 0.16);
-          background: rgba(255, 255, 255, 0.045);
+          border: 1px solid rgba(38,194,129,0.16);
+          background: linear-gradient(145deg, rgba(38,194,129,0.05) 0%, rgba(255,255,255,0.025) 100%);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .ad-balance-summary-card:hover {
+          border-color: rgba(38,194,129,0.3);
+          box-shadow: 0 8px 28px rgba(38,194,129,0.08);
         }
 
         .ad-balance-summary-card span {
