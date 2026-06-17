@@ -3227,7 +3227,9 @@ export default function DashboardShell({
   const [mondayCustomUntil, setMondayCustomUntil] = useState('')
   const [draftMondayCustomUntil, setDraftMondayCustomUntil] = useState('')
   const [themeColor, setThemeColor] = useState('blue')
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false)
+  const isSidebarVisible = !isSidebarCollapsed || isSidebarHovered
   const [isHomeToolsExpanded, setIsHomeToolsExpanded] = useState(false)
   const [metric1, setMetric1] = useState('spend')
   const [metric2, setMetric2] = useState('roas')
@@ -16674,7 +16676,11 @@ export default function DashboardShell({
         '--accent': `rgb(${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b})`,
       }}
     >
-      <aside className={`sidebar glass-panel ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <aside
+        className={`sidebar glass-panel ${!isSidebarVisible ? 'sidebar-collapsed' : ''}`}
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+      >
         <button
           type="button"
           className="sidebar-toggle"
@@ -16704,7 +16710,7 @@ export default function DashboardShell({
             ) : (
               <span className="brand-logo-mark logo-image" aria-hidden="true"></span>
             )}
-            {!isSidebarCollapsed && (
+            {isSidebarVisible && (
               <div className="logo-copy">
                 <span>{appName}</span>
                 <small>{appSubtitle}</small>
@@ -16717,13 +16723,13 @@ export default function DashboardShell({
           {(isMaster || hasNavAccess('assistant')) && (
           <button type="button" data-tooltip="Busca" aria-label="Busca" className={`nav-item nav-button ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}>
             <i className="bx bx-search-alt"></i>
-            {!isSidebarCollapsed && 'Busca'}
+            {isSidebarVisible && 'Busca'}
           </button>
           )}
           {(isMaster || hasNavAccess('notas')) && (
             <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
               <i className="bx bx-note"></i>
-              {!isSidebarCollapsed && 'Notas'}
+              {isSidebarVisible && 'Notas'}
             </button>
           )}
           {/* Sucesso do Cliente sub-menu group */}
@@ -16737,14 +16743,14 @@ export default function DashboardShell({
                 onClick={() => setIsSuccessMenuOpen((v) => !v)}
               >
                 <i className="bx bx-heart"></i>
-                {!isSidebarCollapsed && (
+                {isSidebarVisible && (
                   <>
                     <span style={{ flex: 1 }}>Sucesso do Cliente</span>
                     <i className={`bx bx-chevron-${isSuccessMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
                   </>
                 )}
               </button>
-              {isSuccessMenuOpen && !isSidebarCollapsed && (
+              {isSuccessMenuOpen && isSidebarVisible && (
                 <div className="nav-sub-group">
                   {canAccessClientsTab && (isMaster || hasNavAccess('clientes')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
@@ -16771,7 +16777,7 @@ export default function DashboardShell({
           {(isMaster || hasNavAccess('semanal')) && (
             <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
               <i className="bx bx-pulse"></i>
-              {!isSidebarCollapsed && 'Controle da Operação'}
+              {isSidebarVisible && 'Controle da Operação'}
             </button>
           )}
           {/* Performance sub-menu group */}
@@ -16785,55 +16791,55 @@ export default function DashboardShell({
                 onClick={() => setIsAdsMenuOpen((v) => !v)}
               >
                 <i className="bx bx-bullseye"></i>
-                {!isSidebarCollapsed && (
+                {isSidebarVisible && (
                   <>
                     <span style={{ flex: 1 }}>Performance</span>
                     <i className={`bx bx-chevron-${isAdsMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
                   </>
                 )}
               </button>
-              {isAdsMenuOpen && !isSidebarCollapsed && (
+              {isAdsMenuOpen && isSidebarVisible && (
                 <div className="nav-sub-group">
                   {(isMaster || hasNavAccess('apresentacao')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
                       <i className="bx bxs-dashboard"></i>
-                      {!isSidebarCollapsed && 'Dash'}
+                      {isSidebarVisible && 'Dash'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('campanhas')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'campanhas' ? 'active' : ''}`} onClick={() => setActiveTab('campanhas')}>
                       <i className="bx bx-sitemap"></i>
-                      {!isSidebarCollapsed && 'Campanhas'}
+                      {isSidebarVisible && 'Campanhas'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('anuncios')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
                       <i className="bx bx-layout"></i>
-                      {!isSidebarCollapsed && 'Anúncios'}
+                      {isSidebarVisible && 'Anúncios'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('saldos')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'saldos' ? 'active' : ''}`} onClick={() => setActiveTab('saldos')}>
                       <i className="bx bx-wallet-alt"></i>
-                      {!isSidebarCollapsed && 'Saldos'}
+                      {isSidebarVisible && 'Saldos'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('relatorios')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
                       <i className="bx bx-file"></i>
-                      {!isSidebarCollapsed && 'Relatórios'}
+                      {isSidebarVisible && 'Relatórios'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('planilha-leads')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'planilha-leads' ? 'active' : ''}`} onClick={() => setActiveTab('planilha-leads')}>
                       <i className="bx bx-table"></i>
-                      {!isSidebarCollapsed && 'Planilha de Leads'}
+                      {isSidebarVisible && 'Planilha de Leads'}
                     </button>
                   )}
                   {(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
                       <i className="bx bx-task"></i>
-                      {!isSidebarCollapsed && 'G.R - Tarefas'}
+                      {isSidebarVisible && 'G.R - Tarefas'}
                     </button>
                   )}
                 </div>
@@ -16851,31 +16857,31 @@ export default function DashboardShell({
                 onClick={() => setIsSocialMenuOpen((v) => !v)}
               >
                 <i className="bx bx-image-alt"></i>
-                {!isSidebarCollapsed && (
+                {isSidebarVisible && (
                   <>
                     <span style={{ flex: 1 }}>Social Media</span>
                     <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
                   </>
                 )}
               </button>
-              {isSocialMenuOpen && !isSidebarCollapsed && (
+              {isSocialMenuOpen && isSidebarVisible && (
                 <div className="nav-sub-group">
                   {(isMaster || hasNavAccess('editorial-dash')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
                       <i className="bx bx-bar-chart-alt-2"></i>
-                      {!isSidebarCollapsed && 'Painel'}
+                      {isSidebarVisible && 'Painel'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('editorial')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
                       <i className="bx bx-calendar-alt"></i>
-                      {!isSidebarCollapsed && 'Calendário'}
+                      {isSidebarVisible && 'Calendário'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('editorial-plans')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
                       <i className="bx bx-spreadsheet"></i>
-                      {!isSidebarCollapsed && 'Planejamentos'}
+                      {isSidebarVisible && 'Planejamentos'}
                     </button>
                   )}
                 </div>
@@ -16893,31 +16899,31 @@ export default function DashboardShell({
                 onClick={() => setIsPacMenuOpen((v) => !v)}
               >
                 <i className="bx bx-book-bookmark"></i>
-                {!isSidebarCollapsed && (
+                {isSidebarVisible && (
                   <>
                     <span style={{ flex: 1 }}>PAC</span>
                     <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'}`} style={{ fontSize: 16, marginLeft: 4 }}></i>
                   </>
                 )}
               </button>
-              {isPacMenuOpen && !isSidebarCollapsed && (
+              {isPacMenuOpen && isSidebarVisible && (
                 <div className="nav-sub-group">
                   {(isMaster || hasNavAccess('pac-dash')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
                       <i className="bx bx-bar-chart-alt-2"></i>
-                      {!isSidebarCollapsed && 'Painel'}
+                      {isSidebarVisible && 'Painel'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('pac-calendario')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
                       <i className="bx bx-calendar-alt"></i>
-                      {!isSidebarCollapsed && 'Calendário'}
+                      {isSidebarVisible && 'Calendário'}
                     </button>
                   )}
                   {(isMaster || hasNavAccess('pac-tipos')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
                       <i className="bx bx-category"></i>
-                      {!isSidebarCollapsed && 'Tipos'}
+                      {isSidebarVisible && 'Tipos'}
                     </button>
                   )}
                 </div>
@@ -16927,26 +16933,26 @@ export default function DashboardShell({
           {canAccessTeamTab && (
             <button type="button" data-tooltip="Time" aria-label="Time" className={`nav-item nav-button ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>
               <i className="bx bxs-user-detail"></i>
-              {!isSidebarCollapsed && 'Time'}
+              {isSidebarVisible && 'Time'}
             </button>
           )}
 
           {(isMaster || hasNavAccess('settings')) && (
           <button type="button" data-tooltip="Configurações" aria-label="Configurações" className={"nav-item nav-button " + (activeTab === "settings" ? "active" : "")} onClick={() => setActiveTab('settings')}>
             <i className="bx bx-cog"></i>
-            {!isSidebarCollapsed && 'Configurações'}
+            {isSidebarVisible && 'Configurações'}
           </button>
           )}
         </nav>
 
-        {!isSidebarCollapsed && activeTab === 'notas' && (
+        {isSidebarVisible && activeTab === 'notas' && (
           <div className="sidebar-client glass-item">
             <span className="sidebar-client-label">Cliente ativo</span>
             <strong>{activeClient?.name || 'Nenhum cliente selecionado'}</strong>
           </div>
         )}
 
-        {!isSidebarCollapsed && (
+        {isSidebarVisible && (
           <div className="sidebar-greeting glass-item" style={{ margin: '0 12px 8px', padding: '10px 14px', borderRadius: '14px', fontSize: '0.78rem', lineHeight: 1.4, overflow: 'hidden', minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{assistantGreeting}</span>
             <span style={{ fontWeight: 600, fontSize: '0.82rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.full_name || user?.email || ''}</span>
@@ -16962,7 +16968,7 @@ export default function DashboardShell({
             aria-label={isLightAppMode ? 'Ativar modo noturno' : 'Ativar modo claro'}
           >
             <i className={`bx ${isLightAppMode ? 'bx-moon' : 'bx-sun'}`}></i>
-            {!isSidebarCollapsed && (isLightAppMode ? 'Modo noturno' : 'Modo claro')}
+            {isSidebarVisible && (isLightAppMode ? 'Modo noturno' : 'Modo claro')}
           </button>
 
           <button
@@ -16973,7 +16979,7 @@ export default function DashboardShell({
             aria-label="Sair da plataforma"
           >
             <i className="bx bx-log-out"></i>
-            {!isSidebarCollapsed && 'Sair'}
+            {isSidebarVisible && 'Sair'}
           </button>
         </div>
       </aside>
@@ -17857,14 +17863,25 @@ export default function DashboardShell({
                   {/* Sheet viewer */}
                   <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, position: 'relative' }}>
                     {selectedSheetClient && (
-                      <button
-                        type="button"
-                        onClick={() => setSheetFullscreen(true)}
-                        title="Tela cheia"
-                        style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, backdropFilter: 'blur(6px)' }}
-                      >
-                        <i className="bx bx-fullscreen"></i>
-                      </button>
+                      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', gap: 6 }}>
+                        <a
+                          href={selectedSheetClient.leadsSheetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir no navegador"
+                          style={{ background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, backdropFilter: 'blur(6px)', textDecoration: 'none' }}
+                        >
+                          <i className="bx bx-link-external"></i>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setSheetFullscreen(true)}
+                          title="Tela cheia"
+                          style={{ background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, backdropFilter: 'blur(6px)' }}
+                        >
+                          <i className="bx bx-fullscreen"></i>
+                        </button>
+                      </div>
                     )}
                     {selectedSheetClient ? (
                       <iframe
@@ -17887,13 +17904,24 @@ export default function DashboardShell({
                     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                         <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{selectedSheetClient.name} — Planilha de Leads</span>
-                        <button
-                          type="button"
-                          onClick={() => setSheetFullscreen(false)}
-                          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
-                        >
-                          <i className="bx bx-exit-fullscreen"></i>
-                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <a
+                            href={selectedSheetClient.leadsSheetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Abrir no navegador"
+                            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, textDecoration: 'none' }}
+                          >
+                            <i className="bx bx-link-external"></i>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setSheetFullscreen(false)}
+                            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}
+                          >
+                            <i className="bx bx-exit-fullscreen"></i>
+                          </button>
+                        </div>
                       </div>
                       <iframe
                         key={`fs-${selectedSheetClient.id}`}
@@ -24397,6 +24425,8 @@ export default function DashboardShell({
           background: color-mix(in srgb, var(--app-bg-color, #0d1110) 88%, rgba(255,255,255,0.02)) !important;
           box-shadow: 1px 0 0 var(--lumina-dark-border);
           backdrop-filter: blur(12px);
+          transition: width 0.25s ease, padding 0.25s ease;
+          overflow: hidden;
         }
 
         .dashboard-container .sidebar:not(.sidebar-collapsed) {
