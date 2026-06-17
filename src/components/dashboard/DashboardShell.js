@@ -24399,23 +24399,18 @@ export default function DashboardShell({
         }
 
         .dashboard-container .sidebar {
-          width: 112px;
+          width: 92px;
           padding: 16px 10px;
           border-right: 1px solid var(--lumina-dark-border);
           background: color-mix(in srgb, var(--app-bg-color, #0d1110) 88%, rgba(255,255,255,0.02)) !important;
           box-shadow: 1px 0 0 var(--lumina-dark-border);
           backdrop-filter: blur(12px);
-          transition: width 0.25s ease, padding 0.25s ease;
           overflow: hidden;
         }
 
-        .dashboard-container .sidebar:not(.sidebar-collapsed) {
-          width: 224px;
-        }
-
         .dashboard-container .main-content {
-          margin-left: 224px;
-          width: calc(100% - 224px);
+          margin-left: 92px;
+          width: calc(100% - 92px);
           padding: 20px 24px 36px;
           background: transparent !important;
           box-sizing: border-box;
@@ -24441,8 +24436,8 @@ export default function DashboardShell({
         }
 
         .dashboard-container .main-content-expanded {
-          margin-left: 112px;
-          width: calc(100% - 112px);
+          margin-left: 92px;
+          width: calc(100% - 92px);
         }
 
         .dashboard-container .header {
@@ -24491,9 +24486,10 @@ export default function DashboardShell({
         }
 
         .dashboard-container .sidebar :global(.nav-item) {
-          min-height: 36px;
+          min-height: 44px;
+          height: 44px;
           padding: 0 10px;
-          border-radius: 8px;
+          border-radius: 10px;
           border: 1px solid transparent;
           color: rgba(241, 241, 241, 0.55);
           font-size: 13px;
@@ -25256,16 +25252,16 @@ export default function DashboardShell({
         @media (max-width: 1180px) {
           .dashboard-container .main-content,
           .dashboard-container .main-content-expanded {
-            margin-left: 112px;
-            width: calc(100% - 112px);
+            margin-left: 92px;
+            width: calc(100% - 92px);
             padding: 22px;
           }
 
-          .dashboard-container .sidebar:not(.sidebar-collapsed) {
-            width: 112px;
+          .dashboard-container .sidebar {
+            width: 92px;
           }
 
-          .dashboard-container .sidebar:not(.sidebar-collapsed) .logo-copy,
+          .dashboard-container .sidebar .logo-copy,
           .dashboard-container .sidebar:not(.sidebar-collapsed) :global(.nav-item) {
             font-size: 0;
           }
@@ -25520,7 +25516,7 @@ export default function DashboardShell({
         }
 
         .main-content-expanded {
-          margin-left: 120px;
+          margin-left: 92px;
         }
 
         .sidebar-client {
