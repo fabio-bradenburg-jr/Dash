@@ -24406,6 +24406,12 @@ export default function DashboardShell({
           box-shadow: 1px 0 0 var(--lumina-dark-border);
           backdrop-filter: blur(12px);
           overflow: hidden;
+          transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .dashboard-container .sidebar:hover {
+          border-color: rgba(38,194,129,0.18);
+          box-shadow: 1px 0 18px rgba(38,194,129,0.06);
         }
 
         .dashboard-container .main-content {
@@ -25322,11 +25328,11 @@ export default function DashboardShell({
 
         .sidebar :global(.nav-item) {
           transition:
-            background 0.22s ease,
-            color 0.22s ease,
-            transform 0.22s ease,
-            border-color 0.22s ease,
-            box-shadow 0.22s ease;
+            background 0.35s ease,
+            color 0.35s ease,
+            transform 0.35s ease,
+            border-color 0.35s ease,
+            box-shadow 0.35s ease;
         }
 
         .sidebar :global(.nav-item:hover) {
