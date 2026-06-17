@@ -16681,26 +16681,6 @@ export default function DashboardShell({
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
-        <button
-          type="button"
-          className="sidebar-toggle"
-          onClick={() => setIsSidebarCollapsed((current) => !current)}
-          aria-label={isSidebarCollapsed ? 'Expandir barra lateral' : 'Ocultar barra lateral'}
-          title={isSidebarCollapsed ? 'Expandir barra lateral' : 'Ocultar barra lateral'}
-          style={
-            isLightAppMode
-              ? {
-                  background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.98))',
-                  border: '1px solid rgba(15, 23, 42, 0.08)',
-                  color: '#0f172a',
-                  boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)',
-                }
-              : undefined
-          }
-        >
-          <i className={`bx ${isSidebarCollapsed ? 'bx-chevron-right' : 'bx-chevron-left'}`}></i>
-        </button>
-
         <div className="sidebar-top">
           <div className="logo">
             {appLogoUrl ? (
