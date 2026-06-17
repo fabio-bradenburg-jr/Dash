@@ -17247,32 +17247,8 @@ export default function DashboardShell({
               ],
             },
             {
-              id: 'pre_campanha',
-              label: '5. Validações pré-campanha',
-              icon: 'bx-rocket',
-              tasks: [
-                { id: 'acessos_completos', label: 'Acessos completos confirmados' },
-                { id: 'conta_ativa', label: 'Conta de anúncios ativa' },
-                { id: 'pagamento_configurado', label: 'Forma de pagamento configurada' },
-                { id: 'criativos_aprovados', label: 'Criativos aprovados' },
-                { id: 'publico_regiao', label: 'Público e região definidos' },
-                { id: 'produto_definido', label: 'Produto ou serviço principal definido' },
-                { id: 'destino_configurado', label: 'Página, formulário ou destino configurado' },
-                { id: 'responsavel_leads', label: 'Responsável pelo atendimento dos leads definido' },
-                { id: 'crm_pronto', label: 'CRM ou controle comercial pronto para receber leads' },
-              ],
-            },
-            {
-              id: 'pos_campanha',
-              label: '6. Pós-campanha',
-              icon: 'bx-calendar-check',
-              tasks: [
-                { id: 'reuniao_30d', label: 'Agendar reunião de 30 dias (a partir do início da campanha)' },
-              ],
-            },
-            {
               id: 'kickoff_extra',
-              label: '7. Comunicação adicional',
+              label: '5. Comunicação adicional',
               icon: 'bx-chat',
               tasks: [
                 { id: 'checklist_cliente', label: 'Enviar checklist inicial ao cliente' },
@@ -17282,7 +17258,7 @@ export default function DashboardShell({
             },
             {
               id: 'organico_gmb',
-              label: '8. Google Meu Negócio',
+              label: '6. Google Meu Negócio',
               icon: 'bx-map-pin',
               tasks: [
                 { id: 'gmb_acesso', label: 'Coletar acesso ao Google Meu Negócio' },
@@ -17295,7 +17271,7 @@ export default function DashboardShell({
             },
             {
               id: 'organico_redes',
-              label: '9. Configuração de redes sociais',
+              label: '7. Configuração de redes sociais',
               icon: 'bx-share-alt',
               tasks: [
                 { id: 'ig_foto', label: 'Instagram: Foto de perfil' },
@@ -17326,7 +17302,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_1',
-              label: '10. Fast Traffic — Etapa 1',
+              label: '8. Fast Traffic — Etapa 1',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-bolt-circle',
               tasks: [
@@ -17341,7 +17317,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_2',
-              label: '11. Fast Traffic — Etapa 2',
+              label: '9. Fast Traffic — Etapa 2',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-spreadsheet',
               tasks: [
@@ -17355,7 +17331,7 @@ export default function DashboardShell({
             },
             {
               id: 'fast_traffic_3',
-              label: '12. Fast Traffic — Etapa 3',
+              label: '10. Fast Traffic — Etapa 3',
               deadline: '⏱ Até 10 dias após reunião',
               icon: 'bx-rocket',
               tasks: [
@@ -17376,7 +17352,7 @@ export default function DashboardShell({
             },
             {
               id: 'treinamento',
-              label: '13. Treinamento & Ativação',
+              label: '11. Treinamento & Ativação',
               icon: 'bx-chalkboard',
               tasks: [
                 { id: 'trei_comercial', label: 'Treinamento comercial' },
@@ -17387,7 +17363,7 @@ export default function DashboardShell({
             },
             {
               id: 'pos_onboarding',
-              label: '14. Pós-Onboarding & Relacionamento',
+              label: '12. Pós-Onboarding & Relacionamento',
               icon: 'bx-heart',
               tasks: [
                 { id: 'pos_acompanhamento', label: 'Acompanhamento dos primeiros resultados' },
