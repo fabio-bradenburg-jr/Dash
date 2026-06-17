@@ -24409,9 +24409,9 @@ export default function DashboardShell({
           backdrop-filter: blur(12px);
           overflow: hidden;
           transition:
-            width 4s cubic-bezier(0.16, 1, 0.3, 1),
-            border-color 4s cubic-bezier(0.16, 1, 0.3, 1),
-            box-shadow 4s cubic-bezier(0.16, 1, 0.3, 1);
+            width 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+            border-color 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .dashboard-container .sidebar:hover {
@@ -25483,10 +25483,10 @@ export default function DashboardShell({
           border-radius: 10px;
           position: relative;
           transition:
-            font-size 4s cubic-bezier(0.16, 1, 0.3, 1),
-            width 4s cubic-bezier(0.16, 1, 0.3, 1),
-            padding 4s cubic-bezier(0.16, 1, 0.3, 1),
-            justify-content 4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+            width 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+            padding 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+            justify-content 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .sidebar-collapsed :global(.nav-item i) {
