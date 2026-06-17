@@ -35061,7 +35061,7 @@ export default function DashboardShell({
 
         .ad-balance-cards-grid {
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 14px;
         }
 
