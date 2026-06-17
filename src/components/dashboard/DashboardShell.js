@@ -17209,6 +17209,7 @@ export default function DashboardShell({
               tasks: [
                 { id: 'msg_boas_vindas', label: 'Enviar a mensagem de boas-vindas no grupo' },
                 { id: 'guia_cliente', label: 'Enviar o Guia do Cliente 2026.pdf' },
+                { id: 'checklist_cliente', label: 'Enviar checklist inicial ao cliente' },
                 { id: 'reuniao_agendar', label: 'Agendar a reunião de integração' },
               ],
             },
@@ -17249,7 +17250,6 @@ export default function DashboardShell({
               label: '5. Comunicação adicional',
               icon: 'bx-chat',
               tasks: [
-                { id: 'checklist_cliente', label: 'Enviar checklist inicial ao cliente' },
                 { id: 'reunioes_recorrentes', label: 'Agendar reuniões recorrentes' },
                 { id: 'resposta_integracao_gr', label: 'Enviar Resposta de Integração para o G.R' },
               ],
