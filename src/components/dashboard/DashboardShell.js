@@ -24607,6 +24607,35 @@ export default function DashboardShell({
           flex-shrink: 0;
         }
 
+        /* Hide nav labels in collapsed state */
+        .dashboard-container .sidebar-collapsed .nav-label,
+        .dashboard-container .sidebar-collapsed .sidebar-reveal {
+          opacity: 0;
+          max-width: 0;
+          font-size: 0 !important;
+          overflow: hidden;
+          white-space: nowrap;
+          pointer-events: none;
+          transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), max-width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Expand nav items and show labels on sidebar hover */
+        .dashboard-container .sidebar:hover .nav-item {
+          width: auto !important;
+          max-width: none !important;
+          padding: 0 12px !important;
+          justify-content: flex-start !important;
+          overflow: visible !important;
+        }
+
+        .dashboard-container .sidebar:hover .nav-label,
+        .dashboard-container .sidebar:hover .sidebar-reveal {
+          opacity: 1;
+          max-width: 200px;
+          font-size: 13px !important;
+          pointer-events: auto;
+        }
+
         .dashboard-container .sidebar-bottom-actions {
           margin-top: auto;
           display: grid;
