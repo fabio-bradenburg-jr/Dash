@@ -16677,7 +16677,7 @@ export default function DashboardShell({
       }}
     >
       <aside
-        className={`sidebar glass-panel ${!isSidebarVisible ? 'sidebar-collapsed' : ''}`}
+        className="sidebar glass-panel sidebar-collapsed"
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
       >
@@ -24407,10 +24407,14 @@ export default function DashboardShell({
           box-shadow: 1px 0 0 var(--lumina-dark-border);
           backdrop-filter: blur(12px);
           overflow: hidden;
-          transition: border-color 5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 5s cubic-bezier(0.4, 0, 0.2, 1);
+          transition:
+            width 4s cubic-bezier(0.16, 1, 0.3, 1),
+            border-color 4s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .dashboard-container .sidebar:hover {
+          width: 224px;
           border-color: rgba(38,194,129,0.18);
           box-shadow: 1px 0 18px rgba(38,194,129,0.06);
         }
@@ -25477,11 +25481,23 @@ export default function DashboardShell({
           font-size: 0;
           border-radius: 10px;
           position: relative;
+          transition:
+            font-size 4s cubic-bezier(0.16, 1, 0.3, 1),
+            width 4s cubic-bezier(0.16, 1, 0.3, 1),
+            padding 4s cubic-bezier(0.16, 1, 0.3, 1),
+            justify-content 4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .sidebar-collapsed :global(.nav-item i) {
           font-size: 20px;
           margin: 0;
+        }
+
+        .sidebar:hover.sidebar-collapsed :global(.nav-item) {
+          font-size: 13px;
+          width: auto;
+          padding: 0 12px;
+          justify-content: flex-start;
         }
 
         .sidebar-collapsed :global(.logo) {
