@@ -16932,18 +16932,6 @@ export default function DashboardShell({
           )}
         </nav>
 
-        {activeTab === 'notas' && (
-          <div className="sidebar-client glass-item sidebar-reveal">
-            <span className="sidebar-client-label">Cliente ativo</span>
-            <strong>{activeClient?.name || 'Nenhum cliente selecionado'}</strong>
-          </div>
-        )}
-
-        <div className="sidebar-greeting glass-item sidebar-reveal" style={{ margin: '0 12px 8px', padding: '10px 14px', borderRadius: '14px', fontSize: '0.78rem', lineHeight: 1.4, overflow: 'hidden', minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{assistantGreeting}</span>
-          <span style={{ fontWeight: 600, fontSize: '0.82rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.full_name || user?.email || ''}</span>
-        </div>
-
         <div className="sidebar-bottom-actions">
           <button
             type="button"
