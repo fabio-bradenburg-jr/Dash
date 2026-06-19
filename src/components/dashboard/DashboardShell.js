@@ -40998,97 +40998,427 @@ export default function DashboardShell({
             margin-left: 10px;
           }
         }
+
+        /* ─── CPR Modal ─────────────────────────────────────────────── */
+        .cpr-modal-overlay {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.72);
+          backdrop-filter: blur(6px);
+        }
+
+        .cpr-modal {
+          position: relative;
+          width: 100%;
+          max-width: 640px;
+          max-height: 90vh;
+          overflow-y: auto;
+          background: linear-gradient(160deg, #0e1512 0%, #080b09 100%);
+          border: 1px solid rgba(38,194,129,0.14);
+          border-radius: 20px;
+          box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(38,194,129,0.06);
+          padding: 0;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(38,194,129,0.2) transparent;
+        }
+
+        .cpr-modal-header {
+          position: relative;
+          padding: 28px 28px 20px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          overflow: hidden;
+        }
+
+        .cpr-modal-header-glow {
+          position: absolute;
+          top: -60px;
+          left: -40px;
+          width: 260px;
+          height: 260px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(38,194,129,0.18) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .cpr-modal-kicker {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #26c281;
+          background: rgba(38,194,129,0.12);
+          border: 1px solid rgba(38,194,129,0.25);
+          border-radius: 100px;
+          padding: 3px 10px;
+          margin-bottom: 10px;
+        }
+
+        .cpr-modal-title {
+          font-size: 22px;
+          font-weight: 700;
+          color: #f1f1f1;
+          margin: 0 0 6px;
+          letter-spacing: -0.3px;
+        }
+
+        .cpr-modal-sub {
+          font-size: 13px;
+          color: rgba(241,241,241,0.45);
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        /* Threshold bands row */
+        .cpr-modal-thresholds {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 12px;
+          padding: 20px 28px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .cpr-threshold-band {
+          border-radius: 14px;
+          padding: 14px 16px;
+          border: 1px solid transparent;
+        }
+
+        .cpr-band-green {
+          background: rgba(34,197,94,0.07);
+          border-color: rgba(34,197,94,0.18);
+        }
+        .cpr-band-yellow {
+          background: rgba(245,158,11,0.07);
+          border-color: rgba(245,158,11,0.18);
+        }
+        .cpr-band-red {
+          background: rgba(239,68,68,0.07);
+          border-color: rgba(239,68,68,0.18);
+        }
+
+        .cpr-band-header {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-bottom: 10px;
+        }
+
+        .cpr-band-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .cpr-band-header strong {
+          font-size: 12px;
+          font-weight: 600;
+          color: #f1f1f1;
+        }
+
+        .cpr-band-desc {
+          font-size: 11px;
+          color: rgba(241,241,241,0.4);
+          margin-bottom: 10px;
+          display: block;
+        }
+
+        .cpr-band-input-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .cpr-threshold-input {
+          width: 60px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px;
+          padding: 6px 10px;
+          color: #f1f1f1;
+          font-size: 14px;
+          font-weight: 600;
+          text-align: center;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .cpr-threshold-input:focus {
+          border-color: rgba(38,194,129,0.4);
+        }
+
+        .cpr-band-unit {
+          font-size: 12px;
+          color: rgba(241,241,241,0.4);
+        }
+
+        .cpr-band-auto {
+          font-size: 13px;
+          font-weight: 500;
+          color: rgba(241,241,241,0.35);
+          font-style: italic;
+        }
+
+        /* Client list */
+        .cpr-modal-list {
+          padding: 8px 28px 20px;
+        }
+
+        .cpr-list-header {
+          display: grid;
+          grid-template-columns: 1fr 110px 120px;
+          gap: 8px;
+          padding: 10px 12px;
+          margin-bottom: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: rgba(241,241,241,0.3);
+        }
+
+        .cpr-client-row {
+          display: grid;
+          grid-template-columns: 1fr 110px 120px;
+          gap: 8px;
+          align-items: center;
+          padding: 10px 12px;
+          border-radius: 10px;
+          margin-bottom: 2px;
+          transition: background 0.15s;
+        }
+        .cpr-client-row:hover {
+          background: rgba(255,255,255,0.03);
+        }
+        .cpr-client-row.has-bench {
+          background: rgba(38,194,129,0.04);
+        }
+
+        .cpr-client-identity {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .cpr-client-logo {
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          object-fit: cover;
+          flex-shrink: 0;
+          border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .cpr-client-avatar {
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          background: rgba(38,194,129,0.15);
+          border: 1px solid rgba(38,194,129,0.25);
+          color: #26c281;
+          font-size: 12px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .cpr-client-name {
+          font-size: 13px;
+          font-weight: 500;
+          color: #e8e8e8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .cpr-client-input-wrap {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px;
+          padding: 0 10px;
+          height: 36px;
+          transition: border-color 0.15s;
+        }
+        .cpr-client-input-wrap:focus-within {
+          border-color: rgba(38,194,129,0.35);
+          background: rgba(38,194,129,0.05);
+        }
+
+        .cpr-currency {
+          font-size: 12px;
+          color: rgba(241,241,241,0.35);
+          flex-shrink: 0;
+        }
+
+        .cpr-client-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #f1f1f1;
+          font-size: 13px;
+          font-weight: 500;
+          width: 70px;
+          min-width: 0;
+        }
+        .cpr-client-input::placeholder {
+          color: rgba(241,241,241,0.2);
+        }
+
+        .cpr-client-bands {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .cpr-mini-band {
+          font-size: 10px;
+          font-weight: 600;
+          padding: 3px 7px;
+          border-radius: 6px;
+          white-space: nowrap;
+        }
+        .cpr-mini-band.green {
+          background: rgba(34,197,94,0.12);
+          color: #22c55e;
+          border: 1px solid rgba(34,197,94,0.2);
+        }
+        .cpr-mini-band.yellow {
+          background: rgba(245,158,11,0.12);
+          color: #f59e0b;
+          border: 1px solid rgba(245,158,11,0.2);
+        }
+        .cpr-mini-band.empty {
+          background: rgba(255,255,255,0.04);
+          color: rgba(241,241,241,0.25);
+          border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* Footer */
+        .cpr-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 16px 28px;
+          border-top: 1px solid rgba(255,255,255,0.05);
+        }
       `}</style>
 
       {/* CPR Benchmark Panel */}
       {showCprPanel && (
-        <div className="modal-overlay" onClick={() => setShowCprPanel(false)} style={{ zIndex: 9999 }}>
-          <div className="modal-card glass-panel" style={{ maxWidth: 560, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ borderBottom: '1px solid rgba(38,194,129,0.12)', paddingBottom: 16 }}>
+        <div className="modal-overlay cpr-modal-overlay" onClick={() => setShowCprPanel(false)} style={{ zIndex: 9999 }}>
+          <div className="cpr-modal" onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="cpr-modal-header">
+              <div className="cpr-modal-header-glow" />
               <div>
-                <div style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#26c281', marginBottom: 4 }}>Performance</div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Média de CPR por cliente</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', opacity: 0.55 }}>Defina o CPR médio esperado de cada cliente e as faixas de tolerância.</p>
+                <span className="cpr-modal-kicker">Performance</span>
+                <h3 className="cpr-modal-title">Metas de CPR</h3>
+                <p className="cpr-modal-sub">Defina o CPR alvo de cada cliente e as faixas de tolerância para sinalização.</p>
               </div>
               <button type="button" className="modal-close" onClick={() => setShowCprPanel(false)}><i className="bx bx-x"></i></button>
             </div>
 
             {/* Thresholds */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'block', marginBottom: 6 }}>
-                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: '#22c55e', marginRight: 6 }}></span>
-                  Verde — até % acima da meta
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="cpr-modal-thresholds">
+              <div className="cpr-threshold-band cpr-band-green">
+                <div className="cpr-band-header">
+                  <span className="cpr-band-dot" style={{ background: '#22c55e' }} />
+                  <span>Verde</span>
+                  <span className="cpr-band-desc">até % acima da meta</span>
+                </div>
+                <div className="cpr-band-input-row">
                   <input
                     type="number" min="0" max="100" step="1"
                     value={draftCprSettings.green_threshold}
                     onChange={(e) => setDraftCprSettings((s) => ({ ...s, green_threshold: Number(e.target.value) }))}
-                    className="client-text-input"
-                    style={{ width: 80 }}
+                    className="cpr-threshold-input"
                   />
-                  <span style={{ opacity: 0.5, fontSize: '0.85rem' }}>%</span>
+                  <span className="cpr-band-unit">%</span>
                 </div>
               </div>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'block', marginBottom: 6 }}>
-                  <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 3, background: '#f59e0b', marginRight: 6 }}></span>
-                  Amarelo — até % acima da meta
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="cpr-threshold-band cpr-band-yellow">
+                <div className="cpr-band-header">
+                  <span className="cpr-band-dot" style={{ background: '#f59e0b' }} />
+                  <span>Amarelo</span>
+                  <span className="cpr-band-desc">até % acima da meta</span>
+                </div>
+                <div className="cpr-band-input-row">
                   <input
                     type="number" min="0" max="200" step="1"
                     value={draftCprSettings.yellow_threshold}
                     onChange={(e) => setDraftCprSettings((s) => ({ ...s, yellow_threshold: Number(e.target.value) }))}
-                    className="client-text-input"
-                    style={{ width: 80 }}
+                    className="cpr-threshold-input"
                   />
-                  <span style={{ opacity: 0.5, fontSize: '0.85rem' }}>%</span>
+                  <span className="cpr-band-unit">%</span>
+                </div>
+              </div>
+              <div className="cpr-threshold-band cpr-band-red">
+                <div className="cpr-band-header">
+                  <span className="cpr-band-dot" style={{ background: '#ef4444' }} />
+                  <span>Vermelho</span>
+                  <span className="cpr-band-desc">acima de {draftCprSettings.yellow_threshold}%</span>
+                </div>
+                <div className="cpr-band-input-row">
+                  <span className="cpr-band-auto">Automático</span>
                 </div>
               </div>
             </div>
-            <div style={{ padding: '6px 20px 10px', fontSize: '0.75rem', opacity: 0.4 }}>
-              Acima de {draftCprSettings.yellow_threshold}% da meta → vermelho
-            </div>
 
             {/* Client list */}
-            <div style={{ overflowY: 'auto', flex: 1, padding: '8px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="cpr-modal-list">
+              <div className="cpr-list-header">
+                <span>Cliente</span>
+                <span>CPR Meta</span>
+                <span>Faixas</span>
+              </div>
               {(clients || []).filter((c) => {
                 const st = String(c?.status || '').trim().toLowerCase()
                 return c?.id && st !== 'churn' && st !== 'pausado'
-              }).map((client) => (
-                <div key={client.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  {client.logoUrl
-                    ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-                    : <span style={{ width: 32, height: 32, borderRadius: 8, background: client.dashboardColor || '#26c281', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>{(client.name || '?')[0]}</span>
-                  }
-                  <span style={{ flex: 1, fontSize: '0.88rem', fontWeight: 600 }}>{client.name}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.78rem', opacity: 0.45 }}>R$</span>
-                    <input
-                      type="number" min="0" step="0.01"
-                      placeholder="0.00"
-                      value={draftCprBenchmarks[client.id] ?? ''}
-                      onChange={(e) => setDraftCprBenchmarks((prev) => ({ ...prev, [client.id]: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                      className="client-text-input"
-                      style={{ width: 100, textAlign: 'right' }}
-                    />
+              }).map((client) => {
+                const bench = draftCprBenchmarks[client.id]
+                const hasBench = bench > 0
+                return (
+                  <div key={client.id} className={'cpr-client-row' + (hasBench ? ' has-bench' : '')}>
+                    <div className="cpr-client-identity">
+                      {client.logoUrl
+                        ? <img src={client.logoUrl} alt="" className="cpr-client-logo" />
+                        : <span className="cpr-client-avatar" style={{ background: client.dashboardAccentColor || '#26c281' }}>{(client.name || '?')[0]}</span>
+                      }
+                      <span className="cpr-client-name">{client.name}</span>
+                    </div>
+                    <div className="cpr-client-input-wrap">
+                      <span className="cpr-currency">R$</span>
+                      <input
+                        type="number" min="0" step="0.01"
+                        placeholder="—"
+                        value={draftCprBenchmarks[client.id] ?? ''}
+                        onChange={(e) => setDraftCprBenchmarks((prev) => ({ ...prev, [client.id]: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                        className="cpr-client-input"
+                      />
+                    </div>
+                    <div className="cpr-client-bands">
+                      {hasBench ? (
+                        <>
+                          <span className="cpr-mini-band green">≤ R${(bench * (1 + draftCprSettings.green_threshold / 100)).toFixed(2)}</span>
+                          <span className="cpr-mini-band yellow">≤ R${(bench * (1 + draftCprSettings.yellow_threshold / 100)).toFixed(2)}</span>
+                        </>
+                      ) : <span className="cpr-mini-band empty">Sem meta</span>}
+                    </div>
                   </div>
-                  {draftCprBenchmarks[client.id] > 0 && (() => {
-                    const bench = draftCprBenchmarks[client.id]
-                    return (
-                      <div style={{ fontSize: '0.7rem', opacity: 0.45, minWidth: 120, textAlign: 'right' }}>
-                        <div style={{ color: '#22c55e' }}>Verde: ≤ R${(bench * (1 + draftCprSettings.green_threshold / 100)).toFixed(2)}</div>
-                        <div style={{ color: '#f59e0b' }}>Amarelo: ≤ R${(bench * (1 + draftCprSettings.yellow_threshold / 100)).toFixed(2)}</div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              ))}
+                )
+              })}
             </div>
 
-            <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <div className="cpr-modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowCprPanel(false)}>Cancelar</button>
               <button
                 type="button"
@@ -41116,7 +41446,7 @@ export default function DashboardShell({
                 }}
               >
                 <i className={cprSaving ? 'bx bx-loader-alt bx-spin' : 'bx bx-check'}></i>
-                {cprSaving ? 'Salvando...' : 'Salvar'}
+                {cprSaving ? 'Salvando...' : 'Salvar metas'}
               </button>
             </div>
           </div>
