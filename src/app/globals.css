@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@property --led-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --led-angle-item {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 /* =========================================
    Meta Ads Dashboard - Styles
    ========================================= */
@@ -363,6 +374,67 @@ body {
     border-radius: 28px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+    isolation: isolate;
+}
+
+/* LED running border on sidebar */
+.sidebar::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 28px;
+    padding: 1px;
+    background: conic-gradient(
+        from var(--led-angle),
+        transparent 0deg,
+        rgba(34, 197, 94, 0) 320deg,
+        rgba(34, 197, 94, 0.9) 345deg,
+        rgba(74, 222, 128, 1) 355deg,
+        rgba(34, 197, 94, 0.9) 365deg,
+        rgba(34, 197, 94, 0) 390deg,
+        transparent 390deg
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: led-spin-sidebar 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes led-spin-sidebar {
+    to { --led-angle: 360deg; }
+}
+
+/* LED running border on active nav item */
+.nav-item.active {
+    position: relative;
+}
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    padding: 1px;
+    background: conic-gradient(
+        from var(--led-angle-item),
+        transparent 0deg,
+        rgba(34, 197, 94, 0) 300deg,
+        rgba(34, 197, 94, 0.8) 340deg,
+        rgba(74, 222, 128, 1) 355deg,
+        rgba(34, 197, 94, 0.8) 370deg,
+        rgba(34, 197, 94, 0) 400deg,
+        transparent 400deg
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: led-spin-item 2s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes led-spin-item {
+    to { --led-angle-item: 360deg; }
 }
 
 :root[data-ui-mode='light'] .sidebar {
