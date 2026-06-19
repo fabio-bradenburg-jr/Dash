@@ -153,7 +153,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
         <span className="fn-tree-cell fn-pgl-col">Qualif.</span>
         <span className="fn-tree-cell fn-pgl-col">Conv.</span>
         <span className="fn-tree-cell fn-pgl-col">Taxa Q.</span>
-        <span className="fn-tree-chevron-col" />
       </div>
 
       {campaigns.map((campaign, ci) => {
@@ -180,7 +179,12 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
               </span>
               <span className="fn-tree-name-col" title={campaign.name}>
                 <span className="compact-level-badge compact-level-camp">Camp</span>
-                {campaign.name || 'Sem nome'}
+                <span className="fn-tree-name-text">{campaign.name || 'Sem nome'}</span>
+                {adsets.length > 0 && (
+                  <span className="fn-tree-chevron" onClick={e => { e.stopPropagation(); toggleCampaign(cid) }}>
+                    <i className={`bx ${campExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />
+                  </span>
+                )}
               </span>
               <span className="fn-tree-cell">{formatCurrency(campaign.spend || 0)}</span>
               <span className="fn-tree-cell">{fmt(campaign.results || 0)}</span>
@@ -193,9 +197,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
               <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(campCrm?.converted || 0)}</span>
               <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                 {(campaign.results || 0) > 0 ? `${Math.round((campCrm?.qualified || 0) / campaign.results * 100)}%` : '—'}
-              </span>
-              <span className="fn-tree-chevron-col" onClick={e => { e.stopPropagation(); toggleCampaign(cid) }}>
-                {adsets.length > 0 && <i className={`bx ${campExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />}
               </span>
             </div>
 
@@ -222,7 +223,12 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                     </span>
                     <span className="fn-tree-name-col fn-tree-adset-name" title={adset.name}>
                       <span className="compact-level-badge compact-level-adset">Conj</span>
-                      {adset.name || 'Sem nome'}
+                      <span className="fn-tree-name-text">{adset.name || 'Sem nome'}</span>
+                      {ads.length > 0 && (
+                        <span className="fn-tree-chevron" onClick={e => { e.stopPropagation(); toggleAdset(aid) }}>
+                          <i className={`bx ${adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />
+                        </span>
+                      )}
                     </span>
                     <span className="fn-tree-cell">{formatCurrency(adset.spend || 0)}</span>
                     <span className="fn-tree-cell">{fmt(adset.results || 0)}</span>
@@ -233,9 +239,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                     <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(adsetCrm?.converted || 0)}</span>
                     <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                       {(adset.results || 0) > 0 ? `${Math.round((adsetCrm?.qualified || 0) / adset.results * 100)}%` : '—'}
-                    </span>
-                    <span className="fn-tree-chevron-col" onClick={e => { e.stopPropagation(); toggleAdset(aid) }}>
-                      {ads.length > 0 && <i className={`bx ${adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />}
                     </span>
                   </div>
 
@@ -261,7 +264,7 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                         </span>
                         <span className="fn-tree-name-col fn-tree-ad-name" title={ad.name}>
                           <span className="compact-level-badge compact-level-ad">Ad</span>
-                          {ad.name || 'Sem nome'}
+                          <span className="fn-tree-name-text">{ad.name || 'Sem nome'}</span>
                         </span>
                         <span className="fn-tree-cell">{formatCurrency(ad.spend || 0)}</span>
                         <span className="fn-tree-cell">{fmt(ad.results || 0)}</span>
@@ -273,7 +276,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                         <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                           {(ad.results || 0) > 0 ? `${Math.round((adCrm?.qualified || 0) / ad.results * 100)}%` : '—'}
                         </span>
-                        <span className="fn-tree-chevron-col" />
                       </div>
                     )
                   })}
@@ -595,36 +597,6 @@ export default function FunnelTab({ clients }) {
           </>)}
         </div>
 
-        {/* Cascade dropdowns */}
-        <div className="fn-filters">
-          <div className="fn-filter-group">
-            <label>Campanha</label>
-            <select value={selCampaign} onChange={e => setSelCampaign(e.target.value)}>
-              <option value="">Todas ({campaignOptions.length})</option>
-              {campaignOptions.map(c => <option key={c.campaignId} value={c.campaignId}>{c.name}</option>)}
-            </select>
-          </div>
-          <div className="fn-filter-group">
-            <label>Conjunto</label>
-            <select value={selAdset} onChange={e => setSelAdset(e.target.value)} disabled={!adsetOptions.length}>
-              <option value="">Todos ({adsetOptions.length})</option>
-              {adsetOptions.map(a => <option key={a.adsetId} value={a.adsetId}>{a.name}</option>)}
-            </select>
-          </div>
-          <div className="fn-filter-group">
-            <label>Anúncio</label>
-            <select value={selAd} onChange={e => setSelAd(e.target.value)} disabled={!adOptions.length}>
-              <option value="">Todos ({adOptions.length})</option>
-              {adOptions.map(a => <option key={a.adId} value={a.adId}>{a.name}</option>)}
-            </select>
-          </div>
-          {(selCampaign || selAdset || selAd) && (
-            <button type="button" className="fn-clear-filter" onClick={() => { setSelCampaign(''); setSelAdset(''); setSelAd('') }}>
-              <i className="bx bx-x" /> Limpar
-            </button>
-          )}
-        </div>
-
         {/* Metric cards */}
         <div className="fn-cards-row">
           <Card label="Investimento"   value={fmtMoney(funnelMeta.spend)}   icon="bx-money"        color="#26c281" />
@@ -828,7 +800,7 @@ export default function FunnelTab({ clients }) {
         .fn-tree-wrap { overflow-x: auto; }
         .fn-tree-header {
           display: grid;
-          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 28px;
+          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px;
           align-items: center; gap: 8px; padding: 8px 16px;
           background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06);
           font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
@@ -836,7 +808,7 @@ export default function FunnelTab({ clients }) {
         }
         .fn-tree-row {
           display: grid;
-          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 28px;
+          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px;
           align-items: center; gap: 8px;
           padding: 6px 16px; cursor: pointer; transition: background .12s;
           border-bottom: 1px solid rgba(255,255,255,.03);
@@ -851,12 +823,14 @@ export default function FunnelTab({ clients }) {
         .fn-tree-selected { background: rgba(38,194,129,.1) !important; outline: 1px solid rgba(38,194,129,.25); }
         .fn-tree-status-col { display: flex; align-items: center; justify-content: center; }
         .fn-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .fn-tree-name-col { font-size: 12px; color: rgba(241,241,241,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; display: flex; align-items: center; gap: 0; }
+        .fn-tree-name-col { font-size: 12px; color: rgba(241,241,241,.75); overflow: hidden; font-weight: 600; display: flex; align-items: center; gap: 0; min-width: 0; }
+        .fn-tree-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+        .fn-tree-chevron { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; margin-left: 6px; color: rgba(241,241,241,.5); font-size: 14px; transition: background .12s; }
+        .fn-tree-chevron:hover { background: rgba(255,255,255,.12); color: #f1f1f1; }
         .fn-tree-adset-name { color: rgba(241,241,241,.55) !important; font-weight: 500; font-size: 11.5px; }
         .fn-tree-ad-name { color: rgba(241,241,241,.4) !important; font-weight: 400; font-size: 11px; }
         .fn-tree-cell { font-size: 12px; color: rgba(241,241,241,.6); white-space: nowrap; }
         .fn-pgl-col { font-size: 11.5px; }
-        .fn-tree-chevron-col { display: flex; align-items: center; justify-content: center; color: rgba(241,241,241,.35); font-size: 14px; }
         .fn-tree-empty { padding: 24px; font-size: 12px; color: rgba(241,241,241,.3); text-align: center; }
 
         /* Badge reuse from DashboardShell */
