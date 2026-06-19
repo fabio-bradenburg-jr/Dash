@@ -377,64 +377,58 @@ body {
     isolation: isolate;
 }
 
-/* LED running border on sidebar */
+/* LED running border — sidebar (Motion Path: uniform perimeter travel) */
 .sidebar::before {
     content: '';
     position: absolute;
-    inset: -1px;
-    border-radius: 28px;
-    padding: 1px;
-    background: conic-gradient(
-        from var(--led-angle),
-        transparent 0deg,
-        rgba(34, 197, 94, 0) 320deg,
-        rgba(34, 197, 94, 0.9) 345deg,
-        rgba(74, 222, 128, 1) 355deg,
-        rgba(34, 197, 94, 0.9) 365deg,
-        rgba(34, 197, 94, 0) 390deg,
-        transparent 390deg
+    width: 80px;
+    height: 2px;
+    background: radial-gradient(ellipse 40px 6px at center,
+        rgba(74, 222, 128, 1) 0%,
+        rgba(34, 197, 94, 0.6) 40%,
+        transparent 100%
     );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: led-spin-sidebar 4s linear infinite;
+    box-shadow: 0 0 10px 4px rgba(74, 222, 128, 0.55), 0 0 20px 8px rgba(34, 197, 94, 0.2);
+    offset-path: inset(0 0 0 0 round 28px);
+    offset-distance: 0%;
+    offset-rotate: auto;
+    animation: led-travel-sidebar 4s linear infinite;
     pointer-events: none;
+    top: 0;
+    left: 0;
 }
 
-@keyframes led-spin-sidebar {
-    to { --led-angle: 360deg; }
+@keyframes led-travel-sidebar {
+    to { offset-distance: 100%; }
 }
 
-/* LED running border on active nav item */
+/* LED running border — active nav item */
 .nav-item.active {
     position: relative;
 }
 .nav-item.active::before {
     content: '';
     position: absolute;
-    inset: -1px;
-    border-radius: 20px;
-    padding: 1px;
-    background: conic-gradient(
-        from var(--led-angle-item),
-        transparent 0deg,
-        rgba(34, 197, 94, 0) 300deg,
-        rgba(34, 197, 94, 0.8) 340deg,
-        rgba(74, 222, 128, 1) 355deg,
-        rgba(34, 197, 94, 0.8) 370deg,
-        rgba(34, 197, 94, 0) 400deg,
-        transparent 400deg
+    width: 50px;
+    height: 2px;
+    background: radial-gradient(ellipse 25px 5px at center,
+        rgba(74, 222, 128, 1) 0%,
+        rgba(34, 197, 94, 0.5) 50%,
+        transparent 100%
     );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: led-spin-item 2s linear infinite;
+    box-shadow: 0 0 8px 3px rgba(74, 222, 128, 0.5), 0 0 16px 6px rgba(34, 197, 94, 0.15);
+    offset-path: inset(0 0 0 0 round 20px);
+    offset-distance: 0%;
+    offset-rotate: auto;
+    animation: led-travel-item 1.8s linear infinite;
     pointer-events: none;
-    z-index: 0;
+    top: 0;
+    left: 0;
+    z-index: 1;
 }
 
-@keyframes led-spin-item {
-    to { --led-angle-item: 360deg; }
+@keyframes led-travel-item {
+    to { offset-distance: 100%; }
 }
 
 :root[data-ui-mode='light'] .sidebar {
