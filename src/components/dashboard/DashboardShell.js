@@ -3349,6 +3349,7 @@ export default function DashboardShell({
   const [selectedSheetClientId, setSelectedSheetClientId] = useState('')
   const [sheetFullscreen, setSheetFullscreen] = useState(false)
   const [sheetViewMode, setSheetViewMode] = useState('dashboard')
+  const [sheetClientPickerOpen, setSheetClientPickerOpen] = useState(false)
   const [newClientDashboardColor, setNewClientDashboardColor] = useState('#10B981')
   const [newClientLogoUrl, setNewClientLogoUrl] = useState('')
   const [newClientResultManagerUserId, setNewClientResultManagerUserId] = useState('')
@@ -17805,32 +17806,90 @@ export default function DashboardShell({
                   <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Planilha de Leads</h2>
                   <p style={{ fontSize: '0.78rem', opacity: 0.5, margin: '2px 0 0' }}>Selecione um cliente para carregar o dashboard de leads automaticamente.</p>
                 </div>
-                {/* View mode toggle */}
-                {selectedSheetClient && (
-                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3, gap: 2, flexShrink: 0 }}>
-                    {[
-                      { id: 'dashboard', label: 'Dashboard', icon: 'bx-bar-chart-alt-2' },
-                      { id: 'sheet', label: 'Planilha', icon: 'bx-table' },
-                    ].map(v => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {/* Client picker dropdown */}
+                  {sheetClients.length > 0 && (
+                    <div style={{ position: 'relative' }}>
                       <button
-                        key={v.id}
                         type="button"
-                        onClick={() => setSheetViewMode(v.id)}
+                        onClick={() => setSheetClientPickerOpen(p => !p)}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                          borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                          background: sheetViewMode === v.id ? 'rgba(38,194,129,0.15)' : 'transparent',
-                          color: sheetViewMode === v.id ? '#26c281' : 'rgba(241,241,241,0.5)',
-                          outline: sheetViewMode === v.id ? '1px solid rgba(38,194,129,0.35)' : 'none',
-                          transition: 'all .15s',
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px',
+                          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: 10, cursor: 'pointer', color: 'inherit', fontSize: '0.82rem', fontWeight: 600,
                         }}
                       >
-                        <i className={`bx ${v.icon}`} style={{ fontSize: 14 }} />
-                        {v.label}
+                        {selectedSheetClient?.logoUrl ? (
+                          <img src={selectedSheetClient.logoUrl} alt="" style={{ width: 20, height: 20, borderRadius: 5, objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ width: 20, height: 20, borderRadius: 5, background: selectedSheetClient?.dashboardColor || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                            {(selectedSheetClient?.name || '?')[0].toUpperCase()}
+                          </span>
+                        )}
+                        <span>{selectedSheetClient?.name || 'Selecionar cliente'}</span>
+                        <i className="bx bx-chevron-down" style={{ fontSize: 14, opacity: 0.6 }} />
                       </button>
-                    ))}
-                  </div>
-                )}
+                      {sheetClientPickerOpen && (
+                        <div style={{
+                          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 200,
+                          background: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
+                          padding: 6, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 180,
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                        }}>
+                          {sheetClients.map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => { setSelectedSheetClientId(c.id); setSheetClientPickerOpen(false) }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                                borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left',
+                                background: activeSheetId === c.id ? 'rgba(34,197,94,0.12)' : 'transparent',
+                                color: 'inherit', fontSize: '0.82rem', fontWeight: 600,
+                                outline: activeSheetId === c.id ? '1px solid rgba(34,197,94,0.3)' : 'none',
+                              }}
+                            >
+                              {c.logoUrl ? (
+                                <img src={c.logoUrl} alt="" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover', flexShrink: 0 }} />
+                              ) : (
+                                <span style={{ width: 22, height: 22, borderRadius: 5, background: c.dashboardColor || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                  {(c.name || '?')[0].toUpperCase()}
+                                </span>
+                              )}
+                              {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* View mode toggle */}
+                  {selectedSheetClient && (
+                    <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3, gap: 2 }}>
+                      {[
+                        { id: 'dashboard', label: 'Dashboard', icon: 'bx-bar-chart-alt-2' },
+                        { id: 'sheet', label: 'Planilha', icon: 'bx-table' },
+                      ].map(v => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => setSheetViewMode(v.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                            borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                            background: sheetViewMode === v.id ? 'rgba(38,194,129,0.15)' : 'transparent',
+                            color: sheetViewMode === v.id ? '#26c281' : 'rgba(241,241,241,0.5)',
+                            outline: sheetViewMode === v.id ? '1px solid rgba(38,194,129,0.35)' : 'none',
+                            transition: 'all .15s',
+                          }}
+                        >
+                          <i className={`bx ${v.icon}`} style={{ fontSize: 14 }} />
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {sheetClients.length === 0 ? (
@@ -17840,36 +17899,7 @@ export default function DashboardShell({
                   <p>Vá em <strong>Clientes → Integrações</strong> e cole o link do Google Sheets para cada cliente.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12, alignItems: 'start' }}>
-                  {/* Client list */}
-                  <div className="glass-panel" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', position: 'sticky', top: 0, maxHeight: 'calc(100vh - 160px)' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 6px' }}>Clientes</div>
-                    {sheetClients.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setSelectedSheetClientId(c.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 9, border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
-                          background: activeSheetId === c.id ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
-                          color: 'inherit',
-                          outline: activeSheetId === c.id ? '1.5px solid rgba(34,197,94,0.4)' : '1px solid transparent',
-                        }}
-                      >
-                        {c.logoUrl ? (
-                          <img src={c.logoUrl} alt="" style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                        ) : (
-                          <span style={{ width: 26, height: 26, borderRadius: 6, background: c.dashboardColor || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
-                            {(c.name || '?')[0].toUpperCase()}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Main content panel */}
-                  <div style={{ minHeight: 0 }}>
+                <div style={{ minHeight: 0 }}>
                     {!selectedSheetClient ? (
                       <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, flexDirection: 'column', gap: 12 }}>
                         <i className="bx bx-table" style={{ fontSize: '2rem', opacity: 0.3 }}></i>
@@ -17908,24 +17938,22 @@ export default function DashboardShell({
                       </div>
                     )}
                   </div>
-
-                  {/* Fullscreen overlay for sheet view */}
-                  {sheetFullscreen && selectedSheetClient && sheetViewMode === 'sheet' && (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{selectedSheetClient.name} — Planilha de Leads</span>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <a href={selectedSheetClient.leadsSheetUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, textDecoration: 'none' }}>
-                            <i className="bx bx-link-external"></i>
-                          </a>
-                          <button type="button" onClick={() => setSheetFullscreen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                            <i className="bx bx-exit-fullscreen"></i>
-                          </button>
-                        </div>
-                      </div>
-                      <iframe key={`fs-${selectedSheetClient.id}`} src={toEmbedUrl(selectedSheetClient.leadsSheetUrl)} title={`Planilha — ${selectedSheetClient.name}`} style={{ flex: 1, border: 'none', display: 'block', width: '100%' }} allow="autoplay" />
+              )}
+              {/* Fullscreen overlay for sheet view */}
+              {sheetFullscreen && selectedSheetClient && sheetViewMode === 'sheet' && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{selectedSheetClient.name} — Planilha de Leads</span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <a href={selectedSheetClient.leadsSheetUrl} target="_blank" rel="noopener noreferrer" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, textDecoration: 'none' }}>
+                        <i className="bx bx-link-external"></i>
+                      </a>
+                      <button type="button" onClick={() => setSheetFullscreen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                        <i className="bx bx-exit-fullscreen"></i>
+                      </button>
                     </div>
-                  )}
+                  </div>
+                  <iframe key={`fs-${selectedSheetClient.id}`} src={toEmbedUrl(selectedSheetClient.leadsSheetUrl)} title={`Planilha — ${selectedSheetClient.name}`} style={{ flex: 1, border: 'none', display: 'block', width: '100%' }} allow="autoplay" />
                 </div>
               )}
             </section>
