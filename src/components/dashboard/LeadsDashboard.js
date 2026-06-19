@@ -9,14 +9,63 @@ import {
 // ─── Palette ─────────────────────────────────────────────────────────────────
 
 const STATUS_PALETTE = {
-  qualified: '#22c55e',
-  converted: '#10b981',
-  lost: '#ef4444',
-  noreply: '#f59e0b',
-  other: '#6b7280',
+  qualified: '#60a5fa',   // blue — qualificado
+  converted: '#22c55e',   // green — convertido/venda
+  lost: '#ef4444',        // red — perdido
+  noreply: '#f59e0b',     // amber — sem resposta
+  other: '#a78bfa',       // purple — outros
 }
 
+// Distinct palette for pie slices (qualificação distribution — no greens next to greens)
+const QUAL_COLORS = [
+  '#60a5fa', // blue
+  '#22c55e', // green
+  '#ef4444', // red
+  '#f59e0b', // amber
+  '#a78bfa', // purple
+  '#f472b6', // pink
+  '#38bdf8', // sky
+  '#fb923c', // orange
+  '#34d399', // teal
+  '#facc15', // yellow
+]
+
 const CHART_COLORS = ['#26c281', '#60a5fa', '#f59e0b', '#f472b6', '#a78bfa', '#34d399', '#fb923c', '#38bdf8']
+
+// Period presets
+const PERIODS = [
+  { id: 'all',    label: 'Tudo' },
+  { id: '7d',     label: '7 dias' },
+  { id: '30d',    label: '30 dias' },
+  { id: 'month',  label: 'Este mês' },
+  { id: 'prev',   label: 'Mês anterior' },
+  { id: 'custom', label: 'Período' },
+]
+
+function periodToDates(period, customSince, customUntil) {
+  const today = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  if (period === 'all') return { since: '', until: '' }
+  if (period === '7d') {
+    const s = new Date(today); s.setDate(s.getDate() - 6)
+    return { since: fmt(s), until: fmt(today) }
+  }
+  if (period === '30d') {
+    const s = new Date(today); s.setDate(s.getDate() - 29)
+    return { since: fmt(s), until: fmt(today) }
+  }
+  if (period === 'month') {
+    return { since: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), until: fmt(today) }
+  }
+  if (period === 'prev') {
+    const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const last  = new Date(today.getFullYear(), today.getMonth(), 0)
+    return { since: fmt(first), until: fmt(last) }
+  }
+  if (period === 'custom') return { since: customSince, until: customUntil }
+  return { since: '', until: '' }
+}
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -70,7 +119,7 @@ function StatusDistBar({ dist, total }) {
     <div className="ld-status-bar">
       {dist.map((s, i) => {
         const w = total ? (s.count / total) * 100 : 0
-        const color = STATUS_PALETTE[s.class] || CHART_COLORS[i % CHART_COLORS.length]
+        const color = QUAL_COLORS[i % QUAL_COLORS.length]
         return w > 0 ? (
           <div
             key={s.label}
@@ -241,9 +290,14 @@ export default function LeadsDashboard({ client }) {
   const [filters, setFilters] = useState({ campaign: '', adset: '', ad: '', status: '', source: '' })
 
   // Tab state
-  const [tabs, setTabs] = useState([])           // [{ gid, name }]
+  const [tabs, setTabs] = useState([])
   const [tabsLoading, setTabsLoading] = useState(false)
-  const [selectedGid, setSelectedGid] = useState('all')  // 'all' | gid string
+  const [selectedGid, setSelectedGid] = useState('all')
+
+  // Period state
+  const [period, setPeriod] = useState('all')
+  const [customSince, setCustomSince] = useState('')
+  const [customUntil, setCustomUntil] = useState('')
 
   const sheetUrl = client?.leadsSheetUrl || ''
   const headerRow = client?.googleSheetsHeaderRow || 1
@@ -266,9 +320,12 @@ export default function LeadsDashboard({ client }) {
     setLoading(true)
     setError('')
     try {
+      const { since, until } = periodToDates(period, customSince, customUntil)
       const params = new URLSearchParams({ url: sheetUrl, header_row: headerRow })
       if (selectedGid && selectedGid !== 'all') params.set('gid', selectedGid)
       else if (selectedGid === 'all') params.set('gid', 'all')
+      if (since) params.set('since', since)
+      if (until) params.set('until', until)
       const res = await fetch(`/api/google-sheets/leads-analytics?${params}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erro ao carregar dados.')
@@ -278,7 +335,7 @@ export default function LeadsDashboard({ client }) {
     } finally {
       setLoading(false)
     }
-  }, [sheetUrl, headerRow, selectedGid])
+  }, [sheetUrl, headerRow, selectedGid, period, customSince, customUntil])
 
   useEffect(() => { load() }, [load])
 
@@ -372,6 +429,48 @@ export default function LeadsDashboard({ client }) {
         </button>
       </div>
 
+      {/* Period filter */}
+      <div className="ld-period-bar">
+        <span className="ld-period-label"><i className="bx bx-calendar" /> Período:</span>
+        <div className="ld-period-presets">
+          {PERIODS.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              className={`ld-period-btn${period === p.id ? ' active' : ''}`}
+              onClick={() => setPeriod(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {period === 'custom' && (
+          <div className="ld-period-custom">
+            <input
+              type="date"
+              className="ld-date-input"
+              value={customSince}
+              onChange={e => setCustomSince(e.target.value)}
+            />
+            <span className="ld-period-sep">→</span>
+            <input
+              type="date"
+              className="ld-date-input"
+              value={customUntil}
+              onChange={e => setCustomUntil(e.target.value)}
+            />
+            <button
+              type="button"
+              className="ld-period-apply"
+              onClick={load}
+              disabled={!customSince || !customUntil}
+            >
+              Aplicar
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Sheet Tab Selector */}
       {(tabs.length > 0 || tabsLoading) && (
         <div className="ld-tab-selector">
@@ -455,7 +554,7 @@ export default function LeadsDashboard({ client }) {
                     paddingAngle={2}
                   >
                     {(statusDist || []).map((s, i) => (
-                      <Cell key={s.label} fill={STATUS_PALETTE[s.class] || CHART_COLORS[i % CHART_COLORS.length]} />
+                      <Cell key={s.label} fill={QUAL_COLORS[i % QUAL_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -587,7 +686,7 @@ export default function LeadsDashboard({ client }) {
                     labelLine={false}
                   >
                     {(statusDist || []).map((s, i) => (
-                      <Cell key={s.label} fill={STATUS_PALETTE[s.class] || CHART_COLORS[i % CHART_COLORS.length]} />
+                      <Cell key={s.label} fill={QUAL_COLORS[i % QUAL_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -604,7 +703,7 @@ export default function LeadsDashboard({ client }) {
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" name="Leads" radius={[0, 4, 4, 0]}>
                     {(statusDist || []).map((s, i) => (
-                      <Cell key={s.label} fill={STATUS_PALETTE[s.class] || CHART_COLORS[i % CHART_COLORS.length]} />
+                      <Cell key={s.label} fill={QUAL_COLORS[i % QUAL_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -626,7 +725,7 @@ export default function LeadsDashboard({ client }) {
                 </thead>
                 <tbody>
                   {statusDist.map((s, i) => {
-                    const color = STATUS_PALETTE[s.class] || CHART_COLORS[i % CHART_COLORS.length]
+                    const color = QUAL_COLORS[i % QUAL_COLORS.length]
                     const classLabel = { qualified: 'Qualificado', converted: 'Convertido', lost: 'Perdido', noreply: 'Sem resposta', other: 'Outros' }[s.class] || 'Outros'
                     return (
                       <tr key={s.label}>
@@ -710,6 +809,46 @@ export default function LeadsDashboard({ client }) {
           font-size: 18px; transition: all .15s; flex-shrink: 0;
         }
         .ld-refresh-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* Period filter */
+        .ld-period-bar {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 12px; padding: 10px 14px;
+        }
+        .ld-period-label {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.08em; color: rgba(241,241,241,0.35);
+          white-space: nowrap; flex-shrink: 0;
+        }
+        .ld-period-presets { display: flex; gap: 4px; flex-wrap: wrap; }
+        .ld-period-btn {
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px; color: rgba(241,241,241,0.55);
+          padding: 5px 13px; font-size: 12px; font-weight: 500;
+          cursor: pointer; transition: all .15s; white-space: nowrap;
+        }
+        .ld-period-btn:hover { background: rgba(255,255,255,0.09); color: #f1f1f1; }
+        .ld-period-btn.active {
+          background: rgba(96,165,250,0.14); border-color: rgba(96,165,250,0.35);
+          color: #60a5fa; font-weight: 600;
+        }
+        .ld-period-custom { display: flex; align-items: center; gap: 7px; }
+        .ld-date-input {
+          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px; color: #f1f1f1; padding: 5px 10px; font-size: 12px;
+          outline: none; cursor: pointer;
+        }
+        .ld-date-input:focus { border-color: rgba(96,165,250,0.4); }
+        .ld-period-sep { color: rgba(241,241,241,0.3); font-size: 12px; }
+        .ld-period-apply {
+          background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+          border-radius: 8px; color: #60a5fa; padding: 5px 13px;
+          font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
+        }
+        .ld-period-apply:disabled { opacity: 0.35; cursor: not-allowed; }
+        .ld-period-apply:not(:disabled):hover { background: rgba(96,165,250,0.25); }
 
         /* Sheet tab selector */
         .ld-tab-selector {

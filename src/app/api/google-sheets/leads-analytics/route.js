@@ -453,19 +453,38 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const sourceUrl = searchParams.get('url') || ''
     const headerRow = Number(searchParams.get('header_row') || '1')
-    const gid = searchParams.get('gid') || null  // null = use URL gid, 'all' = all tabs
+    const gid = searchParams.get('gid') || null
+    const since = searchParams.get('since') || ''  // yyyy-mm-dd
+    const until = searchParams.get('until') || ''
 
     if (!sourceUrl) return NextResponse.json({ error: 'URL não informada.' }, { status: 400 })
 
     const sheetId = extractSheetId(sourceUrl)
+
+    const sinceDate = since ? new Date(since + 'T00:00:00') : null
+    const untilDate = until ? new Date(until + 'T23:59:59') : null
+
+    function applyDateFilter(rows, dateColIndex) {
+      if ((!sinceDate && !untilDate) || dateColIndex === undefined) return rows
+      return rows.filter(row => {
+        const raw = row[dateColIndex]
+        if (!raw) return true  // keep rows without date
+        const dt = parseDate(raw)
+        if (!dt) return true
+        if (sinceDate && dt < sinceDate) return false
+        if (untilDate && dt > untilDate) return false
+        return true
+      })
+    }
 
     async function analyzeGid(gidValue) {
       const { text } = await fetchSheetText(sourceUrl, gidValue)
       const delimiter = detectDelimiter(text)
       const allRows = parseCsv(text, delimiter)
       const { headerIndex, headers } = resolveHeaders(allRows, headerRow)
-      const dataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
       const cols = detectColumns(headers)
+      const rawDataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
+      const dataRows = applyDateFilter(rawDataRows, cols.date)
       return analyzeLeads({ rows: dataRows, cols, headers })
     }
 
