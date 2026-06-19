@@ -144,7 +144,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
       {/* Header row */}
       <div className="fn-tree-header">
         <span className="fn-tree-status-col" />
-        <span className="fn-tree-expand-col" />
         <span className="fn-tree-name-col">Nome</span>
         <span className="fn-tree-cell">Investimento</span>
         <span className="fn-tree-cell">Resultados</span>
@@ -154,6 +153,7 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
         <span className="fn-tree-cell fn-pgl-col">Qualif.</span>
         <span className="fn-tree-cell fn-pgl-col">Conv.</span>
         <span className="fn-tree-cell fn-pgl-col">Taxa Q.</span>
+        <span />
       </div>
 
       {campaigns.map((campaign, ci) => {
@@ -178,13 +178,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                   boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none'
                 }} />
               </span>
-              <span className="fn-tree-expand-col" onClick={e => { e.stopPropagation(); if (adsets.length) toggleCampaign(cid) }}>
-                {adsets.length > 0 && (
-                  <span className="fn-expand-btn">
-                    <i className={`bx ${campExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />
-                  </span>
-                )}
-              </span>
               <span className="fn-tree-name-col" title={campaign.name}>
                 <span className="compact-level-badge compact-level-camp">Camp</span>
                 <span className="fn-tree-name-text">{campaign.name || 'Sem nome'}</span>
@@ -200,6 +193,9 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
               <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(campCrm?.converted || 0)}</span>
               <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                 {(campaign.results || 0) > 0 ? `${Math.round((campCrm?.qualified || 0) / campaign.results * 100)}%` : '—'}
+              </span>
+              <span className="fn-tree-expand-col" onClick={e => { e.stopPropagation(); if (adsets.length) toggleCampaign(cid) }}>
+                {adsets.length > 0 && <span className="fn-expand-btn"><i className={`bx ${campExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} /></span>}
               </span>
             </div>
 
@@ -224,13 +220,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                         boxShadow: adset.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none'
                       }} />
                     </span>
-                    <span className="fn-tree-expand-col" onClick={e => { e.stopPropagation(); if (ads.length) toggleAdset(aid) }}>
-                      {ads.length > 0 && (
-                        <span className="fn-expand-btn">
-                          <i className={`bx ${adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />
-                        </span>
-                      )}
-                    </span>
                     <span className="fn-tree-name-col fn-tree-adset-name" title={adset.name}>
                       <span className="compact-level-badge compact-level-adset">Conj</span>
                       <span className="fn-tree-name-text">{adset.name || 'Sem nome'}</span>
@@ -244,6 +233,9 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                     <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(adsetCrm?.converted || 0)}</span>
                     <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                       {(adset.results || 0) > 0 ? `${Math.round((adsetCrm?.qualified || 0) / adset.results * 100)}%` : '—'}
+                    </span>
+                    <span className="fn-tree-expand-col" onClick={e => { e.stopPropagation(); if (ads.length) toggleAdset(aid) }}>
+                      {ads.length > 0 && <span className="fn-expand-btn"><i className={`bx ${adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} /></span>}
                     </span>
                   </div>
 
@@ -267,7 +259,6 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                             boxShadow: ad.spend > 0 ? '0 0 4px #22c55e88' : 'none'
                           }} />
                         </span>
-                        <span className="fn-tree-expand-col" />
                         <span className="fn-tree-name-col fn-tree-ad-name" title={ad.name}>
                           <span className="compact-level-badge compact-level-ad">Ad</span>
                           <span className="fn-tree-name-text">{ad.name || 'Sem nome'}</span>
@@ -282,6 +273,7 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                         <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
                           {(ad.results || 0) > 0 ? `${Math.round((adCrm?.qualified || 0) / ad.results * 100)}%` : '—'}
                         </span>
+                        <span className="fn-tree-expand-col" />
                       </div>
                     )
                   })}
@@ -806,7 +798,7 @@ export default function FunnelTab({ clients }) {
         .fn-tree-wrap { overflow-x: auto; }
         .fn-tree-header {
           display: grid;
-          grid-template-columns: 20px 30px minmax(160px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px;
+          grid-template-columns: 20px minmax(160px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 34px;
           align-items: center; gap: 8px; padding: 8px 16px;
           background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06);
           font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
@@ -814,7 +806,7 @@ export default function FunnelTab({ clients }) {
         }
         .fn-tree-row {
           display: grid;
-          grid-template-columns: 20px 30px minmax(160px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px;
+          grid-template-columns: 20px minmax(160px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 34px;
           align-items: center; gap: 8px;
           padding: 6px 16px; cursor: pointer; transition: background .12s;
           border-bottom: 1px solid rgba(255,255,255,.03);
@@ -832,8 +824,8 @@ export default function FunnelTab({ clients }) {
         .fn-tree-name-col { font-size: 12px; color: rgba(241,241,241,.75); overflow: hidden; font-weight: 600; display: flex; align-items: center; gap: 0; min-width: 0; }
         .fn-tree-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
         .fn-tree-expand-col { display: flex; align-items: center; justify-content: center; }
-        .fn-expand-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); color: rgba(241,241,241,.7); font-size: 14px; transition: all .15s; cursor: pointer; flex-shrink: 0; }
-        .fn-expand-btn:hover { background: rgba(255,255,255,.14); color: #f1f1f1; }
+        .fn-expand-btn { display: flex; align-items: center; justify-content: center; background: none; border: none; color: rgba(241,241,241,.4); font-size: 16px; transition: color .15s; cursor: pointer; padding: 4px; }
+        .fn-expand-btn:hover { color: rgba(241,241,241,.8); }
         .fn-tree-adset-name { color: rgba(241,241,241,.55) !important; font-weight: 500; font-size: 11.5px; }
         .fn-tree-ad-name { color: rgba(241,241,241,.4) !important; font-weight: 400; font-size: 11px; }
         .fn-tree-cell { font-size: 12px; color: rgba(241,241,241,.6); white-space: nowrap; }
