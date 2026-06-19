@@ -24713,7 +24713,7 @@ export default function DashboardShell({
           background: color-mix(in srgb, var(--app-bg-color, #0d1110) 88%, rgba(255,255,255,0.02)) !important;
           box-shadow: 1px 0 0 var(--lumina-dark-border);
           backdrop-filter: blur(12px);
-          overflow: hidden;
+          overflow: visible;
           transition:
             width 1.5s cubic-bezier(0.16, 1, 0.3, 1),
             border-color 1.5s cubic-bezier(0.16, 1, 0.3, 1),
