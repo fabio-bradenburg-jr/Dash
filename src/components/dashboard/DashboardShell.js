@@ -17935,9 +17935,6 @@ export default function DashboardShell({
         {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
           <FunnelTab
             clients={clients}
-            campaignOverviewRows={campaignOverviewRows}
-            campaignOverviewLoading={campaignOverviewLoading}
-            datePreset={dateRange || 'last_7d'}
           />
         )}
 
