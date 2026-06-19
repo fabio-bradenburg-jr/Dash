@@ -151,11 +151,17 @@ function ChartTooltip({ active, payload, label }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function FunnelTab({ clients, campaignOverviewRows, campaignOverviewLoading, datePreset }) {
+export default function FunnelTab({ clients }) {
   const [selectedClientId, setSelectedClientId] = useState('')
   const [crmData, setCrmData] = useState(null)
   const [crmLoading, setCrmLoading] = useState(false)
   const [crmError, setCrmError] = useState('')
+
+  // Meta data fetched independently
+  const [metaRow, setMetaRow] = useState(null)
+  const [metaLoading, setMetaLoading] = useState(false)
+  const [metaError, setMetaError] = useState('')
+  const [metaPeriod, setMetaPeriod] = useState('last_30d')
 
   // Cascade filters
   const [selCampaign, setSelCampaign] = useState('')
@@ -163,7 +169,7 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
   const [selAd, setSelAd] = useState('')
   const [hoveredStage, setHoveredStage] = useState(null)
 
-  // Period for CRM timeline
+  // Period for CRM
   const [period, setPeriod] = useState('30d')
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
@@ -189,11 +195,22 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
   useEffect(() => { setSelAdset(''); setSelAd('') }, [selCampaign])
   useEffect(() => { setSelAd('') }, [selAdset])
 
-  // Meta row for active client
-  const metaRow = useMemo(() =>
-    (campaignOverviewRows || []).find(r => r.clientId === activeClient?.id) || null,
-    [campaignOverviewRows, activeClient]
-  )
+  // Load Meta data directly from campaigns-overview API
+  const loadMeta = useCallback(async () => {
+    if (!activeClient) return
+    setMetaLoading(true); setMetaError(''); setMetaRow(null)
+    try {
+      const params = new URLSearchParams({ date_preset: metaPeriod })
+      const res = await fetch(`/api/meta/campaigns-overview?${params}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erro ao carregar dados do Meta.')
+      const row = (json.rows || []).find(r => r.clientId === activeClient.id) || null
+      setMetaRow(row)
+    } catch (e) { setMetaError(e.message) }
+    finally { setMetaLoading(false) }
+  }, [activeClient, metaPeriod])
+
+  useEffect(() => { loadMeta() }, [loadMeta])
 
   // Load CRM data from sheet
   const loadCrm = useCallback(async () => {
@@ -222,18 +239,7 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
 
   useEffect(() => { loadCrm() }, [loadCrm])
 
-  // ─── Build index maps for Meta data ───────────────────────────────────────
-
-  const metaIndex = useMemo(() => {
-    if (!metaRow?.campaigns) return null
-    const campaignByName = new Map()
-    const campaignById = new Map()
-    for (const c of metaRow.campaigns) {
-      campaignByName.set(norm(c.name), c)
-      if (c.campaignId) campaignById.set(norm(c.campaignId), c)
-    }
-    return { campaignByName, campaignById }
-  }, [metaRow])
+  // (meta index removed — join done via crmIndex by name)
 
   // ─── Build index maps for CRM data ────────────────────────────────────────
 
@@ -459,9 +465,25 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
           </button>
         </div>
 
-        {/* Period selector */}
+        {/* Meta period selector */}
         <div className="fn-period-bar">
-          <span className="fn-period-label"><i className="bx bx-calendar" /> Período CRM:</span>
+          <span className="fn-period-label"><i className="bx bx-meta" /> Meta Ads:</span>
+          {[
+            { id: 'last_7d', label: '7 dias' },
+            { id: 'last_14d', label: '14 dias' },
+            { id: 'last_30d', label: '30 dias' },
+            { id: 'last_90d', label: '90 dias' },
+          ].map(p => (
+            <button key={p.id} type="button" className={`fn-period-btn${metaPeriod === p.id ? ' active' : ''}`} onClick={() => setMetaPeriod(p.id)}>
+              {p.label}
+            </button>
+          ))}
+          {metaError && <span className="fn-inline-error"><i className="bx bx-error-circle" /> {metaError}</span>}
+        </div>
+
+        {/* CRM Period selector */}
+        <div className="fn-period-bar">
+          <span className="fn-period-label"><i className="bx bx-spreadsheet" /> CRM:</span>
           {[
             { id: 'all', label: 'Tudo' },
             { id: '7d', label: '7 dias' },
@@ -540,7 +562,7 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
           <div className="fn-funnel-wrap">
             <div className="fn-funnel-title">
               <span>Funil Completo</span>
-              {(campaignOverviewLoading || crmLoading) && <span className="fn-loading-pill"><i className="bx bx-loader-alt bx-spin" /> Carregando…</span>}
+              {(metaLoading || crmLoading) && <span className="fn-loading-pill"><i className="bx bx-loader-alt bx-spin" /> Carregando…</span>}
             </div>
 
             {stages.map((s, i) => (
@@ -921,6 +943,10 @@ export default function FunnelTab({ clients, campaignOverviewRows, campaignOverv
         }
         .fn-tooltip-label { font-weight: 700; color: #f1f1f1; margin-bottom: 6px; font-size: 11px; }
         .fn-tooltip-row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.6; }
+
+        .fn-inline-error {
+          font-size: 11px; color: #ef4444; display: flex; align-items: center; gap: 4px;
+        }
 
         /* Misc */
         .fn-crm-error {
