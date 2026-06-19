@@ -19688,18 +19688,68 @@ export default function DashboardShell({
                                 const campaignKey = `${row.clientId}:${campaign.campaignId || campaignIndex}`
                                 const campCpr = campaign.results > 0 ? (campaign.spend || 0) / campaign.results : null
                                 const campColor = getCprColor(campCpr)
+                                const campLabel = getObjectiveLabel(campaign.objective)
+                                const adsets = Array.isArray(campaign.adsets) ? campaign.adsets : []
+                                const campaignExpanded = campaignOverviewExpandedCampaignIds.includes(campaignKey)
                                 return (
-                                  <div key={campaignKey} className="campaign-compact-tree-row">
-                                    <span className="campaign-compact-tree-status">
-                                      <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
-                                    </span>
-                                    <span className="campaign-compact-tree-name" title={campaign.name}>{campaign.name || 'Sem nome'}</span>
-                                    <span className="campaign-compact-cell">{formatCurrency(campaign.spend || 0)}</span>
-                                    <span className="campaign-compact-cell">{formatNumber(campaign.results || 0)}</span>
-                                    <span className="campaign-compact-cell" style={campColor ? { color: campColor, fontWeight: 600 } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</span>
-                                    <span className="campaign-compact-cell campaign-compact-meta" />
-                                    <span className="campaign-compact-health" />
-                                    <span />
+                                  <div key={campaignKey}>
+                                    <div className="campaign-compact-tree-row campaign-compact-tree-campaign" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} style={{ cursor: adsets.length ? 'pointer' : 'default' }}>
+                                      <span className="campaign-compact-tree-status">
+                                        <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
+                                      </span>
+                                      <span className="campaign-compact-tree-name" title={campaign.name}>{campaign.name || 'Sem nome'}</span>
+                                      <span className="campaign-compact-cell">{formatCurrency(campaign.spend || 0)}</span>
+                                      <span className="campaign-compact-cell">{formatNumber(campaign.results || 0)}<span className="campaign-compact-obj-tag">{campLabel.result}</span></span>
+                                      <span className="campaign-compact-cell" style={campColor ? { color: campColor, fontWeight: 600 } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</span>
+                                      <span className="campaign-compact-cell campaign-compact-meta" />
+                                      <span className="campaign-compact-health" />
+                                      <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        {adsets.length > 0 && <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 14, color: 'rgba(241,241,241,0.4)' }} />}
+                                      </span>
+                                    </div>
+                                    {campaignExpanded && adsets.map((adset, adsetIndex) => {
+                                      const adsetKey = `${campaignKey}:${adset.adsetId || adsetIndex}`
+                                      const adsetCpr = adset.results > 0 ? (adset.spend || 0) / adset.results : null
+                                      const ads = Array.isArray(adset.ads) ? adset.ads : []
+                                      const adsetExpanded = campaignOverviewExpandedAdsetIds.includes(adsetKey)
+                                      return (
+                                        <div key={adsetKey}>
+                                          <div className="campaign-compact-tree-row campaign-compact-tree-adset" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{ cursor: ads.length ? 'pointer' : 'default' }}>
+                                            <span />
+                                            <span className="campaign-compact-tree-name campaign-compact-tree-adset-name" title={adset.name}>
+                                              <i className="bx bx-collection" style={{ fontSize: 11, marginRight: 4, opacity: 0.5 }} />
+                                              {adset.name || 'Conjunto sem nome'}
+                                            </span>
+                                            <span className="campaign-compact-cell">{formatCurrency(adset.spend || 0)}</span>
+                                            <span className="campaign-compact-cell">{formatNumber(adset.results || 0)}</span>
+                                            <span className="campaign-compact-cell">{adsetCpr ? formatCurrency(adsetCpr) : '—'}</span>
+                                            <span className="campaign-compact-cell campaign-compact-meta" />
+                                            <span className="campaign-compact-health" />
+                                            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                              {ads.length > 0 && <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 13, color: 'rgba(241,241,241,0.35)' }} />}
+                                            </span>
+                                          </div>
+                                          {adsetExpanded && ads.map((ad, adIndex) => {
+                                            const adCpr = ad.results > 0 ? (ad.spend || 0) / ad.results : null
+                                            return (
+                                              <div key={ad.adId || adIndex} className="campaign-compact-tree-row campaign-compact-tree-ad">
+                                                <span />
+                                                <span className="campaign-compact-tree-name campaign-compact-tree-ad-name" title={ad.name}>
+                                                  <i className="bx bx-image" style={{ fontSize: 11, marginRight: 4, opacity: 0.4 }} />
+                                                  {ad.name || 'Anúncio sem nome'}
+                                                </span>
+                                                <span className="campaign-compact-cell">{formatCurrency(ad.spend || 0)}</span>
+                                                <span className="campaign-compact-cell">{formatNumber(ad.results || 0)}</span>
+                                                <span className="campaign-compact-cell">{adCpr ? formatCurrency(adCpr) : '—'}</span>
+                                                <span className="campaign-compact-cell campaign-compact-meta" />
+                                                <span className="campaign-compact-health" />
+                                                <span />
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      )
+                                    })}
                                   </div>
                                 )
                               })}
@@ -35225,6 +35275,33 @@ export default function DashboardShell({
         .campaign-compact-tree-row .campaign-compact-cell {
           font-size: 12px;
           color: rgba(241,241,241,0.65);
+        }
+
+        .campaign-compact-tree-adset {
+          padding-left: 52px;
+          background: rgba(255,255,255,0.012);
+        }
+
+        .campaign-compact-tree-ad {
+          padding-left: 72px;
+          background: rgba(255,255,255,0.008);
+        }
+
+        .campaign-compact-tree-adset-name,
+        .campaign-compact-tree-ad-name {
+          color: rgba(241,241,241,0.5) !important;
+          font-size: 11.5px;
+        }
+
+        .campaign-compact-obj-tag {
+          display: inline-block;
+          margin-left: 5px;
+          font-size: 9.5px;
+          font-weight: 500;
+          color: rgba(241,241,241,0.35);
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          vertical-align: middle;
         }
 
         .campaign-overview-client-head {
