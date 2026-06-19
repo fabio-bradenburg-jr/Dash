@@ -34577,19 +34577,20 @@ export default function DashboardShell({
           gap: 24px;
           border: 1px solid rgba(38,194,129,0.2);
           background:
-            radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.14) 0%, transparent 60%),
+            radial-gradient(ellipse 80% 70% at 10% -20%, rgba(38,194,129,0.32) 0%, transparent 55%),
+            radial-gradient(ellipse 50% 40% at 90% 110%, rgba(38,194,129,0.10) 0%, transparent 60%),
             linear-gradient(135deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(38,194,129,0.06);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(38,194,129,0.14);
           position: relative;
           overflow: hidden;
         }
         .ads-overview-hero::after {
           content: '';
           position: absolute;
-          top: -60px; right: -60px;
-          width: 220px; height: 220px;
+          top: -80px; right: -80px;
+          width: 320px; height: 320px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(38,194,129,0.22) 0%, transparent 70%);
           pointer-events: none;
         }
 
