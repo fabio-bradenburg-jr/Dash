@@ -110,57 +110,179 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
-// ─── Collapsible Ranking Section ──────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function RankSection({ title, rows, cols, emptyMsg, selectedId, onSelect, defaultCollapsed = true }) {
-  const [open, setOpen] = useState(!defaultCollapsed)
+function formatCurrency(n) {
+  if (!n && n !== 0) return '—'
+  return `R$ ${Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function getCprColor(cpr) {
+  if (!cpr) return null
+  if (cpr <= 50) return '#22c55e'
+  if (cpr <= 100) return '#f59e0b'
+  return '#ef4444'
+}
+
+// ─── Campaign Tree (same design as Campanhas tab) ─────────────────────────────
+
+function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelectCampaign, onSelectAdset, onSelectAd }) {
+  const [expandedCampaigns, setExpandedCampaigns] = useState({})
+  const [expandedAdsets, setExpandedAdsets] = useState({})
+
+  const toggleCampaign = (id) => setExpandedCampaigns(p => ({ ...p, [id]: !p[id] }))
+  const toggleAdset = (id) => setExpandedAdsets(p => ({ ...p, [id]: !p[id] }))
+
+  const campaigns = metaRow?.campaigns || []
+
+  if (!campaigns.length) {
+    return <div className="fn-tree-empty">Sem campanhas no período selecionado.</div>
+  }
+
   return (
-    <div className="fn-rank-section">
-      <button type="button" className="fn-rank-header" onClick={() => setOpen(o => !o)}>
-        <span className="fn-rank-title">{title}</span>
-        <div className="fn-rank-header-right">
-          {selectedId && <span className="fn-rank-active-badge">1 selecionado</span>}
-          <i className={`bx ${open ? 'bx-chevron-up' : 'bx-chevron-down'}`} />
-        </div>
-      </button>
-      {open && (
-        <div className="fn-rank-table-wrap">
-          {!rows?.length ? (
-            <div className="fn-empty">{emptyMsg || 'Sem dados.'}</div>
-          ) : (
-            <table className="fn-rank-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Nome</th>
-                  {cols.map(c => <th key={c.key}>{c.label}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(0, 10).map((r, i) => {
-                  const isActive = selectedId && r._id === selectedId
-                  return (
-                    <tr
-                      key={r._id || r.name || i}
-                      className={`fn-rank-row${isActive ? ' fn-rank-row-active' : ''}`}
-                      onClick={() => onSelect(isActive ? null : r._id)}
-                      title="Clique para filtrar o funil"
-                    >
-                      <td className="fn-rank-num">{i + 1}</td>
-                      <td className="fn-rank-name" title={r.name}>{r.name}</td>
-                      {cols.map(c => (
-                        <td key={c.key} style={{ color: c.color }}>
-                          {c.render ? c.render(r) : fmt(r[c.key])}
-                        </td>
-                      ))}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+    <div className="fn-tree-wrap">
+      {/* Header row */}
+      <div className="fn-tree-header">
+        <span className="fn-tree-status-col" />
+        <span className="fn-tree-name-col">Nome</span>
+        <span className="fn-tree-cell">Investimento</span>
+        <span className="fn-tree-cell">Resultados</span>
+        <span className="fn-tree-cell">CPR</span>
+        <span className="fn-tree-cell fn-pgl-col">Leads</span>
+        <span className="fn-tree-cell fn-pgl-col">Púb. alvo</span>
+        <span className="fn-tree-cell fn-pgl-col">Qualif.</span>
+        <span className="fn-tree-cell fn-pgl-col">Conv.</span>
+        <span className="fn-tree-cell fn-pgl-col">Taxa Q.</span>
+        <span className="fn-tree-chevron-col" />
+      </div>
+
+      {campaigns.map((campaign, ci) => {
+        const cid = campaign.campaignId || `c${ci}`
+        const campCpr = campaign.results > 0 ? campaign.spend / campaign.results : null
+        const campCprColor = getCprColor(campCpr)
+        const campCrm = matchById(campaign.campaignId, campaign.name, pglIndex?.campaign || {})
+        const campExpanded = expandedCampaigns[cid]
+        const campSelected = selCampaign === cid
+        const adsets = campaign.adsets || []
+
+        return (
+          <div key={cid}>
+            {/* Campaign row */}
+            <div
+              className={`fn-tree-row fn-tree-campaign${campSelected ? ' fn-tree-selected' : ''}`}
+              onClick={() => { onSelectCampaign(campSelected ? '' : cid); onSelectAdset(''); onSelectAd('') }}
+            >
+              <span className="fn-tree-status-col">
+                <span className="fn-status-dot" style={{
+                  background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b',
+                  boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none'
+                }} />
+              </span>
+              <span className="fn-tree-name-col" title={campaign.name}>
+                <span className="compact-level-badge compact-level-camp">Camp</span>
+                {campaign.name || 'Sem nome'}
+              </span>
+              <span className="fn-tree-cell">{formatCurrency(campaign.spend || 0)}</span>
+              <span className="fn-tree-cell">{fmt(campaign.results || 0)}</span>
+              <span className="fn-tree-cell" style={campCprColor ? { color: campCprColor, fontWeight: 600 } : undefined}>
+                {campCpr ? formatCurrency(campCpr) : '—'}
+              </span>
+              <span className="fn-tree-cell fn-pgl-col" style={{ color: '#818cf8' }}>{fmt(campaign.results || 0)}</span>
+              <span className="fn-tree-cell fn-pgl-col" style={{ color: '#a78bfa' }}>{fmt(campCrm?.publicoAlvo || 0)}</span>
+              <span className="fn-tree-cell fn-pgl-col" style={{ color: '#34d399' }}>{fmt(campCrm?.qualified || 0)}</span>
+              <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(campCrm?.converted || 0)}</span>
+              <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
+                {(campaign.results || 0) > 0 ? `${Math.round((campCrm?.qualified || 0) / campaign.results * 100)}%` : '—'}
+              </span>
+              <span className="fn-tree-chevron-col" onClick={e => { e.stopPropagation(); toggleCampaign(cid) }}>
+                {adsets.length > 0 && <i className={`bx ${campExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />}
+              </span>
+            </div>
+
+            {/* Adsets */}
+            {campExpanded && adsets.map((adset, ai) => {
+              const aid = adset.adsetId || `a${ci}-${ai}`
+              const adsetCpr = adset.results > 0 ? adset.spend / adset.results : null
+              const adsetCrm = matchById(adset.adsetId, adset.name, pglIndex?.adset || {})
+              const adsetExpanded = expandedAdsets[aid]
+              const adsetSelected = selAdset === aid
+              const ads = adset.ads || []
+
+              return (
+                <div key={aid}>
+                  <div
+                    className={`fn-tree-row fn-tree-adset${adsetSelected ? ' fn-tree-selected' : ''}`}
+                    onClick={() => { onSelectAdset(adsetSelected ? '' : aid); onSelectAd('') }}
+                  >
+                    <span className="fn-tree-status-col">
+                      <span className="fn-status-dot" style={{
+                        background: adset.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b',
+                        boxShadow: adset.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none'
+                      }} />
+                    </span>
+                    <span className="fn-tree-name-col fn-tree-adset-name" title={adset.name}>
+                      <span className="compact-level-badge compact-level-adset">Conj</span>
+                      {adset.name || 'Sem nome'}
+                    </span>
+                    <span className="fn-tree-cell">{formatCurrency(adset.spend || 0)}</span>
+                    <span className="fn-tree-cell">{fmt(adset.results || 0)}</span>
+                    <span className="fn-tree-cell">{adsetCpr ? formatCurrency(adsetCpr) : '—'}</span>
+                    <span className="fn-tree-cell fn-pgl-col" style={{ color: '#818cf8' }}>{fmt(adset.results || 0)}</span>
+                    <span className="fn-tree-cell fn-pgl-col" style={{ color: '#a78bfa' }}>{fmt(adsetCrm?.publicoAlvo || 0)}</span>
+                    <span className="fn-tree-cell fn-pgl-col" style={{ color: '#34d399' }}>{fmt(adsetCrm?.qualified || 0)}</span>
+                    <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(adsetCrm?.converted || 0)}</span>
+                    <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
+                      {(adset.results || 0) > 0 ? `${Math.round((adsetCrm?.qualified || 0) / adset.results * 100)}%` : '—'}
+                    </span>
+                    <span className="fn-tree-chevron-col" onClick={e => { e.stopPropagation(); toggleAdset(aid) }}>
+                      {ads.length > 0 && <i className={`bx ${adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down'}`} />}
+                    </span>
+                  </div>
+
+                  {/* Ads */}
+                  {adsetExpanded && ads.map((ad, adi) => {
+                    const adid = ad.adId || `ad${ci}-${ai}-${adi}`
+                    const adCpr = ad.results > 0 ? ad.spend / ad.results : null
+                    const adCrm = matchById(ad.adId, ad.name, pglIndex?.ad || {})
+                    const adSelected = selAd === adid
+
+                    return (
+                      <div
+                        key={adid}
+                        className={`fn-tree-row fn-tree-ad${adSelected ? ' fn-tree-selected' : ''}`}
+                        onClick={() => onSelectAd(adSelected ? '' : adid)}
+                      >
+                        <span className="fn-tree-status-col">
+                          <span className="fn-status-dot" style={{
+                            width: 6, height: 6,
+                            background: ad.spend > 0 ? '#22c55e' : '#64748b',
+                            boxShadow: ad.spend > 0 ? '0 0 4px #22c55e88' : 'none'
+                          }} />
+                        </span>
+                        <span className="fn-tree-name-col fn-tree-ad-name" title={ad.name}>
+                          <span className="compact-level-badge compact-level-ad">Ad</span>
+                          {ad.name || 'Sem nome'}
+                        </span>
+                        <span className="fn-tree-cell">{formatCurrency(ad.spend || 0)}</span>
+                        <span className="fn-tree-cell">{fmt(ad.results || 0)}</span>
+                        <span className="fn-tree-cell">{adCpr ? formatCurrency(adCpr) : '—'}</span>
+                        <span className="fn-tree-cell fn-pgl-col" style={{ color: '#818cf8' }}>{fmt(ad.results || 0)}</span>
+                        <span className="fn-tree-cell fn-pgl-col" style={{ color: '#a78bfa' }}>{fmt(adCrm?.publicoAlvo || 0)}</span>
+                        <span className="fn-tree-cell fn-pgl-col" style={{ color: '#34d399' }}>{fmt(adCrm?.qualified || 0)}</span>
+                        <span className="fn-tree-cell fn-pgl-col" style={{ color: '#10b981' }}>{fmt(adCrm?.converted || 0)}</span>
+                        <span className="fn-tree-cell fn-pgl-col" style={{ color: '#26c281' }}>
+                          {(ad.results || 0) > 0 ? `${Math.round((adCrm?.qualified || 0) / ad.results * 100)}%` : '—'}
+                        </span>
+                        <span className="fn-tree-chevron-col" />
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -529,46 +651,20 @@ export default function FunnelTab({ clients }) {
           </div>
         )}
 
-        {/* Body: rankings LEFT + funnel RIGHT */}
+        {/* Body: campaign tree LEFT + funnel RIGHT */}
         <div className="fn-body">
 
-          {/* Left: collapsible ranking tables */}
-          <div className="fn-rankings">
-            <RankSection
-              title="Campanhas"
-              rows={campaignRanking}
-              selectedId={selCampaign}
-              onSelect={id => { setSelCampaign(id || ''); setSelAdset(''); setSelAd('') }}
-              defaultCollapsed={false}
-              cols={[
-                { key: 'leads',      label: 'Leads',     color: '#818cf8' },
-                { key: 'publicoAlvo',label: 'Púb. alvo', color: '#a78bfa' },
-                { key: 'qualified',  label: 'Qualif.',   color: '#34d399' },
-                { key: 'converted',  label: 'Conv.',     color: '#10b981' },
-                { key: 'qualRate',   label: 'Taxa Q.',   color: '#26c281', render: r => `${Math.round(r.qualRate*100)}%` },
-              ]}
-            />
-            <RankSection
-              title="Conjuntos"
-              rows={adsetRanking}
-              selectedId={selAdset}
-              onSelect={id => { setSelAdset(id || ''); setSelAd('') }}
-              cols={[
-                { key: 'leads',     label: 'Leads',   color: '#818cf8' },
-                { key: 'qualified', label: 'Qualif.', color: '#34d399' },
-                { key: 'converted', label: 'Conv.',   color: '#10b981' },
-              ]}
-            />
-            <RankSection
-              title="Anúncios"
-              rows={adRanking}
-              selectedId={selAd}
-              onSelect={id => setSelAd(id || '')}
-              cols={[
-                { key: 'leads',     label: 'Leads',   color: '#818cf8' },
-                { key: 'qualified', label: 'Qualif.', color: '#34d399' },
-                { key: 'converted', label: 'Conv.',   color: '#10b981' },
-              ]}
+          {/* Left: campaign tree */}
+          <div className="fn-tree-panel">
+            <CampaignTree
+              metaRow={metaRow}
+              pglIndex={pglIndex}
+              selCampaign={selCampaign}
+              selAdset={selAdset}
+              selAd={selAd}
+              onSelectCampaign={id => { setSelCampaign(id); setSelAdset(''); setSelAd('') }}
+              onSelectAdset={id => { setSelAdset(id); setSelAd('') }}
+              onSelectAd={id => setSelAd(id)}
             />
           </div>
 
@@ -724,28 +820,51 @@ export default function FunnelTab({ clients }) {
         .fn-alert { display: flex; align-items: flex-start; gap: 10px; border-left: 3px solid; padding: 9px 14px; background: rgba(255,255,255,.025); border-radius: 0 8px 8px 0; font-size: 12px; color: rgba(241,241,241,.8); line-height: 1.4; }
         .fn-alert i { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 
-        /* ─── Body: rankings + funnel ─── */
-        .fn-body { display: grid; grid-template-columns: 1fr 360px; gap: 14px; align-items: start; }
+        /* ─── Body: tree + funnel ─── */
+        .fn-body { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
 
-        /* ─── Rankings ─── */
-        .fn-rankings { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-        .fn-rank-section { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; overflow: hidden; }
-        .fn-rank-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; background: transparent; border: none; color: inherit; cursor: pointer; }
-        .fn-rank-header:hover { background: rgba(255,255,255,.03); }
-        .fn-rank-header-right { display: flex; align-items: center; gap: 8px; }
-        .fn-rank-title { font-size: 11px; font-weight: 700; color: rgba(241,241,241,.55); text-transform: uppercase; letter-spacing: .08em; }
-        .fn-rank-active-badge { font-size: 10px; background: rgba(38,194,129,.15); color: #26c281; border: 1px solid rgba(38,194,129,.3); border-radius: 100px; padding: 2px 8px; font-weight: 600; }
-        .fn-rank-table-wrap { overflow-x: auto; border-top: 1px solid rgba(255,255,255,.06); }
-        .fn-rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .fn-rank-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(241,241,241,.3); padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.05); }
-        .fn-rank-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.04); color: #e8e8e8; }
-        .fn-rank-table tr:last-child td { border-bottom: none; }
-        .fn-rank-row { cursor: pointer; transition: background .12s; }
-        .fn-rank-row:hover td { background: rgba(255,255,255,.04); }
-        .fn-rank-row-active td { background: rgba(38,194,129,.08) !important; }
-        .fn-rank-row-active .fn-rank-num::before { content: '▶ '; color: #26c281; font-size: 8px; }
-        .fn-rank-num { font-size: 11px; color: rgba(241,241,241,.25); font-weight: 700; width: 28px; }
-        .fn-rank-name { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+        /* ─── Campaign Tree ─── */
+        .fn-tree-panel { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; overflow: hidden; min-width: 0; }
+        .fn-tree-wrap { overflow-x: auto; }
+        .fn-tree-header {
+          display: grid;
+          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 28px;
+          align-items: center; gap: 8px; padding: 8px 16px;
+          background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06);
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+          color: rgba(241,241,241,.3); white-space: nowrap;
+        }
+        .fn-tree-row {
+          display: grid;
+          grid-template-columns: 28px minmax(180px,1fr) 110px 90px 110px 72px 72px 72px 62px 68px 28px;
+          align-items: center; gap: 8px;
+          padding: 6px 16px; cursor: pointer; transition: background .12s;
+          border-bottom: 1px solid rgba(255,255,255,.03);
+        }
+        .fn-tree-row:last-child { border-bottom: none; }
+        .fn-tree-campaign { border-left: 3px solid rgba(38,194,129,.35); background: rgba(38,194,129,.04); margin: 1px 8px 1px 0; border-radius: 0 6px 6px 0; }
+        .fn-tree-campaign:hover { background: rgba(38,194,129,.08); }
+        .fn-tree-adset { padding-left: 20px; border-left: 2px solid rgba(255,255,255,.1); background: rgba(255,255,255,.015); margin: 1px 8px 1px 16px; border-radius: 0 5px 5px 0; }
+        .fn-tree-adset:hover { background: rgba(255,255,255,.03); }
+        .fn-tree-ad { padding-left: 20px; border-left: 1px dashed rgba(255,255,255,.08); background: transparent; margin: 1px 8px 1px 32px; border-radius: 0 5px 5px 0; }
+        .fn-tree-ad:hover { background: rgba(255,255,255,.015); }
+        .fn-tree-selected { background: rgba(38,194,129,.1) !important; outline: 1px solid rgba(38,194,129,.25); }
+        .fn-tree-status-col { display: flex; align-items: center; justify-content: center; }
+        .fn-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .fn-tree-name-col { font-size: 12px; color: rgba(241,241,241,.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; display: flex; align-items: center; gap: 0; }
+        .fn-tree-adset-name { color: rgba(241,241,241,.55) !important; font-weight: 500; font-size: 11.5px; }
+        .fn-tree-ad-name { color: rgba(241,241,241,.4) !important; font-weight: 400; font-size: 11px; }
+        .fn-tree-cell { font-size: 12px; color: rgba(241,241,241,.6); white-space: nowrap; }
+        .fn-pgl-col { font-size: 11.5px; }
+        .fn-tree-chevron-col { display: flex; align-items: center; justify-content: center; color: rgba(241,241,241,.35); font-size: 14px; }
+        .fn-tree-empty { padding: 24px; font-size: 12px; color: rgba(241,241,241,.3); text-align: center; }
+
+        /* Badge reuse from DashboardShell */
+        .compact-level-badge { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .05em; padding: 1px 5px; border-radius: 4px; margin-right: 6px; text-transform: uppercase; flex-shrink: 0; }
+        .compact-level-camp  { background: rgba(38,194,129,.18); color: #26c281; border: 1px solid rgba(38,194,129,.3); }
+        .compact-level-adset { background: rgba(96,165,250,.14); color: #60a5fa; border: 1px solid rgba(96,165,250,.25); }
+        .compact-level-ad    { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.22); }
+
         .fn-empty { font-size: 12px; color: rgba(241,241,241,.25); padding: 16px 0; text-align: center; }
 
         /* ─── Funnel column ─── */
