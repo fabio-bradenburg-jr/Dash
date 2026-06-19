@@ -3431,7 +3431,7 @@ export default function DashboardShell({
   const [campaignOverviewExpandedClientIds, setCampaignOverviewExpandedClientIds] = useState([])
   const [campaignOverviewExpandedCampaignIds, setCampaignOverviewExpandedCampaignIds] = useState([])
   const [campaignOverviewExpandedAdsetIds, setCampaignOverviewExpandedAdsetIds] = useState([])
-  const [campaignViewMode, setCampaignViewMode] = useState('list')
+  const [campaignViewMode, setCampaignViewMode] = useState('compact')
   const [campaignChartOpenKeys, setCampaignChartOpenKeys] = useState({})
   const [campaignChartData, setCampaignChartData] = useState({})
   const [campaignChartMetric, setCampaignChartMetric] = useState({})
@@ -19521,14 +19521,14 @@ export default function DashboardShell({
                   />
                 </div>
                 <div className="campaign-view-mode-toggle">
+                  <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'compact' ? ' active' : '')} onClick={() => setCampaignViewMode('compact')} title="Visualização compacta">
+                    <i className="bx bx-table"></i>
+                  </button>
                   <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'list' ? ' active' : '')} onClick={() => setCampaignViewMode('list')} title="Visualização em lista">
                     <i className="bx bx-list-ul"></i>
                   </button>
                   <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'grid' ? ' active' : '')} onClick={() => setCampaignViewMode('grid')} title="Visualização em grade">
                     <i className="bx bx-grid-alt"></i>
-                  </button>
-                  <button type="button" className={'campaign-view-btn' + (campaignViewMode === 'compact' ? ' active' : '')} onClick={() => setCampaignViewMode('compact')} title="Visualização compacta">
-                    <i className="bx bx-table"></i>
                   </button>
                 </div>
               </div>
@@ -19679,6 +19679,38 @@ export default function DashboardShell({
                             </span>
                             <i className={'bx ' + (isExpanded ? 'bx-chevron-up' : 'bx-chevron-down')}></i>
                           </button>
+                          {isExpanded && !row.isGhost && !row.error && campaigns.length > 0 && (
+                            <div className="campaign-overview-tree campaign-compact-tree">
+                              {campaigns.map((campaign, campaignIndex) => {
+                                const campaignKey = `${row.clientId}:${campaign.campaignId || campaignIndex}`
+                                const campCpr = campaign.results > 0 ? (campaign.spend || 0) / campaign.results : null
+                                const campColor = getCprColor(campCpr)
+                                return (
+                                  <div key={campaignKey} className="campaign-compact-tree-row">
+                                    <span className="campaign-compact-tree-status">
+                                      <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
+                                    </span>
+                                    <span className="campaign-compact-tree-name" title={campaign.name}>{campaign.name || 'Sem nome'}</span>
+                                    <span className="campaign-compact-cell">{formatCurrency(campaign.spend || 0)}</span>
+                                    <span className="campaign-compact-cell">{formatNumber(campaign.results || 0)}</span>
+                                    <span className="campaign-compact-cell" style={campColor ? { color: campColor, fontWeight: 600 } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</span>
+                                    <span className="campaign-compact-cell campaign-compact-meta" />
+                                    <span className="campaign-compact-health" />
+                                    <span />
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                          {isExpanded && row.isGhost && (
+                            <div className="ads-overview-no-ads" style={{ padding: '12px 16px', opacity: 0.6, fontSize: 12 }}>Conta fantasma — sem integração.</div>
+                          )}
+                          {isExpanded && row.error && (
+                            <div className="api-error-banner" style={{ margin: '0 12px 12px' }}><i className="bx bx-error-circle" /><span>{row.error}</span></div>
+                          )}
+                          {isExpanded && !row.isGhost && !row.error && campaigns.length === 0 && (
+                            <div className="ads-overview-no-ads" style={{ padding: '12px 16px', opacity: 0.6, fontSize: 12 }}>Sem campanhas ativas no período.</div>
+                          )}
                         </article>
                       )
                     }
@@ -35152,6 +35184,44 @@ export default function DashboardShell({
 
         .campaign-view-compact .campaign-compact-row + .campaign-compact-row {
           border-top: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .campaign-compact-tree {
+          border-top: 1px solid rgba(255,255,255,0.06);
+          padding: 4px 0 8px;
+        }
+
+        .campaign-compact-tree-row {
+          display: grid;
+          grid-template-columns: 30px minmax(160px,1fr) 120px 90px 120px 110px minmax(110px,auto) 20px;
+          align-items: center;
+          gap: 12px;
+          padding: 6px 16px 6px 32px;
+          border-radius: 6px;
+          transition: background 0.12s ease;
+        }
+
+        .campaign-compact-tree-row:hover {
+          background: rgba(255,255,255,0.03);
+        }
+
+        .campaign-compact-tree-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .campaign-compact-tree-name {
+          font-size: 12px;
+          color: rgba(241,241,241,0.7);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .campaign-compact-tree-row .campaign-compact-cell {
+          font-size: 12px;
+          color: rgba(241,241,241,0.65);
         }
 
         .campaign-overview-client-head {
