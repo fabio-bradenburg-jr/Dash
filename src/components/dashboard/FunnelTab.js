@@ -26,9 +26,9 @@ const STAGE_CONFIG = [
   { key: 'impressions', label: 'Impressões',  color: '#6b7280', icon: 'bx-show',         source: 'meta' },
   { key: 'clicks',      label: 'Cliques',      color: '#38bdf8', icon: 'bx-mouse-alt',    source: 'meta' },
   { key: 'leads',       label: 'Leads',        color: '#818cf8', icon: 'bx-user-plus',    source: 'meta' },
-  { key: 'publicoAlvo', label: 'Público-alvo', color: '#a78bfa', icon: 'bx-target-lock',  source: 'crm'  },
-  { key: 'qualified',   label: 'Qualificados', color: '#34d399', icon: 'bx-check-shield', source: 'crm'  },
-  { key: 'converted',   label: 'Convertidos',  color: '#10b981', icon: 'bx-trophy',       source: 'crm'  },
+  { key: 'publicoAlvo', label: 'Público-alvo', color: '#a78bfa', icon: 'bx-target-lock',  source: 'pgl'  },
+  { key: 'qualified',   label: 'Qualificados', color: '#34d399', icon: 'bx-check-shield', source: 'pgl'  },
+  { key: 'converted',   label: 'Convertidos',  color: '#10b981', icon: 'bx-trophy',       source: 'pgl'  },
 ]
 
 function FunnelStage({ stage, value, prevValue, topValue, hover, onHover }) {
@@ -58,7 +58,7 @@ function FunnelStage({ stage, value, prevValue, topValue, hover, onHover }) {
           <div className="fn-stage-info">
             <span className="fn-stage-label">
               {stage.label}
-              <span className={`fn-stage-src fn-src-${stage.source}`}>{stage.source === 'meta' ? 'Meta' : 'CRM'}</span>
+              <span className={`fn-stage-src fn-src-${stage.source}`}>{stage.source === 'meta' ? 'Meta' : 'PGL'}</span>
             </span>
             <span className="fn-stage-count">{fmt(value)}</span>
           </div>
@@ -169,9 +169,9 @@ function RankSection({ title, rows, cols, emptyMsg, selectedId, onSelect, defaul
 
 export default function FunnelTab({ clients }) {
   const [selectedClientId, setSelectedClientId] = useState('')
-  const [crmData, setCrmData] = useState(null)
-  const [crmLoading, setCrmLoading] = useState(false)
-  const [crmError, setCrmError] = useState('')
+  const [pglData, setpglData] = useState(null)
+  const [pglLoading, setpglLoading] = useState(false)
+  const [pglError, setpglError] = useState('')
 
   const [metaRow, setMetaRow] = useState(null)
   const [metaLoading, setMetaLoading] = useState(false)
@@ -183,6 +183,7 @@ export default function FunnelTab({ clients }) {
   const [selAdset, setSelAdset]       = useState('')
   const [selAd, setSelAd]             = useState('')
   const [hoveredStage, setHoveredStage] = useState(null)
+  const [clientPickerOpen, setClientPickerOpen] = useState(false)
 
   const [period, setPeriod] = useState('30d')
   const [customSince, setCustomSince] = useState('')
@@ -221,9 +222,9 @@ export default function FunnelTab({ clients }) {
 
   useEffect(() => { loadMeta() }, [loadMeta])
 
-  const loadCrm = useCallback(async () => {
-    if (!activeClient?.leadsSheetUrl) { setCrmData(null); return }
-    setCrmLoading(true); setCrmError('')
+  const loadpgl = useCallback(async () => {
+    if (!activeClient?.leadsSheetUrl) { setpglData(null); return }
+    setpglLoading(true); setpglError('')
     try {
       const pad = n => String(n).padStart(2, '0')
       const fmtD = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
@@ -239,30 +240,30 @@ export default function FunnelTab({ clients }) {
       if (until) params.set('until', until)
       const res = await fetch(`/api/google-sheets/leads-analytics?${params}`)
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Erro ao carregar CRM.')
-      setCrmData(json)
-    } catch (e) { setCrmError(e.message) }
-    finally { setCrmLoading(false) }
+      if (!res.ok) throw new Error(json.error || 'Erro ao carregar PGL.')
+      setpglData(json)
+    } catch (e) { setpglError(e.message) }
+    finally { setpglLoading(false) }
   }, [activeClient, period, customSince, customUntil])
 
-  useEffect(() => { loadCrm() }, [loadCrm])
+  useEffect(() => { loadpgl() }, [loadpgl])
 
-  // ─── CRM index by name ────────────────────────────────────────────────────
+  // ─── PGL index by name ────────────────────────────────────────────────────
 
-  const crmIndex = useMemo(() => {
-    if (!crmData) return null
+  const pglIndex = useMemo(() => {
+    if (!pglData) return null
     const campaignByName = new Map()
-    for (const c of crmData.campaigns || []) campaignByName.set(norm(c.name), c)
+    for (const c of pglData.campaigns || []) campaignByName.set(norm(c.name), c)
     const adsetByName = new Map()
-    for (const a of crmData.adsets || []) adsetByName.set(norm(a.name), a)
+    for (const a of pglData.adsets || []) adsetByName.set(norm(a.name), a)
     const adByName = new Map()
-    for (const a of crmData.ads || []) adByName.set(norm(a.name), a)
+    for (const a of pglData.ads || []) adByName.set(norm(a.name), a)
     return {
       campaign: { byName: campaignByName, byId: new Map() },
       adset:    { byName: adsetByName,    byId: new Map() },
       ad:       { byName: adByName,       byId: new Map() },
     }
-  }, [crmData])
+  }, [pglData])
 
   // ─── Cascade options ──────────────────────────────────────────────────────
 
@@ -291,43 +292,43 @@ export default function FunnelTab({ clients }) {
     return { impressions, clicks, leads, spend }
   }, [metaRow, selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions])
 
-  // ─── Funnel CRM values ────────────────────────────────────────────────────
+  // ─── Funnel PGL values ────────────────────────────────────────────────────
 
-  const funnelCrm = useMemo(() => {
+  const funnelpgl = useMemo(() => {
     const empty = { publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0 }
-    if (!crmData) return empty
+    if (!pglData) return empty
     if (selAd) {
       const a = adOptions.find(a => a.adId === selAd)
-      return (a ? matchById(a.adId, a.name, crmIndex?.ad || {}) : null) || empty
+      return (a ? matchById(a.adId, a.name, pglIndex?.ad || {}) : null) || empty
     }
     if (selAdset) {
       const a = adsetOptions.find(a => a.adsetId === selAdset)
-      return (a ? matchById(a.adsetId, a.name, crmIndex?.adset || {}) : null) || empty
+      return (a ? matchById(a.adsetId, a.name, pglIndex?.adset || {}) : null) || empty
     }
     if (selCampaign) {
       const c = campaignOptions.find(c => c.campaignId === selCampaign)
-      return (c ? matchById(c.campaignId, c.name, crmIndex?.campaign || {}) : null) || empty
+      return (c ? matchById(c.campaignId, c.name, pglIndex?.campaign || {}) : null) || empty
     }
-    return crmData.overview || empty
-  }, [crmData, selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions, crmIndex])
+    return pglData.overview || empty
+  }, [pglData, selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions, pglIndex])
 
   const stages = useMemo(() => [
     { ...STAGE_CONFIG[0], value: funnelMeta.impressions },
     { ...STAGE_CONFIG[1], value: funnelMeta.clicks },
     { ...STAGE_CONFIG[2], value: funnelMeta.leads },
-    { ...STAGE_CONFIG[3], value: funnelCrm.publicoAlvo || 0 },
-    { ...STAGE_CONFIG[4], value: funnelCrm.qualified || 0 },
-    { ...STAGE_CONFIG[5], value: funnelCrm.converted || 0 },
-  ], [funnelMeta, funnelCrm])
+    { ...STAGE_CONFIG[3], value: funnelpgl.publicoAlvo || 0 },
+    { ...STAGE_CONFIG[4], value: funnelpgl.qualified || 0 },
+    { ...STAGE_CONFIG[5], value: funnelpgl.converted || 0 },
+  ], [funnelMeta, funnelpgl])
 
   const topValue = stages[0]?.value || 1
 
   const cpl      = funnelMeta.leads > 0 ? funnelMeta.spend / funnelMeta.leads : 0
   const ctr      = funnelMeta.impressions > 0 ? (funnelMeta.clicks / funnelMeta.impressions) * 100 : 0
   const cpc      = funnelMeta.clicks > 0 ? funnelMeta.spend / funnelMeta.clicks : 0
-  const qualRate = funnelMeta.leads > 0 ? (funnelCrm.qualified || 0) / funnelMeta.leads : 0
-  const convRate = funnelMeta.leads > 0 ? (funnelCrm.converted || 0) / funnelMeta.leads : 0
-  const lostRate = funnelMeta.leads > 0 ? (funnelCrm.lost || 0) / funnelMeta.leads : 0
+  const qualRate = funnelMeta.leads > 0 ? (funnelpgl.qualified || 0) / funnelMeta.leads : 0
+  const convRate = funnelMeta.leads > 0 ? (funnelpgl.converted || 0) / funnelMeta.leads : 0
+  const lostRate = funnelMeta.leads > 0 ? (funnelpgl.lost || 0) / funnelMeta.leads : 0
 
   const alerts = useMemo(() => {
     const list = []
@@ -335,37 +336,37 @@ export default function FunnelTab({ clients }) {
       list.push({ type: 'warning', text: `Taxa clique→lead muito baixa (${(funnelMeta.leads / funnelMeta.clicks * 100).toFixed(1)}%). Verifique o formulário.` })
     if (funnelMeta.leads > 10 && qualRate < 0.2)
       list.push({ type: 'warning', text: `Apenas ${Math.round(qualRate*100)}% dos leads qualificados. Alto volume, baixa qualidade.` })
-    if ((funnelCrm.lost || 0) > (funnelCrm.qualified || 0))
+    if ((funnelpgl.lost || 0) > (funnelpgl.qualified || 0))
       list.push({ type: 'critical', text: 'Mais leads perdidos do que qualificados. Gargalo na qualificação.' })
-    if ((funnelCrm.noreply || 0) / Math.max(funnelMeta.leads, 1) > 0.4)
-      list.push({ type: 'warning', text: `${Math.round((funnelCrm.noreply||0)/Math.max(funnelMeta.leads,1)*100)}% sem resposta. Possível falha no atendimento.` })
-    if (funnelCrm.qualified > 0 && (funnelCrm.converted||0) / funnelCrm.qualified < 0.1)
-      list.push({ type: 'info', text: `Taxa de fechamento baixa: ${Math.round((funnelCrm.converted||0)/funnelCrm.qualified*100)}% dos qualificados convertidos.` })
+    if ((funnelpgl.noreply || 0) / Math.max(funnelMeta.leads, 1) > 0.4)
+      list.push({ type: 'warning', text: `${Math.round((funnelpgl.noreply||0)/Math.max(funnelMeta.leads,1)*100)}% sem resposta. Possível falha no atendimento.` })
+    if (funnelpgl.qualified > 0 && (funnelpgl.converted||0) / funnelpgl.qualified < 0.1)
+      list.push({ type: 'info', text: `Taxa de fechamento baixa: ${Math.round((funnelpgl.converted||0)/funnelpgl.qualified*100)}% dos qualificados convertidos.` })
     return list
-  }, [funnelMeta, funnelCrm, qualRate])
+  }, [funnelMeta, funnelpgl, qualRate])
 
   // ─── Rankings with stable _id for selection ───────────────────────────────
 
   const campaignRanking = useMemo(() => (metaRow?.campaigns || []).map(c => {
-    const crm = matchById(c.campaignId, c.name, crmIndex?.campaign || {})
+    const pgl = matchById(c.campaignId, c.name, pglIndex?.campaign || {})
     return { _id: c.campaignId, name: c.name, leads: c.results||0, spend: c.spend||0,
-      publicoAlvo: crm?.publicoAlvo||0, qualified: crm?.qualified||0, converted: crm?.converted||0,
-      qualRate: (c.results||0)>0 ? (crm?.qualified||0)/(c.results||1) : 0 }
-  }).sort((a,b) => b.leads - a.leads), [metaRow, crmIndex])
+      publicoAlvo: pgl?.publicoAlvo||0, qualified: pgl?.qualified||0, converted: pgl?.converted||0,
+      qualRate: (c.results||0)>0 ? (pgl?.qualified||0)/(c.results||1) : 0 }
+  }).sort((a,b) => b.leads - a.leads), [metaRow, pglIndex])
 
   const adsetRanking = useMemo(() => (metaRow?.campaigns?.flatMap(c => c.adsets||[]) || []).map(a => {
-    const crm = matchById(a.adsetId, a.name, crmIndex?.adset || {})
+    const pgl = matchById(a.adsetId, a.name, pglIndex?.adset || {})
     return { _id: a.adsetId, name: a.name, leads: a.results||0, spend: a.spend||0,
-      qualified: crm?.qualified||0, converted: crm?.converted||0 }
-  }).sort((a,b) => b.leads - a.leads), [metaRow, crmIndex])
+      qualified: pgl?.qualified||0, converted: pgl?.converted||0 }
+  }).sort((a,b) => b.leads - a.leads), [metaRow, pglIndex])
 
   const adRanking = useMemo(() => (metaRow?.campaigns?.flatMap(c => c.adsets?.flatMap(a => a.ads||[])||[]) || []).map(a => {
-    const crm = matchById(a.adId, a.name, crmIndex?.ad || {})
+    const pgl = matchById(a.adId, a.name, pglIndex?.ad || {})
     return { _id: a.adId, name: a.name, leads: a.results||0, spend: a.spend||0,
-      qualified: crm?.qualified||0, converted: crm?.converted||0 }
-  }).sort((a,b) => b.leads - a.leads), [metaRow, crmIndex])
+      qualified: pgl?.qualified||0, converted: pgl?.converted||0 }
+  }).sort((a,b) => b.leads - a.leads), [metaRow, pglIndex])
 
-  const hasCrm = Boolean(activeClient?.leadsSheetUrl)
+  const haspgl = Boolean(activeClient?.leadsSheetUrl)
 
   // Rótulo do filtro atual
   const filterLabel = useMemo(() => {
@@ -387,24 +388,6 @@ export default function FunnelTab({ clients }) {
 
   return (
     <div className="fn-root">
-      {/* Left sidebar — client list */}
-      <div className="fn-sidebar">
-        <div className="fn-sidebar-label">Clientes</div>
-        {metaClients.map(c => (
-          <button key={c.id} type="button"
-            className={`fn-client-btn${activeClient?.id === c.id ? ' active' : ''}`}
-            onClick={() => setSelectedClientId(c.id)}
-          >
-            {c.logoUrl
-              ? <img src={c.logoUrl} alt="" className="fn-client-logo" />
-              : <span className="fn-client-avatar" style={{ background: c.dashboardColor || '#6366f1' }}>{(c.name||'?')[0].toUpperCase()}</span>
-            }
-            <span className="fn-client-name">{c.name}</span>
-            {c.leadsSheetUrl && <i className="bx bx-spreadsheet fn-has-sheet" title="Planilha vinculada" />}
-          </button>
-        ))}
-      </div>
-
       {/* Main panel */}
       <div className="fn-main">
 
@@ -413,14 +396,42 @@ export default function FunnelTab({ clients }) {
           <div>
             <span className="fn-kicker">Funil de Performance</span>
             <h2 className="fn-title">{activeClient?.name}</h2>
-            {!hasCrm && <p className="fn-no-crm">Planilha não configurada — apenas dados Meta.</p>}
+            {!haspgl && <p className="fn-no-pgl">Planilha não configurada — apenas dados Meta.</p>}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Client picker */}
+            <div className="fn-client-picker-wrap">
+              <button type="button" className="fn-client-picker-btn" onClick={() => setClientPickerOpen(o => !o)}>
+                {activeClient?.logoUrl
+                  ? <img src={activeClient.logoUrl} alt="" className="fn-cp-logo" />
+                  : <span className="fn-cp-avatar" style={{ background: activeClient?.dashboardColor || '#6366f1' }}>{(activeClient?.name||'?')[0].toUpperCase()}</span>
+                }
+                <span className="fn-cp-name">{activeClient?.name || 'Selecionar cliente'}</span>
+                <i className="bx bx-chevron-down fn-cp-chevron" />
+              </button>
+              {clientPickerOpen && (
+                <div className="fn-client-picker-dropdown">
+                  {metaClients.map(c => (
+                    <button key={c.id} type="button"
+                      className={`fn-cp-option${activeClient?.id === c.id ? ' active' : ''}`}
+                      onClick={() => { setSelectedClientId(c.id); setClientPickerOpen(false) }}
+                    >
+                      {c.logoUrl
+                        ? <img src={c.logoUrl} alt="" className="fn-cp-logo" />
+                        : <span className="fn-cp-avatar" style={{ background: c.dashboardColor || '#6366f1' }}>{(c.name||'?')[0].toUpperCase()}</span>
+                      }
+                      <span className="fn-cp-name">{c.name}</span>
+                      {c.leadsSheetUrl && <i className="bx bx-spreadsheet" style={{ fontSize: 12, color: 'rgba(38,194,129,.6)', marginLeft: 'auto' }} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button type="button" className="fn-refresh" onClick={loadMeta} title="Atualizar Meta" disabled={metaLoading}>
               <i className={`bx bx-refresh${metaLoading ? ' bx-spin' : ''}`} />
             </button>
-            <button type="button" className="fn-refresh" onClick={loadCrm} title="Atualizar CRM" disabled={crmLoading}>
-              <i className={`bx bx-spreadsheet${crmLoading ? ' bx-spin' : ''}`} />
+            <button type="button" className="fn-refresh" onClick={loadpgl} title="Atualizar PGL" disabled={pglLoading}>
+              <i className={`bx bx-spreadsheet${pglLoading ? ' bx-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -442,7 +453,7 @@ export default function FunnelTab({ clients }) {
         </div>
 
         <div className="fn-period-bar">
-          <span className="fn-period-label"><i className="bx bx-spreadsheet" /> CRM:</span>
+          <span className="fn-period-label"><i className="bx bx-spreadsheet" /> PGL:</span>
           {[
             { id: 'all',    label: 'Tudo' },
             { id: '7d',     label: '7 dias' },
@@ -458,7 +469,7 @@ export default function FunnelTab({ clients }) {
             <input type="date" className="fn-date-input" value={customSince} onChange={e => setCustomSince(e.target.value)} />
             <span style={{ color: 'rgba(241,241,241,0.3)', fontSize: 12 }}>→</span>
             <input type="date" className="fn-date-input" value={customUntil} onChange={e => setCustomUntil(e.target.value)} />
-            <button type="button" className="fn-apply-btn" onClick={loadCrm} disabled={!customSince || !customUntil}>Aplicar</button>
+            <button type="button" className="fn-apply-btn" onClick={loadpgl} disabled={!customSince || !customUntil}>Aplicar</button>
           </>)}
         </div>
 
@@ -572,7 +583,7 @@ export default function FunnelTab({ clients }) {
                       <i className="bx bx-filter-alt" /> {filterLabel.length > 22 ? filterLabel.slice(0, 22) + '…' : filterLabel}
                     </span>
                   )}
-                  {(metaLoading || crmLoading) && <span className="fn-loading-pill"><i className="bx bx-loader-alt bx-spin" /></span>}
+                  {(metaLoading || pglLoading) && <span className="fn-loading-pill"><i className="bx bx-loader-alt bx-spin" /></span>}
                 </div>
               </div>
 
@@ -589,36 +600,36 @@ export default function FunnelTab({ clients }) {
                 />
               ))}
 
-              {hasCrm && (
-                <div className="fn-crm-losses">
-                  <div className="fn-crm-loss-item" style={{ borderColor: '#ef4444' }}>
+              {haspgl && (
+                <div className="fn-pgl-losses">
+                  <div className="fn-pgl-loss-item" style={{ borderColor: '#ef4444' }}>
                     <i className="bx bx-x-circle" style={{ color: '#ef4444' }} />
                     <div>
-                      <div className="fn-crm-loss-val">{fmt(funnelCrm.lost || 0)}</div>
-                      <div className="fn-crm-loss-label">Perdidos <span>{pct(funnelCrm.lost||0, funnelMeta.leads)}</span></div>
+                      <div className="fn-pgl-loss-val">{fmt(funnelpgl.lost || 0)}</div>
+                      <div className="fn-pgl-loss-label">Perdidos <span>{pct(funnelpgl.lost||0, funnelMeta.leads)}</span></div>
                     </div>
                   </div>
-                  <div className="fn-crm-loss-item" style={{ borderColor: '#f59e0b' }}>
+                  <div className="fn-pgl-loss-item" style={{ borderColor: '#f59e0b' }}>
                     <i className="bx bx-time" style={{ color: '#f59e0b' }} />
                     <div>
-                      <div className="fn-crm-loss-val">{fmt(funnelCrm.noreply || 0)}</div>
-                      <div className="fn-crm-loss-label">Sem resp. <span>{pct(funnelCrm.noreply||0, funnelMeta.leads)}</span></div>
+                      <div className="fn-pgl-loss-val">{fmt(funnelpgl.noreply || 0)}</div>
+                      <div className="fn-pgl-loss-label">Sem resp. <span>{pct(funnelpgl.noreply||0, funnelMeta.leads)}</span></div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {crmError && (
-                <div className="fn-crm-error"><i className="bx bx-error-circle" /> {crmError}</div>
+              {pglError && (
+                <div className="fn-pgl-error"><i className="bx bx-error-circle" /> {pglError}</div>
               )}
             </div>
 
             {/* Timeline */}
-            {crmData?.timeline?.length > 0 && (
+            {pglData?.timeline?.length > 0 && (
               <div className="fn-timeline-card">
                 <div className="fn-timeline-title">Evolução Temporal</div>
                 <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={crmData.timeline} margin={{ left: 0, right: 12 }}>
+                  <LineChart data={pglData.timeline} margin={{ left: 0, right: 12 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#888' }} interval="preserveStartEnd" />
                     <YAxis tick={{ fontSize: 10, fill: '#888' }} width={30} />
@@ -638,40 +649,43 @@ export default function FunnelTab({ clients }) {
 
       <style jsx global>{`
         /* ─── Layout ─── */
-        .fn-root {
-          display: grid;
-          grid-template-columns: 176px 1fr;
-          gap: 14px;
-          align-items: start;
+        .fn-root { display: flex; flex-direction: column; }
+
+        /* ─── Client picker ─── */
+        .fn-client-picker-wrap { position: relative; }
+        .fn-client-picker-btn {
+          display: flex; align-items: center; gap: 8px;
+          background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+          border-radius: 10px; color: #f1f1f1; cursor: pointer; padding: 6px 12px;
+          font-size: 13px; font-weight: 600; transition: all .15s; max-width: 220px;
         }
-        .fn-sidebar {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 14px;
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-          position: sticky;
-          top: 0;
-          max-height: calc(100vh - 160px);
-          overflow-y: auto;
+        .fn-client-picker-btn:hover { background: rgba(255,255,255,.1); }
+        .fn-cp-logo { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
+        .fn-cp-avatar { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+        .fn-cp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+        .fn-cp-chevron { font-size: 14px; opacity: .6; flex-shrink: 0; }
+        .fn-client-picker-dropdown {
+          position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+          background: #1a1f2e; border: 1px solid rgba(255,255,255,.12);
+          border-radius: 12px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+          min-width: 200px; max-height: 340px; overflow-y: auto;
+          box-shadow: 0 12px 40px rgba(0,0,0,.5);
         }
-        .fn-sidebar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(241,241,241,.3); padding: 4px 8px 8px; }
-        .fn-client-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; border: 1px solid transparent; background: rgba(255,255,255,.04); color: inherit; cursor: pointer; text-align: left; transition: all .15s; width: 100%; }
-        .fn-client-btn:hover { background: rgba(255,255,255,.07); }
-        .fn-client-btn.active { background: rgba(38,194,129,.1); border-color: rgba(38,194,129,.3); }
-        .fn-client-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-        .fn-client-avatar { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
-        .fn-client-name { font-size: 12px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fn-has-sheet { font-size: 12px; color: rgba(38,194,129,.6); flex-shrink: 0; }
+        .fn-cp-option {
+          display: flex; align-items: center; gap: 8px;
+          padding: 8px 10px; border-radius: 8px; border: none;
+          background: transparent; color: #f1f1f1; cursor: pointer; text-align: left; width: 100%;
+          font-size: 13px; font-weight: 500; transition: background .12s;
+        }
+        .fn-cp-option:hover { background: rgba(255,255,255,.06); }
+        .fn-cp-option.active { background: rgba(38,194,129,.1); color: #26c281; font-weight: 700; }
 
         /* ─── Main ─── */
         .fn-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
         .fn-header { display: flex; align-items: flex-start; justify-content: space-between; }
         .fn-kicker { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #26c281; background: rgba(38,194,129,.1); border: 1px solid rgba(38,194,129,.2); border-radius: 100px; padding: 2px 10px; display: inline-block; margin-bottom: 5px; }
         .fn-title { font-size: 20px; font-weight: 700; margin: 0; color: #f1f1f1; }
-        .fn-no-crm { font-size: 12px; color: rgba(241,241,241,.35); margin: 4px 0 0; }
+        .fn-no-pgl { font-size: 12px; color: rgba(241,241,241,.35); margin: 4px 0 0; }
         .fn-refresh { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; color: #ccc; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all .15s; }
         .fn-refresh:hover { background: rgba(255,255,255,.1); }
         .fn-refresh:disabled { opacity: .4; cursor: not-allowed; }
@@ -755,7 +769,7 @@ export default function FunnelTab({ clients }) {
         .fn-stage-label { font-size: 11px; font-weight: 600; color: rgba(241,241,241,.7); display: flex; align-items: center; gap: 6px; }
         .fn-stage-src { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 1px 5px; border-radius: 100px; }
         .fn-src-meta { background: rgba(96,165,250,.15); color: #60a5fa; }
-        .fn-src-crm  { background: rgba(52,211,153,.15); color: #34d399; }
+        .fn-src-pgl  { background: rgba(52,211,153,.15); color: #34d399; }
         .fn-stage-count { font-size: 18px; font-weight: 700; color: #f1f1f1; line-height: 1.1; }
         .fn-stage-bars { padding-left: 42px; }
         .fn-bar-track { width: 100%; height: 7px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; margin-bottom: 3px; }
@@ -764,13 +778,13 @@ export default function FunnelTab({ clients }) {
         .fn-pct-prev { font-size: 10px; font-weight: 600; }
         .fn-pct-top { font-size: 10px; color: rgba(241,241,241,.3); }
 
-        /* CRM losses */
-        .fn-crm-losses { display: flex; gap: 8px; margin-top: 14px; }
-        .fn-crm-loss-item { flex: 1; display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.03); border: 1px solid; border-radius: 9px; padding: 9px 10px; }
-        .fn-crm-loss-item i { font-size: 16px; flex-shrink: 0; }
-        .fn-crm-loss-val { font-size: 15px; font-weight: 700; color: #f1f1f1; }
-        .fn-crm-loss-label { font-size: 10px; color: rgba(241,241,241,.45); }
-        .fn-crm-loss-label span { margin-left: 4px; color: rgba(241,241,241,.25); }
+        /* PGL losses */
+        .fn-pgl-losses { display: flex; gap: 8px; margin-top: 14px; }
+        .fn-pgl-loss-item { flex: 1; display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.03); border: 1px solid; border-radius: 9px; padding: 9px 10px; }
+        .fn-pgl-loss-item i { font-size: 16px; flex-shrink: 0; }
+        .fn-pgl-loss-val { font-size: 15px; font-weight: 700; color: #f1f1f1; }
+        .fn-pgl-loss-label { font-size: 10px; color: rgba(241,241,241,.45); }
+        .fn-pgl-loss-label span { margin-left: 4px; color: rgba(241,241,241,.25); }
 
         /* Timeline */
         .fn-timeline-card { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 16px 18px; }
@@ -782,7 +796,7 @@ export default function FunnelTab({ clients }) {
         .fn-tooltip-row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.6; }
 
         /* Misc */
-        .fn-crm-error { font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+        .fn-pgl-error { font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
         .fn-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 24px; text-align: center; }
         .fn-empty-state i { font-size: 48px; color: rgba(241,241,241,.15); }
         .fn-empty-state h3 { font-size: 17px; font-weight: 700; margin: 0; color: rgba(241,241,241,.6); }
@@ -790,8 +804,6 @@ export default function FunnelTab({ clients }) {
 
         /* Responsive */
         @media (max-width: 960px) {
-          .fn-root { grid-template-columns: 1fr; }
-          .fn-sidebar { position: static; max-height: 140px; flex-direction: row; flex-wrap: wrap; overflow-x: auto; }
           .fn-body { grid-template-columns: 1fr; }
           .fn-funnel-col { position: static; order: -1; }
         }
