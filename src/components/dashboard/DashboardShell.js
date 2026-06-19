@@ -19697,7 +19697,10 @@ export default function DashboardShell({
                                       <span className="campaign-compact-tree-status">
                                         <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
                                       </span>
-                                      <span className="campaign-compact-tree-name" title={campaign.name}>{campaign.name || 'Sem nome'}</span>
+                                      <span className="campaign-compact-tree-name" title={campaign.name}>
+                                        <span className="compact-level-badge compact-level-camp">Camp</span>
+                                        {campaign.name || 'Sem nome'}
+                                      </span>
                                       <span className="campaign-compact-cell">{formatCurrency(campaign.spend || 0)}</span>
                                       <span className="campaign-compact-cell">{formatNumber(campaign.results || 0)}<span className="campaign-compact-obj-tag">{campLabel.result}</span></span>
                                       <span className="campaign-compact-cell" style={campColor ? { color: campColor, fontWeight: 600 } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</span>
@@ -19725,7 +19728,7 @@ export default function DashboardShell({
                                           <div className="campaign-compact-tree-row campaign-compact-tree-adset" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{ cursor: 'pointer' }}>
                                             <span />
                                             <span className="campaign-compact-tree-name campaign-compact-tree-adset-name" title={adset.name}>
-                                              <i className="bx bx-collection" style={{ fontSize: 11, marginRight: 4, opacity: 0.5 }} />
+                                              <span className="compact-level-badge compact-level-adset">Conj</span>
                                               {adset.name || 'Conjunto sem nome'}
                                             </span>
                                             <span className="campaign-compact-cell">{formatCurrency(adset.spend || 0)}</span>
@@ -19751,7 +19754,7 @@ export default function DashboardShell({
                                               <div key={ad.adId || adIndex} className="campaign-compact-tree-row campaign-compact-tree-ad">
                                                 <span />
                                                 <span className="campaign-compact-tree-name campaign-compact-tree-ad-name" title={ad.name}>
-                                                  <i className="bx bx-image" style={{ fontSize: 11, marginRight: 4, opacity: 0.4 }} />
+                                                  <span className="compact-level-badge compact-level-ad">Ad</span>
                                                   {ad.name || 'Anúncio sem nome'}
                                                 </span>
                                                 <span className="campaign-compact-cell">{formatCurrency(ad.spend || 0)}</span>
@@ -35293,20 +35296,98 @@ export default function DashboardShell({
           color: rgba(241,241,241,0.65);
         }
 
+        /* Campaign level — bold left border, slightly elevated bg */
+        .campaign-compact-tree-campaign {
+          border-left: 3px solid rgba(38,194,129,0.35);
+          background: rgba(38,194,129,0.04);
+          border-radius: 0 6px 6px 0;
+          margin: 1px 8px 1px 0;
+        }
+
+        .campaign-compact-tree-campaign:hover {
+          background: rgba(38,194,129,0.08);
+        }
+
+        .campaign-compact-tree-campaign .campaign-compact-tree-name {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: rgba(241,241,241,0.85);
+        }
+
+        /* Adset level — thinner border, indented, dimmer */
         .campaign-compact-tree-adset {
-          padding-left: 52px;
-          background: rgba(255,255,255,0.012);
+          padding-left: 36px;
+          border-left: 2px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.015);
+          border-radius: 0 5px 5px 0;
+          margin: 1px 8px 1px 16px;
         }
 
+        .campaign-compact-tree-adset:hover {
+          background: rgba(255,255,255,0.03);
+        }
+
+        /* Ad level — dotted border, most indented, lowest opacity */
         .campaign-compact-tree-ad {
-          padding-left: 72px;
-          background: rgba(255,255,255,0.008);
+          padding-left: 36px;
+          border-left: 1px dashed rgba(255,255,255,0.08);
+          background: transparent;
+          border-radius: 0 5px 5px 0;
+          margin: 1px 8px 1px 32px;
         }
 
-        .campaign-compact-tree-adset-name,
-        .campaign-compact-tree-ad-name {
-          color: rgba(241,241,241,0.5) !important;
+        .campaign-compact-tree-ad:hover {
+          background: rgba(255,255,255,0.015);
+        }
+
+        .campaign-compact-tree-adset-name {
+          color: rgba(241,241,241,0.55) !important;
           font-size: 11.5px;
+        }
+
+        .campaign-compact-tree-ad-name {
+          color: rgba(241,241,241,0.4) !important;
+          font-size: 11px;
+        }
+
+        .campaign-compact-tree-adset .campaign-compact-cell {
+          color: rgba(241,241,241,0.5);
+        }
+
+        .campaign-compact-tree-ad .campaign-compact-cell {
+          color: rgba(241,241,241,0.38);
+          font-size: 11px;
+        }
+
+        .compact-level-badge {
+          display: inline-block;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          padding: 1px 5px;
+          border-radius: 4px;
+          margin-right: 6px;
+          vertical-align: middle;
+          flex-shrink: 0;
+          text-transform: uppercase;
+        }
+
+        .compact-level-camp {
+          background: rgba(38,194,129,0.18);
+          color: #26c281;
+          border: 1px solid rgba(38,194,129,0.3);
+        }
+
+        .compact-level-adset {
+          background: rgba(96,165,250,0.14);
+          color: #60a5fa;
+          border: 1px solid rgba(96,165,250,0.25);
+        }
+
+        .compact-level-ad {
+          background: rgba(167,139,250,0.12);
+          color: #a78bfa;
+          border: 1px solid rgba(167,139,250,0.22);
         }
 
         .campaign-compact-obj-tag {
