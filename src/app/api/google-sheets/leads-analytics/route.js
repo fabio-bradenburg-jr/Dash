@@ -114,13 +114,13 @@ function mergeAnalytics(results) {
   }
   const campaignMap = new Map(), adsetMap = new Map(), adMap = new Map(), sourceMap = new Map()
   const dateMap = new Map()
-  let total = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
+  let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
   const statusCountsMap = new Map()
 
   for (const r of results) {
     if (!r) continue
     const ov = r.overview
-    total += ov.total; qualified += ov.qualified; converted += ov.converted; lost += ov.lost; noreply += ov.noreply
+    total += ov.total; publicoAlvo += (ov.publicoAlvo || 0); qualified += ov.qualified; converted += ov.converted; lost += ov.lost; noreply += ov.noreply
     merge(campaignMap, r.campaigns || [])
     merge(adsetMap, r.adsets || [])
     merge(adMap, r.ads || [])
@@ -172,7 +172,7 @@ function mergeAnalytics(results) {
   }
 
   return {
-    overview: { total, qualified, converted, lost, noreply, other: total - qualified - lost - noreply, qualRate: total ? qualified/total : 0, convRate: total ? converted/total : 0, lostRate: total ? lost/total : 0, noReplyRate: total ? noreply/total : 0 },
+    overview: { total, publicoAlvo, qualified, converted, lost, noreply, publicoAlvoRate: total ? publicoAlvo/total : 0, qualRate: total ? qualified/total : 0, convRate: total ? converted/total : 0, lostRate: total ? lost/total : 0, noReplyRate: total ? noreply/total : 0 },
     statusDist, campaigns, adsets, ads, sources, timeline, insights,
     alerts: noReplyPct > 0.5 ? [{ type: 'critical', text: 'Mais de 50% dos leads sem resposta.' }] : [],
     detectedColumns: results[0]?.detectedColumns || {},
@@ -238,7 +238,8 @@ function dateKey(dt) {
 
 // ─── Quality Score ─────────────────────────────────────────────────────────────
 
-const QUALIFIED_PATTERNS = /p[uú]blico.?alvo|qualificado|mql|sql|oportun|agendado|em.?negocia[cç]|proposta|fechado|venda/i
+const PUBLICO_ALVO_PATTERNS = /p[uú]blico.?alvo/i
+const QUALIFIED_PATTERNS = /qualificado|mql|sql|oportun|agendado|em.?negocia[cç]|proposta|fechado|venda/i
 const CONVERTED_PATTERNS = /venda.?realizada|fechado|ganho|won|convertido|conversion/i
 const LOST_PATTERNS = /perdido|desqualificado|n[aã]o.?qualificado|cancelado|lost|rejeitado/i
 const NOREPLY_PATTERNS = /sem.?resposta|n[aã]o.?respondeu|no.?reply|inativo/i
@@ -246,6 +247,7 @@ const NOREPLY_PATTERNS = /sem.?resposta|n[aã]o.?respondeu|no.?reply|inativo/i
 function classifyStatus(status) {
   const s = String(status || '')
   if (CONVERTED_PATTERNS.test(s)) return 'converted'
+  if (PUBLICO_ALVO_PATTERNS.test(s)) return 'publicoAlvo'
   if (QUALIFIED_PATTERNS.test(s)) return 'qualified'
   if (LOST_PATTERNS.test(s)) return 'lost'
   if (NOREPLY_PATTERNS.test(s)) return 'noreply'
@@ -265,11 +267,12 @@ function computeScore({ total, qualified, converted, lost, noreply }) {
 // ─── Aggregation ─────────────────────────────────────────────────────────────
 
 function emptyBucket(name) {
-  return { name, total: 0, qualified: 0, converted: 0, lost: 0, noreply: 0, statusDist: {} }
+  return { name, total: 0, publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0, statusDist: {} }
 }
 
 function addToBucket(bucket, statusClass, rawStatus) {
   bucket.total++
+  if (statusClass === 'publicoAlvo') bucket.publicoAlvo++
   if (statusClass === 'qualified' || statusClass === 'converted') bucket.qualified++
   if (statusClass === 'converted') bucket.converted++
   if (statusClass === 'lost') bucket.lost++
@@ -307,7 +310,7 @@ function analyzeLeads({ rows, cols, headers }) {
   const sourceMap = new Map()
   const dateMap = new Map()
 
-  let total = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
+  let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
 
   for (const row of rows) {
     const campaign = cols.campaign !== undefined ? (row[cols.campaign] || 'Sem campanha') : null
@@ -323,6 +326,7 @@ function analyzeLeads({ rows, cols, headers }) {
     const statusClass = classifyStatus(rawClassifier)
 
     total++
+    if (statusClass === 'publicoAlvo') publicoAlvo++
     if (statusClass === 'qualified' || statusClass === 'converted') qualified++
     if (statusClass === 'converted') converted++
     if (statusClass === 'lost') lost++
@@ -407,8 +411,8 @@ function analyzeLeads({ rows, cols, headers }) {
 
   return {
     overview: {
-      total, qualified, converted, lost, noreply,
-      other: total - qualified - lost - noreply,
+      total, publicoAlvo, qualified, converted, lost, noreply,
+      publicoAlvoRate: total ? publicoAlvo / total : 0,
       qualRate: total ? qualified / total : 0,
       convRate: total ? converted / total : 0,
       lostRate: total ? lost / total : 0,

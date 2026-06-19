@@ -532,11 +532,11 @@ export default function LeadsDashboard({ client }) {
         <div className="ld-section">
           <div className="ld-metrics-grid">
             <MetricCard label="Total de Leads" value={fmt(overview.total)} icon="bx-user-plus" color="#60a5fa" />
+            <MetricCard label="Público-alvo" value={fmt(overview.publicoAlvo || 0)} sub={pct(overview.publicoAlvoRate)} icon="bx-target-lock" color="#a78bfa" />
             <MetricCard label="Qualificados" value={fmt(overview.qualified)} sub={pct(overview.qualRate)} icon="bx-check-shield" color="#22c55e" />
             <MetricCard label="Convertidos" value={fmt(overview.converted)} sub={pct(overview.convRate)} icon="bx-trophy" color="#10b981" />
             <MetricCard label="Perdidos" value={fmt(overview.lost)} sub={pct(overview.lostRate)} icon="bx-x-circle" color="#ef4444" />
             <MetricCard label="Sem Resposta" value={fmt(overview.noreply)} sub={pct(overview.noReplyRate)} icon="bx-time" color="#f59e0b" />
-            <MetricCard label="Outros" value={fmt(overview.other)} icon="bx-dots-horizontal" color="#6b7280" />
           </div>
 
           {/* Status pie + top campaigns bar side by side */}
@@ -726,7 +726,7 @@ export default function LeadsDashboard({ client }) {
                 <tbody>
                   {statusDist.map((s, i) => {
                     const color = QUAL_COLORS[i % QUAL_COLORS.length]
-                    const classLabel = { qualified: 'Qualificado', converted: 'Convertido', lost: 'Perdido', noreply: 'Sem resposta', other: 'Outros' }[s.class] || 'Outros'
+                    const classLabel = { publicoAlvo: 'Público-alvo', qualified: 'Qualificado', converted: 'Convertido', lost: 'Perdido', noreply: 'Sem resposta', other: 'Outros' }[s.class] || 'Outros'
                     return (
                       <tr key={s.label}>
                         <td>
