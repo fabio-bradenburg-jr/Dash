@@ -19586,6 +19586,16 @@ export default function DashboardShell({
                       ? { '--card-accent-r': accentRgb.r, '--card-accent-g': accentRgb.g, '--card-accent-b': accentRgb.b }
                       : {}
 
+                    const getObjectiveLabel = (objective) => {
+                      switch ((objective || '').toUpperCase()) {
+                        case 'OUTCOME_LEADS': case 'LEAD_GENERATION': return { result: 'Leads', cpr: 'Custo/lead' }
+                        case 'OUTCOME_SALES': case 'CONVERSIONS': case 'PRODUCT_CATALOG_SALES': return { result: 'Compras', cpr: 'Custo/compra' }
+                        case 'MESSAGES': case 'OUTCOME_ENGAGEMENT': return { result: 'Mensagens', cpr: 'Custo/msg' }
+                        case 'OUTCOME_TRAFFIC': case 'LINK_CLICKS': case 'TRAFFIC': return { result: 'Cliques', cpr: 'Custo/clique' }
+                        default: return { result: 'Resultados', cpr: 'Custo/resultado' }
+                      }
+                    }
+
                     if (campaignViewMode === 'grid') {
                       return (
                         <article key={`campaign-client-${row.clientId}`} className={'campaign-grid-card glass-item ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')} style={accentGlow}>
@@ -19758,7 +19768,7 @@ export default function DashboardShell({
                                           <strong>{formatCurrency(campaign.spend || 0)}</strong>
                                         </span>
                                         <span className="campaign-overview-metric">
-                                          <small>Resultados</small>
+                                          <small>{getObjectiveLabel(campaign.objective).result}</small>
                                           <strong>{formatNumber(campaign.results || 0)}</strong>
                                         </span>
                                         {(() => {
@@ -19766,7 +19776,7 @@ export default function DashboardShell({
                                           const campColor = getCprColor(campCpr)
                                           return (
                                             <span className="campaign-overview-metric" style={campColor ? { background: `${campColor}14`, borderRadius: 6, padding: '2px 6px' } : undefined}>
-                                              <small style={campColor ? { color: campColor, opacity: 1 } : undefined}>Custo/resultado</small>
+                                              <small style={campColor ? { color: campColor, opacity: 1 } : undefined}>{getObjectiveLabel(campaign.objective).cpr}</small>
                                               <strong style={campColor ? { color: campColor } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</strong>
                                             </span>
                                           )

@@ -126,25 +126,50 @@ function emptyMetrics() {
   }
 }
 
-function addMetrics(target, row) {
+// Map Meta campaign objective → which custom_metrics field counts as "results"
+function getResultsForObjective(objective, custom_metrics) {
+  const m = custom_metrics || {}
+  switch ((objective || '').toUpperCase()) {
+    case 'OUTCOME_LEADS':
+    case 'LEAD_GENERATION':
+      return Number(m.leads || 0)
+    case 'OUTCOME_SALES':
+    case 'CONVERSIONS':
+    case 'PRODUCT_CATALOG_SALES':
+      return Number(m.purchases || 0)
+    case 'OUTCOME_ENGAGEMENT':
+    case 'MESSAGES':
+    case 'OUTCOME_TRAFFIC':
+    case 'LINK_CLICKS':
+    case 'TRAFFIC':
+      return Number(m.messages || 0) || Number(m.leads || 0) || Number(m.purchases || 0)
+    default:
+      // Fallback: pick whichever is highest
+      return Math.max(Number(m.purchases || 0), Number(m.leads || 0), Number(m.messages || 0))
+  }
+}
+
+function addMetrics(target, row, objective) {
   target.spend += Number(row.spend || 0)
   target.impressions += Number(row.impressions || 0)
   target.clicks += Number(row.clicks || 0)
-  target.results += Number(row.custom_metrics?.totalConversions || 0)
+  target.results += getResultsForObjective(objective, row.custom_metrics)
 }
 
 function sortBySpend(items) {
   return items.sort((left, right) => Number(right.spend || 0) - Number(left.spend || 0))
 }
 
-function aggregateHierarchy(rows) {
+function aggregateHierarchy(rows, objectiveMap) {
   const campaignsById = new Map()
   const totals = emptyMetrics()
 
   rows.forEach((rawRow) => {
     const formatted = formatInsightsWithConversions(rawRow)
+    const campaignId = rawRow.campaign_id || ''
+    const objective = objectiveMap?.get(campaignId) || ''
     const row = {
-      campaignId: rawRow.campaign_id || '',
+      campaignId,
       campaignName: rawRow.campaign_name || 'Campanha sem nome',
       adsetId: rawRow.adset_id || '',
       adsetName: rawRow.adset_name || 'Conjunto sem nome',
@@ -158,18 +183,19 @@ function aggregateHierarchy(rows) {
 
     if (!row.campaignId || !row.adsetId || !row.adId || row.spend <= 0) return
 
-    addMetrics(totals, row)
+    addMetrics(totals, row, objective)
 
     if (!campaignsById.has(row.campaignId)) {
       campaignsById.set(row.campaignId, {
         campaignId: row.campaignId,
         name: row.campaignName,
+        objective,
         ...emptyMetrics(),
         adsetsById: new Map(),
       })
     }
     const campaign = campaignsById.get(row.campaignId)
-    addMetrics(campaign, row)
+    addMetrics(campaign, row, objective)
 
     if (!campaign.adsetsById.has(row.adsetId)) {
       campaign.adsetsById.set(row.adsetId, {
@@ -180,14 +206,14 @@ function aggregateHierarchy(rows) {
       })
     }
     const adset = campaign.adsetsById.get(row.adsetId)
-    addMetrics(adset, row)
+    addMetrics(adset, row, objective)
     adset.ads.push({
       adId: row.adId,
       name: row.adName,
       spend: row.spend,
       impressions: row.impressions,
       clicks: row.clicks,
-      results: Number(row.custom_metrics?.totalConversions || 0),
+      results: getResultsForObjective(objective, row.custom_metrics),
     })
   })
 
@@ -251,18 +277,22 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
         maxPages: 3,
       }),
       fetchMetaJson(
-        `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns?fields=id,effective_status&limit=500&access_token=${encodeURIComponent(token)}`,
+        `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns?fields=id,effective_status,objective&limit=500&access_token=${encodeURIComponent(token)}`,
         'A Meta demorou para responder ao carregar status das campanhas.',
         { cacheContext: { clientKey: adAccountId, resourceKind: 'campaigns_status' }, maxPages: 2 }
       ).catch(() => ({ data: [] })),
     ])
 
     const statusMap = new Map()
+    const objectiveMap = new Map()
     ;((campaignsData?.data) || []).forEach((c) => {
-      if (c.id) statusMap.set(c.id, c.effective_status || '')
+      if (c.id) {
+        statusMap.set(c.id, c.effective_status || '')
+        objectiveMap.set(c.id, c.objective || '')
+      }
     })
 
-    const hierarchy = aggregateHierarchy(data?.data || [])
+    const hierarchy = aggregateHierarchy(data?.data || [], objectiveMap)
     const campaigns = hierarchy.campaigns.map((c) => ({
       ...c,
       effectiveStatus: statusMap.get(c.campaignId) || '',
