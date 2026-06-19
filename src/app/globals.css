@@ -589,7 +589,7 @@ body {
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     min-height: 42px;
     padding: 0 14px;
     color: var(--text-secondary);
