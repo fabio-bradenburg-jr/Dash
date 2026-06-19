@@ -20,7 +20,26 @@ export const META_PURCHASE_EVENTS = [
   'offsite_conversion.fb_pixel_purchase',
 ]
 export const META_LEAD_EVENTS = ['lead', 'onsite_conversion.lead_grouped']
-export const META_MESSAGE_EVENTS = ['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.messaging_first_reply']
+export const META_MESSAGE_EVENTS = [
+  'onsite_conversion.messaging_conversation_started_7d',
+  'onsite_conversion.messaging_first_reply',
+  'messaging_conversation_started_7d',
+  'onsite_conversion.messaging_welcome_message_view',
+  'onsite_conversion.messaging_block',
+]
+export const META_ENGAGEMENT_EVENTS = [
+  'post_engagement',
+  'page_engagement',
+  'post_reaction',
+  'comment',
+  'post',
+  'onsite_conversion.post_save',
+]
+export const META_VISIT_EVENTS = [
+  'landing_page_view',
+  'offsite_conversion.fb_pixel_view_content',
+  'view_content',
+]
 export const META_LINK_CLICK_EVENTS = ['link_click', 'inline_link_click', 'outbound_click']
 export const META_THRUPLAY_EVENTS = ['thruplay', 'video_thruplay_watched_actions']
 export const META_LANDING_PAGE_VIEW_EVENTS = ['landing_page_view']

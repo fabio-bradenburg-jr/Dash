@@ -19590,8 +19590,11 @@ export default function DashboardShell({
                       switch ((objective || '').toUpperCase()) {
                         case 'OUTCOME_LEADS': case 'LEAD_GENERATION': return { result: 'Leads', cpr: 'Custo/lead' }
                         case 'OUTCOME_SALES': case 'CONVERSIONS': case 'PRODUCT_CATALOG_SALES': return { result: 'Compras', cpr: 'Custo/compra' }
-                        case 'MESSAGES': case 'OUTCOME_ENGAGEMENT': return { result: 'Mensagens', cpr: 'Custo/msg' }
-                        case 'OUTCOME_TRAFFIC': case 'LINK_CLICKS': case 'TRAFFIC': return { result: 'Cliques', cpr: 'Custo/clique' }
+                        case 'MESSAGES': return { result: 'Conversas', cpr: 'Custo/conversa' }
+                        case 'OUTCOME_ENGAGEMENT': case 'POST_ENGAGEMENT': case 'PAGE_LIKES': return { result: 'Engajamento', cpr: 'Custo/eng.' }
+                        case 'OUTCOME_TRAFFIC': case 'LINK_CLICKS': case 'TRAFFIC': return { result: 'Visitas', cpr: 'Custo/visita' }
+                        case 'OUTCOME_AWARENESS': case 'REACH': case 'BRAND_AWARENESS': return { result: 'Alcance', cpr: 'CPM efetivo' }
+                        case 'VIDEO_VIEWS': case 'OUTCOME_VIDEO_VIEWS': return { result: 'Visualizações', cpr: 'Custo/view' }
                         default: return { result: 'Resultados', cpr: 'Custo/resultado' }
                       }
                     }

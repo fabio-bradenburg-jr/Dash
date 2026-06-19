@@ -129,23 +129,51 @@ function emptyMetrics() {
 // Map Meta campaign objective → which custom_metrics field counts as "results"
 function getResultsForObjective(objective, custom_metrics) {
   const m = custom_metrics || {}
+  const purchases = Number(m.purchases || 0)
+  const leads = Number(m.leads || 0)
+  const messages = Number(m.messages || 0)
+  const thruplays = Number(m.thruplays || 0)
+  const landingPageViews = Number(m.landingPageViews || 0)
+  const clicks = Number(m.linkClicks || m.clicks || 0)
+
   switch ((objective || '').toUpperCase()) {
     case 'OUTCOME_LEADS':
     case 'LEAD_GENERATION':
-      return Number(m.leads || 0)
+      return leads
+
     case 'OUTCOME_SALES':
     case 'CONVERSIONS':
     case 'PRODUCT_CATALOG_SALES':
-      return Number(m.purchases || 0)
-    case 'OUTCOME_ENGAGEMENT':
+      return purchases || leads  // purchases first, leads as fallback for pixel-based
+
     case 'MESSAGES':
+      return messages || leads   // messages first; some accounts track as leads
+
+    case 'OUTCOME_ENGAGEMENT':
+    case 'POST_ENGAGEMENT':
+    case 'PAGE_LIKES':
+    case 'EVENT_RESPONSES':
+      // Engagement — pick best non-zero: messages > leads > purchases
+      return messages || leads || purchases
+
     case 'OUTCOME_TRAFFIC':
     case 'LINK_CLICKS':
     case 'TRAFFIC':
-      return Number(m.messages || 0) || Number(m.leads || 0) || Number(m.purchases || 0)
+      // Traffic — landing page views or link clicks
+      return landingPageViews || clicks || leads || purchases
+
+    case 'OUTCOME_AWARENESS':
+    case 'REACH':
+    case 'BRAND_AWARENESS':
+      return thruplays || clicks || landingPageViews
+
+    case 'VIDEO_VIEWS':
+    case 'OUTCOME_VIDEO_VIEWS':
+      return thruplays
+
     default:
-      // Fallback: pick whichever is highest
-      return Math.max(Number(m.purchases || 0), Number(m.leads || 0), Number(m.messages || 0))
+      // Pick whichever is highest across all known conversion types
+      return Math.max(purchases, leads, messages, landingPageViews) || clicks
   }
 }
 
