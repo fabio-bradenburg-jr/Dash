@@ -10,6 +10,7 @@ import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
+import FunnelTab from '@/components/dashboard/FunnelTab'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -3545,7 +3546,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -16826,6 +16827,12 @@ export default function DashboardShell({
                       <span className="nav-label">Planilha de Leads</span>
                     </button>
                   )}
+                  {(isMaster || hasNavAccess('funil')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => setActiveTab('funil')}>
+                      <i className="bx bx-filter-alt"></i>
+                      <span className="nav-label">Funil</span>
+                    </button>
+                  )}
                   {(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
                       <i className="bx bx-task"></i>
@@ -17924,6 +17931,15 @@ export default function DashboardShell({
             </section>
           )
         })()}
+
+        {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
+          <FunnelTab
+            clients={clients}
+            campaignOverviewRows={campaignOverviewRows}
+            campaignOverviewLoading={campaignOverviewLoading}
+            datePreset={dateRange || 'last_7d'}
+          />
+        )}
 
         {activeTab === 'gr-tarefas' && (isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (() => {
           const GR_TASKS_FALLBACK = [
@@ -21608,6 +21624,7 @@ export default function DashboardShell({
                   { key: 'saldos', label: 'Saldos', group: 'Performance' },
                   { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
                   { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
+                  { key: 'funil', label: 'Funil', group: 'Performance' },
                   { key: 'gr-tarefas', label: 'G.R - Tarefas', group: 'Performance' },
                   { key: 'editorial-dash', label: 'Painel', group: 'Social Media' },
                   { key: 'editorial', label: 'Calendário', group: 'Social Media' },
