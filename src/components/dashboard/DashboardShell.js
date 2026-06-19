@@ -19693,7 +19693,7 @@ export default function DashboardShell({
                                 const campaignExpanded = campaignOverviewExpandedCampaignIds.includes(campaignKey)
                                 return (
                                   <div key={campaignKey}>
-                                    <div className="campaign-compact-tree-row campaign-compact-tree-campaign" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} style={{ cursor: adsets.length ? 'pointer' : 'default' }}>
+                                    <div className="campaign-compact-tree-row campaign-compact-tree-campaign" onClick={() => handleToggleCampaignOverviewCampaign(campaignKey)} style={{ cursor: 'pointer' }}>
                                       <span className="campaign-compact-tree-status">
                                         <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: campaign.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: campaign.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
                                       </span>
@@ -19703,10 +19703,18 @@ export default function DashboardShell({
                                       <span className="campaign-compact-cell" style={campColor ? { color: campColor, fontWeight: 600 } : undefined}>{campCpr ? formatCurrency(campCpr) : '—'}</span>
                                       <span className="campaign-compact-cell campaign-compact-meta" />
                                       <span className="campaign-compact-health" />
-                                      <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        {adsets.length > 0 && <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 14, color: 'rgba(241,241,241,0.4)' }} />}
+                                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                                        <button type="button" className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[campaignKey] ? ' active' : '')} onClick={() => handleToggleCampaignChart(campaignKey, campaign.campaignId)} title="Ver evolução diária">
+                                          <i className="bx bx-line-chart"></i>
+                                        </button>
+                                        {adsets.length > 0 && <i className={'bx ' + (campaignExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 14, color: 'rgba(241,241,241,0.4)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleToggleCampaignOverviewCampaign(campaignKey) }} />}
                                       </span>
                                     </div>
+                                    {campaignChartOpenKeys[campaignKey] && (
+                                      <div className="campaign-chart-panel" style={{ margin: '0 16px 8px' }}>
+                                        {renderCampaignChart(campaignKey, effectiveWorkspaceBranding.primaryColor)}
+                                      </div>
+                                    )}
                                     {campaignExpanded && adsets.map((adset, adsetIndex) => {
                                       const adsetKey = `${campaignKey}:${adset.adsetId || adsetIndex}`
                                       const adsetCpr = adset.results > 0 ? (adset.spend || 0) / adset.results : null
@@ -19714,7 +19722,7 @@ export default function DashboardShell({
                                       const adsetExpanded = campaignOverviewExpandedAdsetIds.includes(adsetKey)
                                       return (
                                         <div key={adsetKey}>
-                                          <div className="campaign-compact-tree-row campaign-compact-tree-adset" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{ cursor: ads.length ? 'pointer' : 'default' }}>
+                                          <div className="campaign-compact-tree-row campaign-compact-tree-adset" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{ cursor: 'pointer' }}>
                                             <span />
                                             <span className="campaign-compact-tree-name campaign-compact-tree-adset-name" title={adset.name}>
                                               <i className="bx bx-collection" style={{ fontSize: 11, marginRight: 4, opacity: 0.5 }} />
@@ -19725,10 +19733,18 @@ export default function DashboardShell({
                                             <span className="campaign-compact-cell">{adsetCpr ? formatCurrency(adsetCpr) : '—'}</span>
                                             <span className="campaign-compact-cell campaign-compact-meta" />
                                             <span className="campaign-compact-health" />
-                                            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                              {ads.length > 0 && <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 13, color: 'rgba(241,241,241,0.35)' }} />}
+                                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                                              <button type="button" className={'campaign-chart-icon-btn' + (campaignChartOpenKeys[adsetKey] ? ' active' : '')} onClick={() => handleToggleCampaignChart(adsetKey, adset.adsetId)} title="Ver evolução diária">
+                                                <i className="bx bx-line-chart"></i>
+                                              </button>
+                                              {ads.length > 0 && <i className={'bx ' + (adsetExpanded ? 'bx-chevron-up' : 'bx-chevron-down')} style={{ fontSize: 13, color: 'rgba(241,241,241,0.35)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleToggleCampaignOverviewAdset(adsetKey) }} />}
                                             </span>
                                           </div>
+                                          {campaignChartOpenKeys[adsetKey] && (
+                                            <div className="campaign-chart-panel" style={{ margin: '0 16px 8px 52px' }}>
+                                              {renderCampaignChart(adsetKey, effectiveWorkspaceBranding.primaryColor)}
+                                            </div>
+                                          )}
                                           {adsetExpanded && ads.map((ad, adIndex) => {
                                             const adCpr = ad.results > 0 ? (ad.spend || 0) / ad.results : null
                                             return (
