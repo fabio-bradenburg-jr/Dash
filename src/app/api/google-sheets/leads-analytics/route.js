@@ -43,13 +43,21 @@ function parseCsv(text, delimiter = ',') {
   return rows.map(r => r.map(c => String(c || '').trim())).filter(r => r.some(c => c))
 }
 
-function buildCsvUrls(url) {
+function extractSheetId(url) {
+  const s = String(url || '').trim()
+  const m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
+  if (m) return m[1]
+  if (/^[a-zA-Z0-9-_]{20,}$/.test(s)) return s
+  return null
+}
+
+function buildCsvUrls(url, gidOverride) {
   const s = String(url || '').trim()
   if (!s) throw new Error('URL inválida.')
-  if (/\/export/i.test(s)) return [s]
-  const id = (s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/) || [])[1] || s.match(/^[a-zA-Z0-9-_]{20,}$/)?.[0]
+  if (/\/export/i.test(s) && !gidOverride) return [s]
+  const id = extractSheetId(s)
   if (!id) throw new Error('Não foi possível identificar a planilha.')
-  const gid = (s.match(/[?#&]gid=(\d+)/) || [])[1] || '0'
+  const gid = gidOverride ?? (s.match(/[?#&]gid=(\d+)/) || [])[1] ?? '0'
   return [
     `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`,
     `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,
@@ -61,13 +69,115 @@ function isErrorPayload(text) {
   return !t || /<html/i.test(t) || ['sign in', 'access denied', 'permission', 'you need access', 'solicite acesso', 'não autorizado'].some(s => t.includes(s))
 }
 
-async function fetchSheetText(url) {
-  for (const candidate of buildCsvUrls(url)) {
+async function fetchSheetText(url, gidOverride) {
+  for (const candidate of buildCsvUrls(url, gidOverride)) {
     const res = await fetch(candidate, { cache: 'no-store' })
     const text = await res.text()
     if (res.ok && text.trim() && !isErrorPayload(text)) return { csvUrl: candidate, text }
   }
   throw new Error('A planilha não está pública para leitura. Publique o Google Sheets para que o app consiga importar os dados.')
+}
+
+async function fetchAllTabGids(sheetId) {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`
+  const res = await fetch(url, { cache: 'no-store', headers: { 'User-Agent': 'Mozilla/5.0' } })
+  if (!res.ok) return []
+  const html = await res.text()
+  const gids = new Set()
+  const p = /"sheetId"\s*:\s*(\d+)/g
+  let m
+  while ((m = p.exec(html)) !== null) gids.add(m[1])
+  return Array.from(gids)
+}
+
+function mergeAnalytics(results) {
+  // Merge multiple analyzeLeads results into one combined result
+  const merge = (map, items) => {
+    for (const item of items) {
+      if (!map.has(item.name)) {
+        map.set(item.name, { ...item, statusDist: [...item.statusDist] })
+      } else {
+        const existing = map.get(item.name)
+        existing.total += item.total
+        existing.qualified += item.qualified
+        existing.converted += item.converted
+        existing.lost += item.lost
+        existing.noreply += item.noreply
+        // merge statusDist
+        for (const sd of item.statusDist) {
+          const ex = existing.statusDist.find(x => x.label === sd.label)
+          if (ex) ex.count += sd.count
+          else existing.statusDist.push({ ...sd })
+        }
+      }
+    }
+  }
+  const campaignMap = new Map(), adsetMap = new Map(), adMap = new Map(), sourceMap = new Map()
+  const dateMap = new Map()
+  let total = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
+  const statusCountsMap = new Map()
+
+  for (const r of results) {
+    if (!r) continue
+    const ov = r.overview
+    total += ov.total; qualified += ov.qualified; converted += ov.converted; lost += ov.lost; noreply += ov.noreply
+    merge(campaignMap, r.campaigns || [])
+    merge(adsetMap, r.adsets || [])
+    merge(adMap, r.ads || [])
+    merge(sourceMap, r.sources || [])
+    for (const sd of r.statusDist || []) {
+      statusCountsMap.set(sd.label, (statusCountsMap.get(sd.label) || 0) + sd.count)
+    }
+    for (const t of r.timeline || []) {
+      const ex = dateMap.get(t.date)
+      if (ex) { ex.total += t.total; ex.qualified += t.qualified; ex.converted += t.converted; ex.lost += t.lost }
+      else dateMap.set(t.date, { ...t })
+    }
+  }
+
+  const recompute = (bucket) => {
+    const { total: t, qualified: q, converted: c, lost: l, noreply: n } = bucket
+    bucket.qualRate = t ? q / t : 0
+    bucket.convRate = t ? c / t : 0
+    bucket.lostRate = t ? l / t : 0
+    bucket.noReplyRate = t ? n / t : 0
+    bucket.score = computeScore({ total: t, qualified: q, converted: c, lost: l, noreply: n })
+    bucket.statusDist.sort((a, b) => b.count - a.count)
+    return bucket
+  }
+
+  const toArr = (map) => Array.from(map.values()).map(recompute).sort((a, b) => b.total - a.total)
+  const statusDist = Array.from(statusCountsMap.entries())
+    .map(([label, count]) => ({ label, count, class: classifyStatus(label) }))
+    .sort((a, b) => b.count - a.count)
+  const timeline = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+  const campaigns = toArr(campaignMap), adsets = toArr(adsetMap), ads = toArr(adMap), sources = toArr(sourceMap)
+
+  const insights = []
+  if (campaigns.length >= 2) {
+    const topVol = campaigns[0]
+    const topQual = [...campaigns].sort((a, b) => b.qualRate - a.qualRate)[0]
+    insights.push({ type: 'info', text: `A campanha "${topVol.name}" gerou mais leads (${topVol.total}).` })
+    if (topQual.name !== topVol.name && topQual.qualified > 0) {
+      insights.push({ type: 'info', text: `Melhor qualificação: "${topQual.name}" (${Math.round(topQual.qualRate * 100)}%).` })
+    }
+  }
+  const noReplyPct = total ? noreply / total : 0
+  if (noReplyPct > 0.3) insights.push({ type: 'warning', text: `${Math.round(noReplyPct * 100)}% dos leads estão sem resposta.` })
+  const lostPct = total ? lost / total : 0
+  if (lostPct > 0.4) insights.push({ type: 'warning', text: `Alto índice de perdas: ${Math.round(lostPct * 100)}%.` })
+  if (ads.length > 0) {
+    const topAd = [...ads].sort((a, b) => b.qualRate - a.qualRate)[0]
+    if (topAd.qualified > 0) insights.push({ type: 'success', text: `Melhor anúncio: "${topAd.name}" (${Math.round(topAd.qualRate * 100)}%).` })
+  }
+
+  return {
+    overview: { total, qualified, converted, lost, noreply, other: total - qualified - lost - noreply, qualRate: total ? qualified/total : 0, convRate: total ? converted/total : 0, lostRate: total ? lost/total : 0, noReplyRate: total ? noreply/total : 0 },
+    statusDist, campaigns, adsets, ads, sources, timeline, insights,
+    alerts: noReplyPct > 0.5 ? [{ type: 'critical', text: 'Mais de 50% dos leads sem resposta.' }] : [],
+    detectedColumns: results[0]?.detectedColumns || {},
+    headers: results[0]?.headers || [],
+  }
 }
 
 function resolveHeaders(rows, headerRow = 1) {
@@ -82,13 +192,16 @@ function resolveHeaders(rows, headerRow = 1) {
 // ─── Column Detection ─────────────────────────────────────────────────────────
 
 const COLUMN_PATTERNS = {
-  campaign: /campanha|campaign|utm_campaign/i,
-  adset: /conjunto|adset|ad.?set|grupo.?(an[uú]ncio|an[uú]ncios)|grupo.?m[ií]dia/i,
-  ad: /^an[uú]ncio$|^ad$|^criativo$|^creative$|nome.?an[uú]ncio|ad.?name/i,
-  status: /status|etapa|fase|pipeline|situa[cç][aã]o/i,
-  date: /data|date|cria[cç][aã]o|entrada|dt[_\s-]/i,
-  source: /origem|source|utm_source|canal/i,
-  name: /^nome$|^name$|lead|contato|prospect/i,
+  // Meta Leads sheet exact names first, then generic fallbacks
+  campaign:      /^campaign_name$|^campanha$|^campaign$|utm_campaign/i,
+  adset:         /^adset_name$|^conjunto$|^adset$|^ad.?set$|grupo.?(an[uú]ncio|an[uú]ncios)/i,
+  ad:            /^ad_name$|^an[uú]ncio$|^ad$|^criativo$|^creative$/i,
+  qualification: /^qualifica[cç][aã]o$|^qualif/i,           // primary: Qualificação column
+  status:        /^lead_status$|^status$|etapa|fase|pipeline|situa[cç][aã]o/i,
+  date:          /^created_time$|^data.?(qualifica|entrada)?$|^dt[_\s-]/i,
+  source:        /^platform$|origem|source|utm_source|canal/i,
+  reason:        /^motivo$|^reason$/i,
+  seller:        /^vendedor$|^seller$/i,
 }
 
 function detectColumns(headers) {
@@ -201,10 +314,13 @@ function analyzeLeads({ rows, cols, headers }) {
     const adset = cols.adset !== undefined ? (row[cols.adset] || 'Sem conjunto') : null
     const ad = cols.ad !== undefined ? (row[cols.ad] || 'Sem anúncio') : null
     const source = cols.source !== undefined ? (row[cols.source] || 'Sem origem') : null
+    // Use Qualificação as primary dimension; fall back to status
+    const rawQual = cols.qualification !== undefined ? (row[cols.qualification] || '') : ''
     const rawStatus = cols.status !== undefined ? (row[cols.status] || '') : ''
+    const rawClassifier = rawQual || rawStatus  // what we classify on
     const rawDate = cols.date !== undefined ? row[cols.date] : null
 
-    const statusClass = classifyStatus(rawStatus)
+    const statusClass = classifyStatus(rawClassifier)
 
     total++
     if (statusClass === 'qualified' || statusClass === 'converted') qualified++
@@ -212,7 +328,7 @@ function analyzeLeads({ rows, cols, headers }) {
     if (statusClass === 'lost') lost++
     if (statusClass === 'noreply') noreply++
 
-    const statusLabel = rawStatus || 'Sem status'
+    const statusLabel = rawClassifier || 'Sem qualificação'
     statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1
 
     if (campaign) {
@@ -310,6 +426,7 @@ function analyzeLeads({ rows, cols, headers }) {
       campaign: cols.campaign !== undefined ? headers[cols.campaign] : null,
       adset: cols.adset !== undefined ? headers[cols.adset] : null,
       ad: cols.ad !== undefined ? headers[cols.ad] : null,
+      qualification: cols.qualification !== undefined ? headers[cols.qualification] : null,
       status: cols.status !== undefined ? headers[cols.status] : null,
       date: cols.date !== undefined ? headers[cols.date] : null,
       source: cols.source !== undefined ? headers[cols.source] : null,
@@ -336,21 +453,40 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const sourceUrl = searchParams.get('url') || ''
     const headerRow = Number(searchParams.get('header_row') || '1')
+    const gid = searchParams.get('gid') || null  // null = use URL gid, 'all' = all tabs
 
     if (!sourceUrl) return NextResponse.json({ error: 'URL não informada.' }, { status: 400 })
 
-    const { text } = await fetchSheetText(sourceUrl)
-    const delimiter = detectDelimiter(text)
-    const allRows = parseCsv(text, delimiter)
-    const { headerIndex, headers } = resolveHeaders(allRows, headerRow)
-    const dataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
-    const cols = detectColumns(headers)
+    const sheetId = extractSheetId(sourceUrl)
 
-    const analytics = analyzeLeads({ rows: dataRows, cols, headers })
+    async function analyzeGid(gidValue) {
+      const { text } = await fetchSheetText(sourceUrl, gidValue)
+      const delimiter = detectDelimiter(text)
+      const allRows = parseCsv(text, delimiter)
+      const { headerIndex, headers } = resolveHeaders(allRows, headerRow)
+      const dataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
+      const cols = detectColumns(headers)
+      return analyzeLeads({ rows: dataRows, cols, headers })
+    }
+
+    let analytics, totalRows
+
+    if (gid === 'all' && sheetId) {
+      const gids = await fetchAllTabGids(sheetId)
+      const validGids = gids.length > 0 ? gids : ['0']
+      const results = await Promise.all(validGids.map(g => analyzeGid(g).catch(() => null)))
+      const validResults = results.filter(Boolean)
+      if (!validResults.length) throw new Error('Não foi possível carregar nenhuma aba.')
+      analytics = mergeAnalytics(validResults)
+      totalRows = validResults.reduce((s, r) => s + r.overview.total, 0)
+    } else {
+      analytics = await analyzeGid(gid)
+      totalRows = analytics.overview.total
+    }
 
     return NextResponse.json({
       updatedAt: new Date().toISOString(),
-      totalRows: dataRows.length,
+      totalRows,
       ...analytics,
     })
   } catch (err) {

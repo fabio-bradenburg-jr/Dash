@@ -17833,9 +17833,9 @@ export default function DashboardShell({
                   <p>Vá em <strong>Clientes → Integrações</strong> e cole o link do Google Sheets para cada cliente.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12, minHeight: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12, alignItems: 'start' }}>
                   {/* Client list */}
-                  <div className="glass-panel" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                  <div className="glass-panel" style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', position: 'sticky', top: 0, maxHeight: 'calc(100vh - 160px)' }}>
                     <div style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.4, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 6px' }}>Clientes</div>
                     {sheetClients.map(c => (
                       <button
@@ -17862,7 +17862,7 @@ export default function DashboardShell({
                   </div>
 
                   {/* Main content panel */}
-                  <div style={{ minHeight: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                  <div style={{ minHeight: 0 }}>
                     {!selectedSheetClient ? (
                       <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, flexDirection: 'column', gap: 12 }}>
                         <i className="bx bx-table" style={{ fontSize: '2rem', opacity: 0.3 }}></i>
@@ -17871,7 +17871,7 @@ export default function DashboardShell({
                     ) : sheetViewMode === 'dashboard' ? (
                       <LeadsDashboard key={selectedSheetClient.id} client={selectedSheetClient} />
                     ) : (
-                      <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, position: 'relative', height: 'calc(100vh - 210px)' }}>
+                      <div className="glass-panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 16, position: 'relative', height: 'calc(100vh - 160px)' }}>
                         <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, display: 'flex', gap: 6 }}>
                           <a
                             href={selectedSheetClient.leadsSheetUrl}

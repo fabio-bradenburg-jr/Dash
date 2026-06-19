@@ -205,9 +205,9 @@ function FilterBar({ data, filters, onChange }) {
         </select>
       </div>
       <div className="ld-filter-group">
-        <label>Status</label>
+        <label>Qualificação</label>
         <select value={filters.status || ''} onChange={e => set('status', e.target.value)}>
-          <option value="">Todos</option>
+          <option value="">Todas</option>
           {(statusDist || []).map(s => <option key={s.label} value={s.label}>{s.label}</option>)}
         </select>
       </div>
@@ -240,8 +240,26 @@ export default function LeadsDashboard({ client }) {
   const [activeSection, setActiveSection] = useState('overview')
   const [filters, setFilters] = useState({ campaign: '', adset: '', ad: '', status: '', source: '' })
 
+  // Tab state
+  const [tabs, setTabs] = useState([])           // [{ gid, name }]
+  const [tabsLoading, setTabsLoading] = useState(false)
+  const [selectedGid, setSelectedGid] = useState('all')  // 'all' | gid string
+
   const sheetUrl = client?.leadsSheetUrl || ''
   const headerRow = client?.googleSheetsHeaderRow || 1
+
+  // Fetch tab list when client changes
+  useEffect(() => {
+    if (!sheetUrl) return
+    setTabsLoading(true)
+    setTabs([])
+    setSelectedGid('all')
+    fetch(`/api/google-sheets/tabs?url=${encodeURIComponent(sheetUrl)}`)
+      .then(r => r.json())
+      .then(json => { if (json.tabs?.length) setTabs(json.tabs) })
+      .catch(() => {})
+      .finally(() => setTabsLoading(false))
+  }, [sheetUrl])
 
   const load = useCallback(async () => {
     if (!sheetUrl) return
@@ -249,6 +267,8 @@ export default function LeadsDashboard({ client }) {
     setError('')
     try {
       const params = new URLSearchParams({ url: sheetUrl, header_row: headerRow })
+      if (selectedGid && selectedGid !== 'all') params.set('gid', selectedGid)
+      else if (selectedGid === 'all') params.set('gid', 'all')
       const res = await fetch(`/api/google-sheets/leads-analytics?${params}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erro ao carregar dados.')
@@ -258,7 +278,7 @@ export default function LeadsDashboard({ client }) {
     } finally {
       setLoading(false)
     }
-  }, [sheetUrl, headerRow])
+  }, [sheetUrl, headerRow, selectedGid])
 
   useEffect(() => { load() }, [load])
 
@@ -325,7 +345,7 @@ export default function LeadsDashboard({ client }) {
     { id: 'campaigns', label: 'Campanhas', icon: 'bx-rocket', disabled: !campaigns?.length },
     { id: 'adsets', label: 'Conjuntos', icon: 'bx-layer', disabled: !adsets?.length },
     { id: 'ads', label: 'Anúncios', icon: 'bx-image', disabled: !ads?.length },
-    { id: 'status', label: 'Status', icon: 'bx-pie-chart-alt' },
+    { id: 'status', label: 'Qualificação', icon: 'bx-pie-chart-alt' },
     { id: 'timeline', label: 'Evolução', icon: 'bx-trending-up', disabled: !timeline?.length },
   ]
 
@@ -338,11 +358,12 @@ export default function LeadsDashboard({ client }) {
             <span className="ld-kicker">Dashboard de Leads</span>
             <h2 className="ld-title">{client?.name}</h2>
           </div>
-          {detectedColumns.campaign && (
+          {(detectedColumns.campaign || detectedColumns.qualification || detectedColumns.status) && (
             <div className="ld-detected-cols">
-              {Object.entries(detectedColumns).filter(([, v]) => v).map(([k, v]) => (
-                <span key={k} className="ld-col-tag">{v}</span>
-              ))}
+              {detectedColumns.campaign && <span className="ld-col-tag"><i className="bx bx-rocket" /> {detectedColumns.campaign}</span>}
+              {(detectedColumns.qualification || detectedColumns.status) && <span className="ld-col-tag"><i className="bx bx-check-shield" /> {detectedColumns.qualification || detectedColumns.status}</span>}
+              {detectedColumns.date && <span className="ld-col-tag"><i className="bx bx-calendar" /> {detectedColumns.date}</span>}
+              {detectedColumns.source && <span className="ld-col-tag"><i className="bx bx-globe" /> {detectedColumns.source}</span>}
             </div>
           )}
         </div>
@@ -350,6 +371,37 @@ export default function LeadsDashboard({ client }) {
           <i className="bx bx-refresh" />
         </button>
       </div>
+
+      {/* Sheet Tab Selector */}
+      {(tabs.length > 0 || tabsLoading) && (
+        <div className="ld-tab-selector">
+          <span className="ld-tab-selector-label">
+            <i className="bx bx-spreadsheet" />
+            Aba:
+          </span>
+          <div className="ld-sheet-tabs">
+            <button
+              type="button"
+              className={`ld-sheet-tab${selectedGid === 'all' ? ' active' : ''}`}
+              onClick={() => setSelectedGid('all')}
+            >
+              <i className="bx bx-layer" />
+              Todas
+            </button>
+            {tabs.map(tab => (
+              <button
+                key={tab.gid}
+                type="button"
+                className={`ld-sheet-tab${selectedGid === tab.gid ? ' active' : ''}`}
+                onClick={() => setSelectedGid(tab.gid)}
+              >
+                {tab.name}
+              </button>
+            ))}
+            {tabsLoading && <span className="ld-tab-loading"><i className="bx bx-loader-alt bx-spin" /> Carregando abas…</span>}
+          </div>
+        </div>
+      )}
 
       {/* Alerts */}
       {alerts?.length > 0 && (
@@ -521,7 +573,7 @@ export default function LeadsDashboard({ client }) {
         <div className="ld-section">
           <div className="ld-charts-row">
             <div className="ld-chart-card">
-              <SectionHeader title="Pizza por Status" />
+              <SectionHeader title="Pizza por Qualificação" />
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
@@ -544,7 +596,7 @@ export default function LeadsDashboard({ client }) {
             </div>
 
             <div className="ld-chart-card ld-chart-card-wide">
-              <SectionHeader title="Contagem por Status" />
+              <SectionHeader title="Contagem por Qualificação" />
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={statusDist} layout="vertical" margin={{ left: 8, right: 16 }}>
                   <XAxis type="number" tick={{ fontSize: 11, fill: '#888' }} />
@@ -658,6 +710,34 @@ export default function LeadsDashboard({ client }) {
           font-size: 18px; transition: all .15s; flex-shrink: 0;
         }
         .ld-refresh-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* Sheet tab selector */
+        .ld-tab-selector {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 12px; padding: 10px 14px;
+        }
+        .ld-tab-selector-label {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.08em; color: rgba(241,241,241,0.35);
+          white-space: nowrap; flex-shrink: 0;
+        }
+        .ld-sheet-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+        .ld-sheet-tab {
+          display: flex; align-items: center; gap: 5px;
+          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px; color: rgba(241,241,241,0.55);
+          padding: 6px 12px; font-size: 12px; font-weight: 500;
+          cursor: pointer; transition: all .15s; white-space: nowrap;
+        }
+        .ld-sheet-tab:hover { background: rgba(255,255,255,0.09); color: #f1f1f1; }
+        .ld-sheet-tab.active {
+          background: rgba(38,194,129,0.14); border-color: rgba(38,194,129,0.35);
+          color: #26c281; font-weight: 600;
+        }
+        .ld-sheet-tab i { font-size: 13px; }
+        .ld-tab-loading { font-size: 12px; color: rgba(241,241,241,0.3); display: flex; align-items: center; gap: 5px; }
 
         /* Alerts */
         .ld-alerts { display: flex; flex-direction: column; gap: 6px; }
