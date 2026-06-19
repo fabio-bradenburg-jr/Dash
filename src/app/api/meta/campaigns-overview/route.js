@@ -299,7 +299,7 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
   const url = `https://graph.facebook.com/v19.0/act_${adAccountId}/insights?${params.toString()}`
 
   try {
-    const [data, campaignsData] = await Promise.all([
+    const [data, campaignsData, adsetsData] = await Promise.all([
       fetchMetaJson(url, 'A Meta demorou para responder ao carregar campanhas.', {
         cacheContext: { clientKey: adAccountId, resourceKind: 'campaigns_overview' },
         maxPages: 3,
@@ -308,6 +308,11 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
         `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns?fields=id,effective_status,objective&limit=500&access_token=${encodeURIComponent(token)}`,
         'A Meta demorou para responder ao carregar status das campanhas.',
         { cacheContext: { clientKey: adAccountId, resourceKind: 'campaigns_status' }, maxPages: 2 }
+      ).catch(() => ({ data: [] })),
+      fetchMetaJson(
+        `https://graph.facebook.com/v19.0/act_${adAccountId}/adsets?fields=id,effective_status&limit=500&access_token=${encodeURIComponent(token)}`,
+        'A Meta demorou para responder ao carregar status dos conjuntos.',
+        { cacheContext: { clientKey: adAccountId, resourceKind: 'adsets_status' }, maxPages: 2 }
       ).catch(() => ({ data: [] })),
     ])
 
@@ -320,10 +325,19 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
       }
     })
 
+    const adsetStatusMap = new Map()
+    ;((adsetsData?.data) || []).forEach((a) => {
+      if (a.id) adsetStatusMap.set(a.id, a.effective_status || '')
+    })
+
     const hierarchy = aggregateHierarchy(data?.data || [], objectiveMap)
     const campaigns = hierarchy.campaigns.map((c) => ({
       ...c,
       effectiveStatus: statusMap.get(c.campaignId) || '',
+      adsets: (c.adsets || []).map((adset) => ({
+        ...adset,
+        effectiveStatus: adsetStatusMap.get(adset.adsetId) || '',
+      })),
     }))
 
     return {

@@ -19726,7 +19726,9 @@ export default function DashboardShell({
                                       return (
                                         <div key={adsetKey}>
                                           <div className="campaign-compact-tree-row campaign-compact-tree-adset" onClick={() => handleToggleCampaignOverviewAdset(adsetKey)} style={{ cursor: 'pointer' }}>
-                                            <span />
+                                            <span className="campaign-compact-tree-status">
+                                              <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: adset.effectiveStatus === 'ACTIVE' ? '#22c55e' : '#64748b', boxShadow: adset.effectiveStatus === 'ACTIVE' ? '0 0 5px #22c55e88' : 'none' }} />
+                                            </span>
                                             <span className="campaign-compact-tree-name campaign-compact-tree-adset-name" title={adset.name}>
                                               <span className="compact-level-badge compact-level-adset">Conj</span>
                                               {adset.name || 'Conjunto sem nome'}
@@ -19752,7 +19754,9 @@ export default function DashboardShell({
                                             const adCpr = ad.results > 0 ? (ad.spend || 0) / ad.results : null
                                             return (
                                               <div key={ad.adId || adIndex} className="campaign-compact-tree-row campaign-compact-tree-ad">
-                                                <span />
+                                                <span className="campaign-compact-tree-status">
+                                                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: ad.spend > 0 ? '#22c55e' : '#64748b', boxShadow: ad.spend > 0 ? '0 0 4px #22c55e88' : 'none' }} />
+                                                </span>
                                                 <span className="campaign-compact-tree-name campaign-compact-tree-ad-name" title={ad.name}>
                                                   <span className="compact-level-badge compact-level-ad">Ad</span>
                                                   {ad.name || 'Anúncio sem nome'}
