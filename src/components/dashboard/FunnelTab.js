@@ -812,8 +812,8 @@ export default function FunnelTab({ clients }) {
           border-bottom: 1px solid rgba(255,255,255,.03);
         }
         .fn-tree-row:last-child { border-bottom: none; }
-        .fn-tree-campaign { border-left: 3px solid rgba(255,255,255,.1); background: rgba(255,255,255,.025); margin: 1px 8px 1px 0; border-radius: 0 6px 6px 0; }
-        .fn-tree-campaign:hover { background: rgba(255,255,255,.05); }
+        .fn-tree-campaign { border-left: 3px solid rgba(255,255,255,.1); background: transparent; margin: 1px 8px 1px 0; border-radius: 0 6px 6px 0; }
+        .fn-tree-campaign:hover { background: rgba(255,255,255,.03); }
         .fn-tree-adset { padding-left: 20px; border-left: 2px solid rgba(255,255,255,.1); background: rgba(255,255,255,.015); margin: 1px 8px 1px 16px; border-radius: 0 5px 5px 0; }
         .fn-tree-adset:hover { background: rgba(255,255,255,.03); }
         .fn-tree-ad { padding-left: 20px; border-left: 1px dashed rgba(255,255,255,.08); background: transparent; margin: 1px 8px 1px 32px; border-radius: 0 5px 5px 0; }
