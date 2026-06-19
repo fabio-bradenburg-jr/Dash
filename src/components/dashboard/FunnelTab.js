@@ -162,7 +162,7 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
         const campCprColor = getCprColor(campCpr)
         const campCrm = matchById(campaign.campaignId, campaign.name, pglIndex?.campaign || {})
         const campExpanded = expandedCampaigns[cid]
-        const campSelected = selCampaign === cid
+        const campSelected = selCampaign.has(cid)
         const adsets = campaign.adsets || []
 
         return (
@@ -170,7 +170,7 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
             {/* Campaign row */}
             <div
               className={`fn-tree-row fn-tree-campaign${campSelected ? ' fn-tree-selected' : ''}`}
-              onClick={() => { onSelectCampaign(campSelected ? '' : cid); onSelectAdset(''); onSelectAd('') }}
+              onClick={e => onSelectCampaign(cid, e)}
             >
               <span className="fn-tree-status-col">
                 <span className="fn-status-dot" style={{
@@ -205,14 +205,14 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
               const adsetCpr = adset.results > 0 ? adset.spend / adset.results : null
               const adsetCrm = matchById(adset.adsetId, adset.name, pglIndex?.adset || {})
               const adsetExpanded = expandedAdsets[aid]
-              const adsetSelected = selAdset === aid
+              const adsetSelected = selAdset.has(aid)
               const ads = adset.ads || []
 
               return (
                 <div key={aid}>
                   <div
                     className={`fn-tree-row fn-tree-adset${adsetSelected ? ' fn-tree-selected' : ''}`}
-                    onClick={() => { onSelectAdset(adsetSelected ? '' : aid); onSelectAd('') }}
+                    onClick={e => onSelectAdset(aid, e)}
                   >
                     <span className="fn-tree-status-col">
                       <span className="fn-status-dot" style={{
@@ -244,13 +244,13 @@ function CampaignTree({ metaRow, pglIndex, selCampaign, selAdset, selAd, onSelec
                     const adid = ad.adId || `ad${ci}-${ai}-${adi}`
                     const adCpr = ad.results > 0 ? ad.spend / ad.results : null
                     const adCrm = matchById(ad.adId, ad.name, pglIndex?.ad || {})
-                    const adSelected = selAd === adid
+                    const adSelected = selAd.has(adid)
 
                     return (
                       <div
                         key={adid}
                         className={`fn-tree-row fn-tree-ad${adSelected ? ' fn-tree-selected' : ''}`}
-                        onClick={() => onSelectAd(adSelected ? '' : adid)}
+                        onClick={e => onSelectAd(adid, e)}
                       >
                         <span className="fn-tree-status-col">
                           <span className="fn-status-dot" style={{
@@ -300,10 +300,10 @@ export default function FunnelTab({ clients }) {
   const [metaError, setMetaError] = useState('')
   const [metaPeriod, setMetaPeriod] = useState('last_30d')
 
-  // Cascade filters (by id)
-  const [selCampaign, setSelCampaign] = useState('')
-  const [selAdset, setSelAdset]       = useState('')
-  const [selAd, setSelAd]             = useState('')
+  // Cascade filters (by id) — Sets for multi-select
+  const [selCampaign, setSelCampaign] = useState(new Set())
+  const [selAdset, setSelAdset]       = useState(new Set())
+  const [selAd, setSelAd]             = useState(new Set())
   const [hoveredStage, setHoveredStage] = useState(null)
   const [clientPickerOpen, setClientPickerOpen] = useState(false)
 
@@ -325,9 +325,7 @@ export default function FunnelTab({ clients }) {
   }, [metaClients, selectedClientId])
 
   // Reset cascade when client changes
-  useEffect(() => { setSelCampaign(''); setSelAdset(''); setSelAd('') }, [selectedClientId])
-  useEffect(() => { setSelAdset(''); setSelAd('') }, [selCampaign])
-  useEffect(() => { setSelAd('') }, [selAdset])
+  useEffect(() => { setSelCampaign(new Set()); setSelAdset(new Set()); setSelAd(new Set()) }, [selectedClientId])
 
   const loadMeta = useCallback(async () => {
     if (!activeClient) return
@@ -392,13 +390,13 @@ export default function FunnelTab({ clients }) {
   const campaignOptions = useMemo(() => metaRow?.campaigns || [], [metaRow])
 
   const adsetOptions = useMemo(() => {
-    if (!selCampaign) return metaRow?.campaigns?.flatMap(c => c.adsets || []) || []
-    return campaignOptions.find(c => c.campaignId === selCampaign)?.adsets || []
+    if (!selCampaign.size) return metaRow?.campaigns?.flatMap(c => c.adsets || []) || []
+    return campaignOptions.filter(c => selCampaign.has(c.campaignId)).flatMap(c => c.adsets || [])
   }, [selCampaign, campaignOptions, metaRow])
 
   const adOptions = useMemo(() => {
-    if (!selAdset) return adsetOptions.flatMap(a => a.ads || [])
-    return adsetOptions.find(a => a.adsetId === selAdset)?.ads || []
+    if (!selAdset.size) return adsetOptions.flatMap(a => a.ads || [])
+    return adsetOptions.filter(a => selAdset.has(a.adsetId)).flatMap(a => a.ads || [])
   }, [selAdset, adsetOptions])
 
   // ─── Funnel Meta values ───────────────────────────────────────────────────
@@ -407,9 +405,9 @@ export default function FunnelTab({ clients }) {
     if (!metaRow) return { impressions: 0, clicks: 0, leads: 0, spend: 0 }
     let impressions = 0, clicks = 0, leads = 0, spend = 0
     const sum = items => { for (const it of items) { impressions += Number(it.impressions||0); clicks += Number(it.clicks||0); leads += Number(it.results||0); spend += Number(it.spend||0) } }
-    if (selAd) sum(adOptions.filter(a => a.adId === selAd))
-    else if (selAdset) { const a = adsetOptions.find(a => a.adsetId === selAdset); if (a) sum([a]) }
-    else if (selCampaign) { const c = campaignOptions.find(c => c.campaignId === selCampaign); if (c) sum([c]) }
+    if (selAd.size) sum(adOptions.filter(a => selAd.has(a.adId)))
+    else if (selAdset.size) sum(adsetOptions.filter(a => selAdset.has(a.adsetId)))
+    else if (selCampaign.size) sum(campaignOptions.filter(c => selCampaign.has(c.campaignId)))
     else sum(metaRow.campaigns || [])
     return { impressions, clicks, leads, spend }
   }, [metaRow, selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions])
@@ -419,18 +417,16 @@ export default function FunnelTab({ clients }) {
   const funnelpgl = useMemo(() => {
     const empty = { publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0 }
     if (!pglData) return empty
-    if (selAd) {
-      const a = adOptions.find(a => a.adId === selAd)
-      return (a ? matchById(a.adId, a.name, pglIndex?.ad || {}) : null) || empty
-    }
-    if (selAdset) {
-      const a = adsetOptions.find(a => a.adsetId === selAdset)
-      return (a ? matchById(a.adsetId, a.name, pglIndex?.adset || {}) : null) || empty
-    }
-    if (selCampaign) {
-      const c = campaignOptions.find(c => c.campaignId === selCampaign)
-      return (c ? matchById(c.campaignId, c.name, pglIndex?.campaign || {}) : null) || empty
-    }
+    const merge = items => items.reduce((acc, m) => ({
+      publicoAlvo: acc.publicoAlvo + (m?.publicoAlvo || 0),
+      qualified:   acc.qualified   + (m?.qualified   || 0),
+      converted:   acc.converted   + (m?.converted   || 0),
+      lost:        acc.lost        + (m?.lost         || 0),
+      noreply:     acc.noreply     + (m?.noreply      || 0),
+    }), { publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0 })
+    if (selAd.size) return merge(adOptions.filter(a => selAd.has(a.adId)).map(a => matchById(a.adId, a.name, pglIndex?.ad || {})))
+    if (selAdset.size) return merge(adsetOptions.filter(a => selAdset.has(a.adsetId)).map(a => matchById(a.adsetId, a.name, pglIndex?.adset || {})))
+    if (selCampaign.size) return merge(campaignOptions.filter(c => selCampaign.has(c.campaignId)).map(c => matchById(c.campaignId, c.name, pglIndex?.campaign || {})))
     return pglData.overview || empty
   }, [pglData, selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions, pglIndex])
 
@@ -492,9 +488,18 @@ export default function FunnelTab({ clients }) {
 
   // Rótulo do filtro atual
   const filterLabel = useMemo(() => {
-    if (selAd) return adOptions.find(a => a.adId === selAd)?.name || 'Anúncio'
-    if (selAdset) return adsetOptions.find(a => a.adsetId === selAdset)?.name || 'Conjunto'
-    if (selCampaign) return campaignOptions.find(c => c.campaignId === selCampaign)?.name || 'Campanha'
+    if (selAd.size) {
+      if (selAd.size > 1) return `${selAd.size} anúncios`
+      return adOptions.find(a => selAd.has(a.adId))?.name || 'Anúncio'
+    }
+    if (selAdset.size) {
+      if (selAdset.size > 1) return `${selAdset.size} conjuntos`
+      return adsetOptions.find(a => selAdset.has(a.adsetId))?.name || 'Conjunto'
+    }
+    if (selCampaign.size) {
+      if (selCampaign.size > 1) return `${selCampaign.size} campanhas`
+      return campaignOptions.find(c => selCampaign.has(c.campaignId))?.name || 'Campanha'
+    }
     return 'Todos'
   }, [selCampaign, selAdset, selAd, campaignOptions, adsetOptions, adOptions])
 
@@ -632,9 +637,29 @@ export default function FunnelTab({ clients }) {
               selCampaign={selCampaign}
               selAdset={selAdset}
               selAd={selAd}
-              onSelectCampaign={id => { setSelCampaign(id); setSelAdset(''); setSelAd('') }}
-              onSelectAdset={id => { setSelAdset(id); setSelAd('') }}
-              onSelectAd={id => setSelAd(id)}
+              onSelectCampaign={(id, e) => {
+                const multi = e?.metaKey || e?.ctrlKey
+                setSelCampaign(prev => {
+                  if (multi) { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n }
+                  return prev.has(id) && prev.size === 1 ? new Set() : new Set([id])
+                })
+                if (!multi) { setSelAdset(new Set()); setSelAd(new Set()) }
+              }}
+              onSelectAdset={(id, e) => {
+                const multi = e?.metaKey || e?.ctrlKey
+                setSelAdset(prev => {
+                  if (multi) { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n }
+                  return prev.has(id) && prev.size === 1 ? new Set() : new Set([id])
+                })
+                if (!multi) { setSelAd(new Set()) }
+              }}
+              onSelectAd={(id, e) => {
+                const multi = e?.metaKey || e?.ctrlKey
+                setSelAd(prev => {
+                  if (multi) { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n }
+                  return prev.has(id) && prev.size === 1 ? new Set() : new Set([id])
+                })
+              }}
             />
           </div>
 
