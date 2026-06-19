@@ -514,6 +514,10 @@ body {
     flex-direction: column;
     gap: 8px;
     flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 
 .nav-item {
