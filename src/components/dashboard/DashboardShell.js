@@ -35586,29 +35586,26 @@ export default function DashboardShell({
           border: none;
           background: transparent;
           cursor: pointer;
-          font-size: 18px;
           transition: color 0.15s;
           pointer-events: auto;
-          color: var(--accent-blue);
+          color: rgba(241,241,241,0.35);
         }
         .campaign-chart-icon-btn > i {
-          width: 36px;
-          height: 36px;
-          border-radius: 999px;
-          display: grid;
+          width: auto;
+          height: auto;
+          border-radius: 0;
+          display: flex;
           place-items: center;
-          border: 1px solid rgba(129, 216, 167, 0.18);
-          background: rgba(38, 194, 129, 0.08);
-          font-size: 16px;
-          transition: background 0.15s, border-color 0.15s;
+          border: none;
+          background: transparent;
+          font-size: 14px;
+          transition: color 0.15s;
         }
         .campaign-chart-icon-btn:hover > i {
-          border-color: rgba(129, 216, 167, 0.4);
-          background: rgba(38, 194, 129, 0.18);
+          color: rgba(241,241,241,0.7);
         }
         .campaign-chart-icon-btn.active > i {
-          border-color: rgba(38, 194, 129, 0.6);
-          background: rgba(38, 194, 129, 0.22);
+          color: #26c281;
         }
 
         .campaign-chart-panel {
