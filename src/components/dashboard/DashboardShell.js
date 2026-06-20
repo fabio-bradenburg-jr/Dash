@@ -24815,7 +24815,7 @@ export default function DashboardShell({
           font-weight: 500;
           letter-spacing: 0;
           background: transparent;
-          gap: 14px;
+          gap: 22px;
         }
 
         .dashboard-container .sidebar :global(.nav-item i) {
