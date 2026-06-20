@@ -318,7 +318,7 @@ export default function IntegracaoPage() {
         <section id="briefing" className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>BRIEFING</span>
-            <h2 className={styles.sectionTitle}>Dores e Desafios</h2>
+            <h2 className={styles.sectionTitle}>Sobre o seu negócio</h2>
             <p className={styles.sectionSub}>Vamos entender seus principais desafios comerciais, objeções e diferenciais.</p>
           </div>
           <div className={styles.briefingCards}>
