@@ -36,11 +36,12 @@ const FUNNEL_DATA = [
 ]
 
 const BRIEFING_QUESTIONS = [
-  'Quais produtos ou serviços queremos priorizar?',
-  'Quem é o público ideal?',
-  'Quais dores esse público sente?',
-  'Quais objeções aparecem antes da compra?',
-  'Quais diferenciais tornam a empresa mais competitiva?',
+  'Produtos e Serviços',
+  'Público-alvo e Mercado',
+  'Marketing e Comunicação',
+  'Vendas e Comercial',
+  'Finanças e Metas',
+  'Dores e Desafios',
 ]
 
 const CHECKLIST_ITEMS = [
