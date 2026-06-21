@@ -3779,8 +3779,8 @@ textarea:focus {
 
 /* Sidebar — thinner, tighter */
 .dashboard-container .sidebar {
-    width: 220px !important;
-    padding: 16px 10px !important;
+    width: 250px !important;
+    padding: 16px 12px !important;
 }
 .dashboard-container .sidebar-top {
     margin-bottom: 16px !important;
