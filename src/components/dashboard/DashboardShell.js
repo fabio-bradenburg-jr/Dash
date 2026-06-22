@@ -17530,21 +17530,22 @@ export default function DashboardShell({
           })
 
           // General metrics
+          const allValidTaskIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
+          const getValidDone = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter(id => allValidTaskIds.has(id)).length
           const totalClients = onboardingClients.length
           const completedClients = onboardingClients.filter((c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            return Array.isArray(rec?.completed_tasks) && rec.completed_tasks.length >= totalTasks
+            return getValidDone(rec) >= totalTasks
           }).length
           const inProgressClients = onboardingClients.filter((c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            const done = getValidDone(rec)
             return done > 0 && done < totalTasks
           }).length
           const notStartedClients = totalClients - completedClients - inProgressClients
           const totalTasksDone = onboardingClients.reduce((sum, c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
-            return sum + Math.min(done, totalTasks)
+            return sum + Math.min(getValidDone(rec), totalTasks)
           }, 0)
           const overallProgress = totalClients > 0 ? Math.round((totalTasksDone / (totalClients * totalTasks)) * 100) : 0
 
@@ -17791,8 +17792,9 @@ export default function DashboardShell({
                     <tbody>
                       {filteredOnboardingClients.map((client) => {
                         const record = onboardingRecords.find((r) => r.client_id === client.id)
-                        const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                        const progress = Math.round((completedTasks.length / totalTasks) * 100)
+                        const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
+                        const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
+                        const progress = totalTasks > 0 ? Math.min(100, Math.round((completedTasks.length / totalTasks) * 100)) : 0
                         return (
                           <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -17836,9 +17838,10 @@ export default function DashboardShell({
                 <div style={{ padding: '0 28px 28px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {filteredOnboardingClients.map((client) => {
                     const record = onboardingRecords.find((r) => r.client_id === client.id)
-                    const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                    const completedCount = Math.min(completedTasks.length, totalTasks)
-                    const progress = Math.round((completedCount / totalTasks) * 100)
+                    const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
+                    const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
+                    const completedCount = completedTasks.length
+                    const progress = totalTasks > 0 ? Math.min(100, Math.round((completedCount / totalTasks) * 100)) : 0
                     return (
                       <button
                         key={client.id}
@@ -17869,9 +17872,10 @@ export default function DashboardShell({
               <div style={{ display: 'grid', gap: 16, padding: '24px 28px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', alignItems: 'start' }}>
                 {filteredOnboardingClients.map((client) => {
                   const record = onboardingRecords.find((r) => r.client_id === client.id)
-                  const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                  const completedCount = Math.min(completedTasks.length, totalTasks)
-                  const progress = Math.round((completedCount / totalTasks) * 100)
+                  const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
+                  const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
+                  const completedCount = completedTasks.length
+                  const progress = totalTasks > 0 ? Math.min(100, Math.round((completedCount / totalTasks) * 100)) : 0
 
                   return (
                     <button
