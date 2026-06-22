@@ -258,15 +258,15 @@
   50% { opacity: 0.4; transform: scale(0.7); }
 }
 
-/* SVG LP text */
+/* SVG: bird logo + circuit combined */
 .lpSvg {
   position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
+  inset: -20%;
+  width: 140%; height: 140%;
   overflow: visible;
 }
 
-/* Circuit lines */
+/* Circuit lines (kept for compat, now unused as separate el) */
 .lpCircuit {
   position: absolute;
   inset: 0;

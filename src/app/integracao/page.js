@@ -96,10 +96,10 @@ export default function IntegracaoPage() {
             </button>
           </div>
 
-          {/* Right: LP logo LED */}
+          {/* Right: LP bird logo LED */}
           <div className={styles.heroVisual}>
             <div className={styles.lpLogoWrap}>
-              {/* Background */}
+              {/* Background panel */}
               <div className={styles.lpBg} />
               {/* Outer LED ring */}
               <div className={styles.lpRing} />
@@ -113,108 +113,110 @@ export default function IntegracaoPage() {
               {/* Glow center */}
               <div className={styles.lpGlowCenter} />
 
-              {/* Circuit lines SVG */}
-              <svg className={styles.lpCircuit} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Static circuit paths */}
-                <path d="M 48 200 H 100 V 140 H 140" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
-                <path d="M 48 200 H 100 V 260 H 140" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
-                <path d="M 352 160 H 310 V 100 H 270" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
-                <path d="M 352 240 H 310 V 300 H 270" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
-                <path d="M 200 48 V 100 H 140 V 140" stroke="rgba(38,194,129,0.12)" strokeWidth="1.5" />
-                <path d="M 200 352 V 300 H 270 V 260" stroke="rgba(38,194,129,0.12)" strokeWidth="1.5" />
-                {/* Small endpoint dots */}
-                <circle cx="140" cy="140" r="3" fill="rgba(38,194,129,0.4)" />
-                <circle cx="140" cy="260" r="3" fill="rgba(38,194,129,0.4)" />
-                <circle cx="270" cy="100" r="3" fill="rgba(38,194,129,0.4)" />
-                <circle cx="270" cy="300" r="3" fill="rgba(38,194,129,0.4)" />
-
-                {/* Animated travelling light — path 1 */}
-                <path
-                  className={styles.lpTrail1}
-                  d="M 48 200 H 100 V 140 H 140"
-                  stroke="#26c281"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeDasharray="300"
-                  strokeDashoffset="300"
-                  filter="url(#glow)"
-                />
-                {/* Animated travelling light — path 2 */}
-                <path
-                  className={styles.lpTrail2}
-                  d="M 352 160 H 310 V 100 H 270"
-                  stroke="#4ade80"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeDasharray="260"
-                  strokeDashoffset="260"
-                  filter="url(#glow)"
-                />
-                {/* Animated travelling light — path 3 */}
-                <path
-                  className={styles.lpTrail3}
-                  d="M 200 352 V 300 H 270 V 260"
-                  stroke="#26c281"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeDasharray="220"
-                  strokeDashoffset="220"
-                  filter="url(#glow)"
-                />
+              {/* Full SVG: circuit lines + bird logo */}
+              <svg className={styles.lpSvg} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  {/* Bird gradient — bright top-left to darker bottom-right */}
+                  <linearGradient id="birdGrad" x1="72" y1="72" x2="350" y2="360" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%"   stopColor="#09eb82" />
+                    <stop offset="55%"  stopColor="#26c281" />
+                    <stop offset="100%" stopColor="#00975a" />
+                  </linearGradient>
+                  {/* Glow filter for the bird shapes */}
+                  <filter id="birdGlow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="7" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  {/* Glow filter for circuit trails */}
+                  <filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                   </filter>
                 </defs>
-              </svg>
 
-              {/* LP letters SVG */}
-              <svg className={styles.lpSvg} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="lpGrad" x1="120" y1="130" x2="280" y2="280" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#4ade80" />
-                    <stop offset="50%" stopColor="#26c281" />
-                    <stop offset="100%" stopColor="#1ba86d" />
-                  </linearGradient>
-                  <filter id="letterGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="blur" />
-                    <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                  </filter>
-                </defs>
+                {/* ── Circuit lines (static, faint) ── */}
+                <path d="M 44 195 H 92 V 140 H 118" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
+                <path d="M 44 210 H 92 V 265 H 118" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
+                <path d="M 356 140 H 318 V 95  H 290" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
+                <path d="M 356 265 H 318 V 310 H 290" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
+                <path d="M 200 44  V 95  H 240" stroke="rgba(38,194,129,0.10)" strokeWidth="1.5" />
+                <path d="M 200 356 V 310 H 240" stroke="rgba(38,194,129,0.10)" strokeWidth="1.5" />
+                {/* Endpoint pads */}
+                <circle cx="118" cy="140" r="3" fill="rgba(38,194,129,0.35)" />
+                <circle cx="118" cy="265" r="3" fill="rgba(38,194,129,0.35)" />
+                <circle cx="290" cy="95"  r="3" fill="rgba(38,194,129,0.35)" />
+                <circle cx="290" cy="310" r="3" fill="rgba(38,194,129,0.35)" />
+                <circle cx="240" cy="95"  r="3" fill="rgba(38,194,129,0.25)" />
+                <circle cx="240" cy="310" r="3" fill="rgba(38,194,129,0.25)" />
 
-                {/* L */}
-                <path
-                  d="M 120 130 L 120 270 L 195 270"
-                  stroke="url(#lpGrad)"
-                  strokeWidth="26"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  filter="url(#letterGlow)"
-                />
-                {/* P body */}
-                <path
-                  d="M 218 130 L 218 270"
-                  stroke="url(#lpGrad)"
-                  strokeWidth="26"
-                  strokeLinecap="round"
-                  filter="url(#letterGlow)"
-                />
-                {/* P bowl */}
-                <path
-                  d="M 218 130 Q 310 130 310 185 Q 310 240 218 240"
-                  stroke="url(#lpGrad)"
-                  strokeWidth="26"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  filter="url(#letterGlow)"
-                />
+                {/* ── Travelling lights ── */}
+                <path className={styles.lpTrail1}
+                  d="M 44 195 H 92 V 140 H 118"
+                  stroke="#26c281" strokeWidth="2" strokeLinecap="round"
+                  strokeDasharray="200" strokeDashoffset="200" filter="url(#trailGlow)" />
+                <path className={styles.lpTrail2}
+                  d="M 356 140 H 318 V 95 H 290"
+                  stroke="#4ade80" strokeWidth="2" strokeLinecap="round"
+                  strokeDasharray="200" strokeDashoffset="200" filter="url(#trailGlow)" />
+                <path className={styles.lpTrail3}
+                  d="M 200 356 V 310 H 240"
+                  stroke="#26c281" strokeWidth="2" strokeLinecap="round"
+                  strokeDasharray="160" strokeDashoffset="160" filter="url(#trailGlow)" />
 
-                {/* Subtle dot accents at stroke endpoints */}
-                <circle cx="120" cy="130" r="5" fill="#86efac" opacity="0.7" />
-                <circle cx="195" cy="270" r="5" fill="#86efac" opacity="0.7" />
-                <circle cx="218" cy="270" r="5" fill="#86efac" opacity="0.7" />
+                {/* ══════════════════════════════════
+                    BIRD LOGO — 3 geometric pieces
+                    ══════════════════════════════════ */}
+
+                {/* ── Piece 1: Bird head + body (left column) ──
+                    Head: circle ~center(152,152) r=72
+                    Beak: small hook protruding left
+                    Stem: vertical bar going down
+                */}
+                <g filter="url(#birdGlow)">
+                  {/* Head circle with beak hook cut */}
+                  <path fill="url(#birdGrad)" d="
+                    M 152 80
+                    A 72 72 0 0 1 224 152
+                    A 72 72 0 0 1 152 224
+                    A 72 72 0 0 1 84  174
+                    Q 66 162 66 152
+                    Q 66 142 84  130
+                    A 72 72 0 0 1 152 80
+                    Z
+                  " />
+                  {/* Eye / nostril — white curved notch */}
+                  <path fill="white" d="M 96 118 A 15 9 0 0 1 124 114 A 15 9 0 0 0 96 118 Z" opacity="0.92" />
+
+                  {/* Stem / body bar */}
+                  <rect x="130" y="222" width="40" height="140" rx="8" fill="url(#birdGrad)" />
+                </g>
+
+                {/* ── Piece 2: Right top wing (large D-shape) ──
+                    Left edge flat at x=176, extends right with semicircle
+                    Top y=80, bottom y=226
+                */}
+                <path fill="url(#birdGrad)" filter="url(#birdGlow)"
+                  d="M 176 80 H 284 A 73 73 0 0 1 284 226 H 176 Z" />
+
+                {/* ── Piece 3: Right bottom tail (smaller D-shape) ──
+                    Left edge at x=176, smaller arc
+                    Top y=246, bottom y=360
+                */}
+                <path fill="url(#birdGrad)" filter="url(#birdGlow)"
+                  d="M 176 246 H 233 A 57 57 0 0 1 176 360 Z" />
+
+                {/* ── Subtle edge highlight on each piece ── */}
+                <path
+                  d="M 152 80 A 72 72 0 0 1 224 152 A 72 72 0 0 1 152 224 A 72 72 0 0 1 84 174 Q 66 162 66 152 Q 66 142 84 130 A 72 72 0 0 1 152 80 Z"
+                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
+                <path d="M 176 80 H 284 A 73 73 0 0 1 284 226 H 176 Z"
+                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
+                <path d="M 176 246 H 233 A 57 57 0 0 1 176 360 Z"
+                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
               </svg>
             </div>
           </div>
