@@ -3316,6 +3316,7 @@ export default function DashboardShell({
   const [offbNewItem, setOffbNewItem] = useState(null)
   const obDragRef = useRef({})
   const offbDragRef = useRef({})
+  const grDragRef = useRef({})
   const [navPermissions, setNavPermissions] = useState([])
   const [myNavPermissions, setMyNavPermissions] = useState([])
   const [permSelectedUserId, setPermSelectedUserId] = useState('')
@@ -18491,8 +18492,22 @@ export default function DashboardShell({
                         </div>
                       </div>
                     )}
-                    {(grTaskDefsLoaded ? grTaskDefs : []).map(task => (
-                      <div key={task.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px' }}>
+                    {(grTaskDefsLoaded ? grTaskDefs : []).map((task, taskIdx) => (
+                      <div key={task.id}
+                        draggable
+                        onDragStart={() => { grDragRef.current.idx = taskIdx }}
+                        onDragOver={e => { e.preventDefault(); grDragRef.current.overIdx = taskIdx }}
+                        onDrop={() => {
+                          const { idx: from, overIdx: to } = grDragRef.current
+                          if (from === to || from == null || to == null) return
+                          setGrTaskDefs(prev => {
+                            const arr = [...prev]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
+                            arr.forEach((t, i) => fetch('/api/gr-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, order_index: i }) }))
+                            return arr
+                          })
+                          grDragRef.current = {}
+                        }}
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px', cursor: 'grab' }}>
                         {grEditingTask?.id === task.id ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <input type="text" className="input-field" value={grEditingTask.label} onChange={e => setGrEditingTask(t => ({ ...t, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
@@ -18516,6 +18531,7 @@ export default function DashboardShell({
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 18, opacity: 0.3, cursor: 'grab', flexShrink: 0 }}></i>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: task.color, flexShrink: 0 }}></span>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{task.label}</div>
