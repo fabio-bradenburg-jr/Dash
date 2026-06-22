@@ -822,7 +822,273 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
 }
 
 // ---- Space View ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask }) {
+// ---- Board View (Kanban) ----
+function BoardView({ spaceTasks, statuses, clients, workspaceUsers, onOpenPanel, onQuickUpdate, onAddTask, spaceId }) {
+  const CARD_WIDTH = 260
+
+  function handleDrop(e, statusId) {
+    const taskId = e.dataTransfer.getData('taskId')
+    if (taskId) onQuickUpdate(taskId, { status_id: statusId })
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, alignItems: 'flex-start' }}>
+      {statuses.map(status => {
+        const colTasks = spaceTasks.filter(t => t.status_id === status.id)
+        return (
+          <div
+            key={status.id}
+            style={{ minWidth: CARD_WIDTH, maxWidth: CARD_WIDTH, flexShrink: 0 }}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => handleDrop(e, status.id)}
+          >
+            {/* Column header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px', marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.03)', borderTop: `3px solid ${status.color}` }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: status.color, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>{status.label}</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', background: 'rgba(100,116,139,0.18)', borderRadius: 8, padding: '0 6px' }}>{colTasks.length}</span>
+            </div>
+
+            {/* Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {colTasks.map(task => {
+                const assignee = workspaceUsers?.find(u => u.id === task.assignee_id)
+                const client = clients?.find(c => c.id === task.client_id)
+                const overdue = isPast(task.due_date)
+                return (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={e => e.dataTransfer.setData('taskId', task.id)}
+                    onClick={() => onOpenPanel(task)}
+                    style={{
+                      background: 'var(--bg-panel, #111113)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      transition: 'box-shadow 0.15s, transform 0.1s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.4)`; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none' }}
+                  >
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f1f5f9', marginBottom: 8, lineHeight: 1.4 }}>{task.title}</div>
+                    {client && (
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <i className="bx bx-building" style={{ marginRight: 4 }} />{client.name}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                      <PriorityFlag priority={task.priority} size={13} />
+                      {task.due_date && (
+                        <span style={{ fontSize: '0.72rem', color: overdue ? '#ef4444' : '#64748b' }}>
+                          <i className="bx bx-calendar" style={{ marginRight: 3 }} />{formatDate(task.due_date)}
+                        </span>
+                      )}
+                      <div style={{ flex: 1 }} />
+                      <Avatar name={assignee?.full_name || assignee?.email} size={22} />
+                    </div>
+                    {task.subtask_count > 0 && (
+                      <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <i className="bx bx-list-check" style={{ fontSize: 12 }} />{task.subtask_count} subtarefas
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Add task inline */}
+              <button
+                type="button"
+                onClick={() => onAddTask({ title: 'Nova tarefa', status_id: status.id, space_id: spaceId })}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 10, color: '#475569', cursor: 'pointer', fontSize: '0.8rem', width: '100%', justifyContent: 'center', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#26c28166'; e.currentTarget.style.color = '#26c281' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#475569' }}
+              >
+                <i className="bx bx-plus" style={{ fontSize: 14 }} /> Adicionar
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ---- Table View ----
+function TableView({ spaceTasks, statuses, clients, workspaceUsers, onOpenPanel, onQuickUpdate }) {
+  const thStyle = { padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }
+  const tdStyle = { padding: '10px 12px', fontSize: '0.83rem', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' }
+
+  const PRIORITY_LABELS = { urgent: 'Urgente', high: 'Alta', medium: 'Média', low: 'Baixa', none: '—' }
+  const PRIORITY_COLORS = { urgent: '#ef4444', high: '#f97316', medium: '#eab308', low: '#3b82f6', none: '#64748b' }
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={thStyle}>Tarefa</th>
+            <th style={thStyle}>Status</th>
+            <th style={thStyle}>Prioridade</th>
+            <th style={thStyle}>Responsável</th>
+            <th style={thStyle}>Cliente</th>
+            <th style={thStyle}>Vencimento</th>
+            <th style={thStyle}>ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {spaceTasks.length === 0 && (
+            <tr><td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: '#334155', padding: 32 }}>Nenhuma tarefa neste espaço</td></tr>
+          )}
+          {spaceTasks.map(task => {
+            const status = statuses.find(s => s.id === task.status_id)
+            const assignee = workspaceUsers?.find(u => u.id === task.assignee_id)
+            const client = clients?.find(c => c.id === task.client_id)
+            const overdue = isPast(task.due_date)
+            return (
+              <tr
+                key={task.id}
+                style={{ cursor: 'pointer' }}
+                onClick={() => onOpenPanel(task)}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <td style={{ ...tdStyle, fontWeight: 600, color: '#f1f5f9', maxWidth: 280 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <StatusDot color={status?.color} size={8} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+                    {task.subtask_count > 0 && <span style={{ fontSize: '0.7rem', color: '#64748b', background: 'rgba(100,116,139,0.15)', borderRadius: 8, padding: '0 5px', flexShrink: 0 }}>{task.subtask_count}</span>}
+                  </div>
+                </td>
+                <td style={tdStyle}>
+                  {status ? (
+                    <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8, background: status.color + '22', color: status.color, fontWeight: 600, whiteSpace: 'nowrap' }}>{status.label}</span>
+                  ) : <span style={{ color: '#334155' }}>—</span>}
+                </td>
+                <td style={tdStyle}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: PRIORITY_COLORS[task.priority] || '#64748b' }}>
+                    {PRIORITY_LABELS[task.priority] || '—'}
+                  </span>
+                </td>
+                <td style={tdStyle}>
+                  {assignee ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Avatar name={assignee.full_name || assignee.email} size={22} />
+                      <span style={{ color: '#94a3b8', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{assignee.full_name || assignee.email}</span>
+                    </div>
+                  ) : <span style={{ color: '#334155' }}>—</span>}
+                </td>
+                <td style={{ ...tdStyle, color: '#94a3b8', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {client?.name || <span style={{ color: '#334155' }}>—</span>}
+                </td>
+                <td style={{ ...tdStyle, color: overdue ? '#ef4444' : '#94a3b8', whiteSpace: 'nowrap' }}>
+                  {task.due_date ? formatDate(task.due_date) : <span style={{ color: '#334155' }}>—</span>}
+                </td>
+                <td style={{ ...tdStyle, color: '#26c281', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {task.task_public_id || '—'}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ---- Calendar View ----
+function CalendarView({ spaceTasks, statuses, onOpenPanel }) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const paddingDays = firstDay === 0 ? 6 : firstDay - 1
+  const todayISO = todayStr()
+
+  const tasksByDay = {}
+  spaceTasks.forEach(t => {
+    if (t.due_date) {
+      const key = t.due_date.slice(0, 10)
+      if (!tasksByDay[key]) tasksByDay[key] = []
+      tasksByDay[key].push(t)
+    }
+  })
+
+  const monthLabel = currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  const cells = []
+  for (let i = 0; i < paddingDays; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+
+  return (
+    <div>
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <button type="button" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', padding: '4px 10px', fontSize: 16 }}>
+          <i className="bx bx-chevron-left" />
+        </button>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9', textTransform: 'capitalize', minWidth: 160, textAlign: 'center' }}>{monthLabel}</span>
+        <button type="button" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#94a3b8', cursor: 'pointer', padding: '4px 10px', fontSize: 16 }}>
+          <i className="bx bx-chevron-right" />
+        </button>
+        <button type="button" onClick={() => setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 10px', fontSize: '0.78rem' }}>
+          Hoje
+        </button>
+        <div style={{ marginLeft: 'auto', fontSize: '0.78rem', color: '#64748b' }}>
+          {spaceTasks.filter(t => t.due_date?.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)).length} tarefa(s) no mês
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+        {DAY_NAMES.map(d => (
+          <div key={d} style={{ padding: '8px 4px', textAlign: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', background: 'rgba(255,255,255,0.03)' }}>{d}</div>
+        ))}
+        {cells.map((day, idx) => {
+          if (!day) return <div key={`pad-${idx}`} style={{ background: 'var(--bg-dark, #050506)', minHeight: 80 }} />
+          const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const dayTasks = tasksByDay[iso] || []
+          const isToday = iso === todayISO
+          return (
+            <div
+              key={iso}
+              style={{ background: 'var(--bg-dark, #050506)', minHeight: 80, padding: '6px 6px', border: isToday ? '1px solid #26c28144' : 'none', position: 'relative' }}
+            >
+              <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 800 : 400, color: isToday ? '#26c281' : '#64748b', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{day}</span>
+                {dayTasks.length > 0 && <span style={{ fontSize: '0.65rem', color: '#26c281', fontWeight: 700 }}>{dayTasks.length}</span>}
+              </div>
+              {dayTasks.slice(0, 3).map(task => {
+                const status = statuses.find(s => s.id === task.status_id)
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => onOpenPanel(task)}
+                    style={{ fontSize: '0.68rem', background: (status?.color || '#26c281') + '22', color: status?.color || '#26c281', borderRadius: 4, padding: '2px 5px', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', fontWeight: 600 }}
+                    title={task.title}
+                  >
+                    {task.title}
+                  </div>
+                )
+              })}
+              {dayTasks.length > 3 && <div style={{ fontSize: '0.65rem', color: '#64748b', paddingTop: 2 }}>+{dayTasks.length - 3} mais</div>}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ---- SpaceView (with view mode switcher) ----
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, viewMode }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
 
   const filteredByStatus = statuses.map(status => ({
@@ -842,7 +1108,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
         >
           <i className="bx bx-arrow-back" style={{ fontSize: 16 }}></i>
-          Espacos
+          Espaços
         </button>
         <span style={{ color: '#334155' }}>/</span>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: space.color, flexShrink: 0 }} />
@@ -864,8 +1130,8 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
         </button>
       </div>
 
-      {/* Task groups by status */}
-      {filteredByStatus.map(({ status, tasks: groupTasks }) => (
+      {/* Task content by viewMode */}
+      {viewMode === 'list' && filteredByStatus.map(({ status, tasks: groupTasks }) => (
         <StatusGroup
           key={status.id}
           status={status}
@@ -879,7 +1145,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
         />
       ))}
 
-      {(() => {
+      {viewMode === 'list' && (() => {
         const noStatus = spaceTasks.filter(t => !t.status_id)
         if (noStatus.length === 0) return null
         return (
@@ -896,6 +1162,38 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           />
         )
       })()}
+
+      {viewMode === 'board' && (
+        <BoardView
+          spaceTasks={spaceTasks}
+          statuses={statuses}
+          clients={clients}
+          workspaceUsers={workspaceUsers}
+          onOpenPanel={onOpenPanel}
+          onQuickUpdate={onQuickUpdate}
+          onAddTask={onAddTask}
+          spaceId={space.id}
+        />
+      )}
+
+      {viewMode === 'table' && (
+        <TableView
+          spaceTasks={spaceTasks}
+          statuses={statuses}
+          clients={clients}
+          workspaceUsers={workspaceUsers}
+          onOpenPanel={onOpenPanel}
+          onQuickUpdate={onQuickUpdate}
+        />
+      )}
+
+      {viewMode === 'calendar' && (
+        <CalendarView
+          spaceTasks={spaceTasks}
+          statuses={statuses}
+          onOpenPanel={onOpenPanel}
+        />
+      )}
     </div>
   )
 }
@@ -911,6 +1209,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [filterClient, setFilterClient] = useState('')
   const [view, setView] = useState('home')
   const [selectedSpace, setSelectedSpace] = useState(null)
+  const [viewMode, setViewMode] = useState('list') // list | board | table | calendar
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
 
@@ -1012,6 +1311,34 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
         <div style={{ flex: 1 }} />
 
+        {/* View mode switcher — shown when inside a space */}
+        {view === 'space' && (
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
+            {[
+              { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
+              { key: 'board', icon: 'bx-columns', label: 'Board' },
+              { key: 'table', icon: 'bx-table', label: 'Tabela' },
+              { key: 'calendar', icon: 'bx-calendar', label: 'Calendário' },
+            ].map(({ key, icon, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setViewMode(key)}
+                title={label}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.15s',
+                  background: viewMode === key ? '#26c281' : 'transparent',
+                  color: viewMode === key ? '#fff' : '#64748b',
+                }}
+              >
+                <i className={`bx ${icon}`} style={{ fontSize: 15 }} />
+                <span style={{ display: 'none' }}>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => setShowStatusManager(true)}
@@ -1078,6 +1405,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onQuickUpdate={handleQuickUpdate}
             onAddTask={handleAddTask}
+            viewMode={viewMode}
           />
         </div>
       )}
