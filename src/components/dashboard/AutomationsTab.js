@@ -572,7 +572,7 @@ export default function AutomationsTab({ workspaceUsers = [], isMaster = false }
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <i className="bxs-zap" style={{ color: GREEN, fontSize: 24 }} /> Automações
+            <i className="bx bx-zap" style={{ color: GREEN }} /> Automações
           </h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Automatize tarefas repetitivas com gatilhos, condições e ações.</p>
         </div>

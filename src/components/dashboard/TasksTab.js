@@ -1541,7 +1541,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, background: 'var(--bg-panel, #111113)', zIndex: 1 }}>
               <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <i className="bxs-zap" style={{ color: '#26c281', fontSize: 18 }} /> Automações
+                <i className="bx bx-zap"></i> Automações
               </span>
               <button onClick={() => setShowAutomations(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20, display: 'flex', alignItems: 'center' }}>
                 <i className="bx bx-x" />
