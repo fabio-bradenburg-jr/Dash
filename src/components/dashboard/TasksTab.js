@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import StatusTemplatesManager from '@/components/dashboard/StatusTemplatesManager'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -911,17 +912,35 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [view, setView] = useState('home')
   const [selectedSpace, setSelectedSpace] = useState(null)
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
+  const [showStatusManager, setShowStatusManager] = useState(false)
+
+  const loadStatuses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tasks/status-templates')
+      const json = await res.json()
+      if (json.templates?.length) {
+        const defaultTmpl = json.templates.find(t => t.is_default) || json.templates[0]
+        setStatuses((defaultTmpl.items || []).map(item => ({
+          id: item.id,
+          label: item.name,
+          color: item.color,
+          is_completed: item.is_completed,
+          is_initial: item.is_initial,
+          pauses_sla: item.pauses_sla,
+          sort_order: item.sort_order,
+        })))
+      }
+    } catch {}
+  }, [])
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [statusRes, taskRes, spacesRes] = await Promise.all([
-        fetch('/api/tasks/statuses'),
+      const [taskRes, spacesRes] = await Promise.all([
         fetch('/api/tasks'),
         fetch('/api/tasks/spaces'),
       ])
-      const [statusJson, taskJson, spacesJson] = await Promise.all([statusRes.json(), taskRes.json(), spacesRes.json()])
-      if (statusJson.statuses) setStatuses(statusJson.statuses)
+      const [taskJson, spacesJson] = await Promise.all([taskRes.json(), spacesRes.json()])
       if (taskJson.tasks) setTasks(taskJson.tasks)
       if (spacesJson.spaces) setSpaces(spacesJson.spaces)
     } finally {
@@ -929,7 +948,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData(); loadStatuses() }, [loadData, loadStatuses])
 
   async function handleAddTask(fields) {
     const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields) })
@@ -992,6 +1011,14 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         )}
 
         <div style={{ flex: 1 }} />
+
+        <button
+          type="button"
+          onClick={() => setShowStatusManager(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
+        >
+          <i className="bx bx-cog"></i> Status
+        </button>
 
         {view === 'home' && (
           <button
@@ -1071,6 +1098,12 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onUpdated={handlePanelUpdate}
           />
         </>
+      )}
+
+      {showStatusManager && (
+        <StatusTemplatesManager
+          onClose={() => { setShowStatusManager(false); loadStatuses() }}
+        />
       )}
 
       {/* New space modal */}
