@@ -18,7 +18,7 @@ const SPACE_ICONS = [
   { value: 'bx-rocket', label: 'Rocket' },
 ]
 
-const SPACE_COLORS = ['#6366f1', '#26c281', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
+const SPACE_COLORS = ['#26c281', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 function PriorityFlag({ priority, size = 14 }) {
   const cfg = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.none
@@ -31,7 +31,7 @@ function PriorityFlag({ priority, size = 14 }) {
 function Avatar({ name, size = 26 }) {
   if (!name) return <div style={{ width: size, height: size, borderRadius: '50%', background: '#334155', flexShrink: 0 }} />
   const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-  const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#22c55e', '#3b82f6']
+  const colors = ['#26c281', '#3b82f6', '#ec4899', '#14b8a6', '#f59e0b', '#22c55e', '#8b5cf6']
   const color = colors[name.charCodeAt(0) % colors.length]
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.38, fontWeight: 700, color: '#fff', flexShrink: 0 }} title={name}>
@@ -273,7 +273,7 @@ function SpaceCard({ space, onClick }) {
 
 // ---- New Space Modal ----
 function NewSpaceModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', description: '', color: '#6366f1', icon: 'bx-folder', is_private: false })
+  const [form, setForm] = useState({ name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false })
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e) {
@@ -358,14 +358,14 @@ function NewSpaceModal({ onClose, onCreate }) {
               <button
                 type="button"
                 onClick={() => setForm(f => ({ ...f, is_private: false }))}
-                style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${!form.is_private ? '#6366f1' : 'rgba(255,255,255,0.08)'}`, background: !form.is_private ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)', color: !form.is_private ? '#818cf8' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s' }}
+                style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${!form.is_private ? '#26c281' : 'rgba(255,255,255,0.08)'}`, background: !form.is_private ? 'rgba(38,194,129,0.12)' : 'rgba(255,255,255,0.03)', color: !form.is_private ? '#4ade80' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s' }}
               >
                 <i className="bx bx-group" style={{ marginRight: 6 }}></i>Toda a equipe
               </button>
               <button
                 type="button"
                 onClick={() => setForm(f => ({ ...f, is_private: true }))}
-                style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${form.is_private ? '#6366f1' : 'rgba(255,255,255,0.08)'}`, background: form.is_private ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)', color: form.is_private ? '#818cf8' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s' }}
+                style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${form.is_private ? '#26c281' : 'rgba(255,255,255,0.08)'}`, background: form.is_private ? 'rgba(38,194,129,0.12)' : 'rgba(255,255,255,0.03)', color: form.is_private ? '#4ade80' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s' }}
               >
                 <i className="bx bx-lock" style={{ marginRight: 6 }}></i>Só eu
               </button>
@@ -376,7 +376,7 @@ function NewSpaceModal({ onClose, onCreate }) {
             <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>
               Cancelar
             </button>
-            <button type="submit" disabled={saving || !form.name.trim()} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: '#6366f1', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, opacity: saving || !form.name.trim() ? 0.6 : 1 }}>
+            <button type="submit" disabled={saving || !form.name.trim()} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: '#26c281', color: '#fff', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, opacity: saving || !form.name.trim() ? 0.6 : 1 }}>
               {saving ? 'Criando...' : 'Criar Espaço'}
             </button>
           </div>
@@ -462,7 +462,7 @@ function StatusGroup({ status, tasks, statuses, clients, workspaceUsers, onOpenP
                 placeholder="Nome da tarefa..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 6, color: '#e2e8f0', padding: '5px 10px', fontSize: '0.85rem', outline: 'none' }}
               />
-              <button type="submit" style={{ background: '#6366f1', border: 'none', color: '#fff', padding: '5px 12px', borderRadius: 6, fontSize: '0.82rem', cursor: 'pointer' }}>Adicionar</button>
+              <button type="submit" style={{ background: '#26c281', border: 'none', color: '#fff', padding: '5px 12px', borderRadius: 6, fontSize: '0.82rem', cursor: 'pointer' }}>Adicionar</button>
               <button type="button" onClick={() => { setAddingTask(false); setNewTitle('') }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
                 <i className="bx bx-x" style={{ fontSize: 18 }}></i>
               </button>
@@ -745,7 +745,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
                 placeholder="Escrever comentário..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.82rem', outline: 'none' }}
               />
-              <button type="button" onClick={addComment} style={{ background: '#6366f1', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
+              <button type="button" onClick={addComment} style={{ background: '#26c281', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
                 Enviar
               </button>
             </div>
@@ -753,7 +753,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 
           <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#334155' }}>
             Criado em {new Date(task.created_at).toLocaleDateString('pt-BR')}
-            {saving && <span style={{ marginLeft: 8, color: '#6366f1' }}>Salvando...</span>}
+            {saving && <span style={{ marginLeft: 8, color: '#26c281' }}>Salvando...</span>}
           </div>
         </div>
       )}
@@ -790,13 +790,13 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#94a3b8' }}>
-            <i className="bx bx-collection" style={{ marginRight: 8, color: '#6366f1' }}></i>
+            <i className="bx bx-collection" style={{ marginRight: 8, color: '#26c281' }}></i>
             Meus Espacos
           </h3>
           <button
             type="button"
             onClick={onNewSpace}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(38,194,129,0.15)', border: '1px solid rgba(38,194,129,0.3)', color: '#4ade80', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <i className="bx bx-plus" style={{ fontSize: 14 }}></i>
             Novo Espaco
@@ -856,7 +856,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
             const firstStatus = statuses[0]
             if (firstStatus) onAddTask({ title: 'Nova tarefa', status_id: firstStatus.id, space_id: space.id })
           }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
         >
           <i className="bx bx-plus" style={{ fontSize: 16 }}></i>
           Nova Tarefa
@@ -967,7 +967,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, marginRight: 8 }}>
-          <i className="bx bx-task" style={{ marginRight: 8, color: '#6366f1' }}></i>
+          <i className="bx bx-task" style={{ marginRight: 8, color: '#26c281' }}></i>
           {view === 'space' && selectedSpace ? selectedSpace.name : 'Tarefas'}
         </h2>
 
@@ -997,7 +997,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           <button
             type="button"
             onClick={() => setShowNewSpaceModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#4ade80', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <i className="bx bx-plus" style={{ fontSize: 16 }}></i>
             Novo Espaco
@@ -1011,7 +1011,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
               const firstStatus = statuses[0]
               if (firstStatus) handleAddTask({ title: 'Nova tarefa', status_id: firstStatus.id })
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#6366f1', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <i className="bx bx-plus" style={{ fontSize: 16 }}></i>
             Nova Tarefa
