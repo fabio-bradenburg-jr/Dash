@@ -11,6 +11,7 @@ import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
 import FunnelTab from '@/components/dashboard/FunnelTab'
+import TasksTab from '@/components/dashboard/TasksTab'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -16874,6 +16875,12 @@ export default function DashboardShell({
                       <span className="nav-label">G.R - Tarefas</span>
                     </button>
                   )}
+                  {(isMaster || hasNavAccess('tarefas')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('tarefas')}>
+                      <i className="bx bx-check-square"></i>
+                      <span className="nav-label">Tarefas</span>
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -18115,6 +18122,14 @@ export default function DashboardShell({
         {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
           <FunnelTab
             clients={clients}
+          />
+        )}
+
+        {activeTab === 'tarefas' && (isMaster || hasNavAccess('tarefas')) && (
+          <TasksTab
+            clients={clients}
+            workspaceUsers={usersList}
+            isMaster={isMaster}
           />
         )}
 
@@ -22144,6 +22159,7 @@ export default function DashboardShell({
                   { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
                   { key: 'funil', label: 'Funil', group: 'Performance' },
                   { key: 'gr-tarefas', label: 'G.R - Tarefas', group: 'Performance' },
+                  { key: 'tarefas', label: 'Tarefas', group: 'Performance' },
                   { key: 'editorial-dash', label: 'Painel', group: 'Social Media' },
                   { key: 'editorial', label: 'Calendário', group: 'Social Media' },
                   { key: 'editorial-plans', label: 'Planejamentos', group: 'Social Media' },
