@@ -16812,6 +16812,12 @@ export default function DashboardShell({
               <span className="nav-label">Controle da Operação</span>
             </button>
           )}
+          {(isMaster || hasNavAccess('tarefas')) && (
+            <button type="button" data-tooltip="Central de Tarefas" aria-label="Central de Tarefas" className={`nav-item nav-button ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('tarefas')}>
+              <i className="bx bx-task"></i>
+              <span className="nav-label">Central de Tarefas</span>
+            </button>
+          )}
           {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
             <>
               <button
