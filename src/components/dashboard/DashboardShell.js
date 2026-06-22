@@ -3194,7 +3194,7 @@ export default function DashboardShell({
   externalAppPanelColor = '',
   externalAppTextColor = '',
 }) {
-  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday'])
+  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday', 'operacao'])
   const { user, profile, access, appearance, updateAppearance, loading: userLoading } = useUser()
   const supabase = createClient()
   const dashboardRef = useRef(null)
@@ -6787,7 +6787,7 @@ export default function DashboardShell({
       setActiveTab('assistant')
     }
 
-    if (['clickup', 'calendar'].includes(activeTab)) {
+    if (['operacao', 'clickup', 'calendar'].includes(activeTab)) {
       setActiveTab('assistant')
     }
 
@@ -16906,12 +16906,6 @@ export default function DashboardShell({
             <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
               <i className="bx bx-pulse"></i>
               <span className="nav-label">Controle da Operação</span>
-            </button>
-          )}
-          {(isMaster || hasNavAccess('operacao')) && (
-            <button type="button" data-tooltip="Board de Operação" aria-label="Board de Operação" className={`nav-item nav-button ${activeTab === 'operacao' ? 'active' : ''}`} onClick={() => setActiveTab('operacao')}>
-              <i className="bx bx-columns"></i>
-              <span className="nav-label">Board de Operação</span>
             </button>
           )}
           {(isMaster || hasNavAccess('tarefas')) && (
