@@ -1355,10 +1355,10 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       fetch('/api/tasks/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filter_assignee_ids: filterAssignees, default_view_mode: viewMode }),
+        body: JSON.stringify({ filter_assignee_ids: filterAssignees, default_view_mode: viewMode, show_closed_tasks: showClosedTasks }),
       }).catch(() => {})
     }, 800)
-  }, [filterAssignees, viewMode, prefsLoaded])
+  }, [filterAssignees, viewMode, showClosedTasks, prefsLoaded])
 
   useEffect(() => { loadData(); loadStatuses() }, [loadData, loadStatuses])
 
