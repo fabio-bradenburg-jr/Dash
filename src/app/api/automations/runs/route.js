@@ -40,7 +40,7 @@ export async function GET(request) {
       .from('automation_runs')
       .select('*')
       .eq('automation_id', automation_id)
-      .order('started_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(limit)
 
     if (error) throw error

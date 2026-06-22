@@ -12,6 +12,7 @@ import ReportsTab from '@/components/dashboard/ReportsTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
 import FunnelTab from '@/components/dashboard/FunnelTab'
 import TasksTab from '@/components/dashboard/TasksTab'
+import AutomationsTab from '@/components/dashboard/AutomationsTab'
 import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 import { useUser } from '@/lib/contexts/UserContext'
@@ -16914,6 +16915,12 @@ export default function DashboardShell({
               <span className="nav-label">Central de Tarefas</span>
             </button>
           )}
+          {isMaster && (
+            <button type="button" data-tooltip="Automações" aria-label="Automações" className={`nav-item nav-button ${activeTab === 'automacoes' ? 'active' : ''}`} onClick={() => setActiveTab('automacoes')}>
+              <i className="bx bx-zap"></i>
+              <span className="nav-label">Automações</span>
+            </button>
+          )}
           {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
             <>
               <button
@@ -18233,6 +18240,13 @@ export default function DashboardShell({
             workspaceUsers={usersList}
             isMaster={isMaster}
             currentUserId={user?.id}
+          />
+        )}
+
+        {activeTab === 'automacoes' && isMaster && (
+          <AutomationsTab
+            workspaceUsers={usersList}
+            isMaster={isMaster}
           />
         )}
 
