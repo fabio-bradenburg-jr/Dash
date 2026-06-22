@@ -18130,6 +18130,7 @@ export default function DashboardShell({
             clients={clients}
             workspaceUsers={usersList}
             isMaster={isMaster}
+            currentUserId={user?.id}
           />
         )}
 
