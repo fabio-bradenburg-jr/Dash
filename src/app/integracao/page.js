@@ -54,6 +54,15 @@ const CHECKLIST_ITEMS = [
   'Nome, número e código do cartão virtual para créditos dos anúncios',
 ]
 
+// Campaign metrics card — update values here, UI renders automatically
+const CAMPAIGN_METRICS = [
+  { label: 'Investimento',  value: 'R$ 7.131,99' },
+  { label: 'Impressões',    value: '206.903'      },
+  { label: 'Cliques',       value: '5.340'        },
+  { label: 'CTR',           value: '0,55%'        },
+  { label: 'Leads',         value: '553'          },
+]
+
 const FAKE_LEADS = [
   { nome: 'Carlos Mendes', origem: 'Instagram', hora: '09:14', status: 'Novo',           etapa: 'Recebido'    },
   { nome: 'Ana Paula S.',  origem: 'Facebook',  hora: '10:02', status: 'Em atendimento', etapa: 'Qualificado' },
@@ -182,10 +191,13 @@ export default function IntegracaoPage() {
               </ul>
             </div>
             <div className={`${styles.adCard} ${styles.ledCard}`}>
-              <div className={styles.adCardTag}><i className="bx bxs-megaphone" /> ANÚNCIO ATIVO</div>
-              <div className={styles.adCardBar}><span>CTR</span><strong>8,2%</strong></div>
-              <div className={styles.adCardBar}><span>Conv.</span><strong>6,4%</strong></div>
-              <div className={styles.adCardBar} style={{ background: 'rgba(38,194,129,0.18)' }}><span>Qualif.</span><strong>91%</strong></div>
+              <div className={styles.adCardTag}><i className="bx bx-bar-chart-alt-2" /> MÉTRICAS DA CAMPANHA</div>
+              {CAMPAIGN_METRICS.map(({ label, value }) => (
+                <div key={label} className={styles.adCardBar}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
             </div>
           </div>
         </section>
