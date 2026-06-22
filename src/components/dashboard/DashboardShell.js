@@ -13,6 +13,7 @@ import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
 import FunnelTab from '@/components/dashboard/FunnelTab'
 import TasksTab from '@/components/dashboard/TasksTab'
 import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
+import ActionSpaceSettings from '@/components/dashboard/ActionSpaceSettings'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
@@ -3376,6 +3377,7 @@ export default function DashboardShell({
   const [newClientResultManagerUserId, setNewClientResultManagerUserId] = useState('')
   const [newProductName, setNewProductName] = useState('')
   const [operationViewMode, setOperationViewMode] = useState('kanban')
+  const [showActionSpaceSettings, setShowActionSpaceSettings] = useState(false)
   const [operationPeriodFilter, setOperationPeriodFilter] = useState('all')
   const [operationSearch, setOperationSearch] = useState('')
   const [operationSegmentFilter, setOperationSegmentFilter] = useState('all')
@@ -15097,16 +15099,37 @@ export default function DashboardShell({
         })}
       </div>
 
+      {showActionSpaceSettings && (
+        <ActionSpaceSettings
+          onClose={() => setShowActionSpaceSettings(false)}
+          workspaceUsers={operationAssignableUsers || []}
+        />
+      )}
+
       <div className="input-group weekly-action-input" style={{ ...weeklyFieldStyle, gridColumn: '1 / -1' }}>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 8, color: isLightAppMode ? '#475569' : '#94a3b8' }}>
-          Plano de ação integrado — tarefas criadas automaticamente na Central de Tarefas
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: isLightAppMode ? '#475569' : '#94a3b8' }}>
+            Plano de ação integrado — tarefas criadas automaticamente na Central de Tarefas
+          </span>
+          {isMaster && (
+            <button
+              type="button"
+              onClick={() => setShowActionSpaceSettings(true)}
+              title="Configurações de Plano de Ação"
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600, padding: '4px 10px', cursor: 'pointer' }}
+            >
+              <i className="bx bx-cog" style={{ fontSize: 13 }} /> Configurações
+            </button>
+          )}
+        </div>
         {weeklyForm.clientId ? (
           <ActionPlanManager
             clientId={weeklyForm.clientId}
             weekStart={weeklyWeekStart}
             users={operationAssignableUsers}
             isLight={isLightAppMode}
+            statuses={[]}
+            clients={clients || []}
           />
         ) : (
           <div style={{ color: isLightAppMode ? '#94a3b8' : '#64748b', fontSize: 13, fontStyle: 'italic', padding: '8px 0' }}>

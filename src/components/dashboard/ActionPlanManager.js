@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import NewTaskModal from '@/components/dashboard/NewTaskModal'
 
 const STATUS_OPTIONS = [
   { key: 'pending', label: 'Pendente', color: '#94a3b8' },
@@ -8,27 +9,21 @@ const STATUS_OPTIONS = [
   { key: 'done', label: 'Concluído', color: '#26c281' },
 ]
 
-const PRIORITY_OPTIONS = [
-  { key: 'none', label: 'Sem prioridade', color: '#64748b' },
-  { key: 'low', label: 'Baixa', color: '#22c55e' },
-  { key: 'medium', label: 'Média', color: '#f59e0b' },
-  { key: 'high', label: 'Alta', color: '#ef4444' },
-  { key: 'urgent', label: 'Urgente', color: '#dc2626' },
-]
-
 const DARK = 'var(--bg-dark, #050506)'
 const PANEL = 'var(--bg-panel, #111113)'
 const BORDER = 'rgba(148,163,184,.12)'
 const GREEN = '#26c281'
 
-export default function ActionPlanManager({ clientId, weekStart, users = [], isLight = false, onCountChange }) {
+export default function ActionPlanManager({ clientId, weekStart, users = [], isLight = false, onCountChange, statuses = [], clients = [] }) {
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
   const [savingId, setSavingId] = useState(null)
-  const [newPlan, setNewPlan] = useState({ title: '', responsible_id: '', due_date: '', description: '' })
   const [editingId, setEditingId] = useState(null)
   const [editDraft, setEditDraft] = useState({})
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [weeklySpaceId, setWeeklySpaceId] = useState(null)
+  const [loadingSpace, setLoadingSpace] = useState(false)
+  const weeklySpaceCache = useRef({})
 
   const loadPlans = useCallback(async () => {
     if (!clientId || !weekStart) return
@@ -48,9 +43,45 @@ export default function ActionPlanManager({ clientId, weekStart, users = [], isL
 
   useEffect(() => { loadPlans() }, [loadPlans])
 
-  const handleAdd = async () => {
-    if (!newPlan.title.trim()) return
-    setSavingId('new')
+  // When weekStart changes, reset cached space for that week (or reuse if already found)
+  useEffect(() => {
+    if (!weekStart) return
+    if (weeklySpaceCache.current[weekStart]) {
+      setWeeklySpaceId(weeklySpaceCache.current[weekStart])
+    } else {
+      setWeeklySpaceId(null)
+    }
+  }, [weekStart])
+
+  const ensureWeeklySpace = async () => {
+    if (weeklySpaceId) return weeklySpaceId
+    if (weeklySpaceCache.current[weekStart]) {
+      setWeeklySpaceId(weeklySpaceCache.current[weekStart])
+      return weeklySpaceCache.current[weekStart]
+    }
+    setLoadingSpace(true)
+    try {
+      const res = await fetch(`/api/operation/weekly-spaces?week_start=${weekStart}`)
+      const json = await res.json()
+      if (json.space) {
+        const id = json.space.id
+        weeklySpaceCache.current[weekStart] = id
+        setWeeklySpaceId(id)
+        return id
+      }
+    } finally {
+      setLoadingSpace(false)
+    }
+    return null
+  }
+
+  const handleOpenTaskModal = async () => {
+    const spaceId = await ensureWeeklySpace()
+    setShowTaskModal(true)
+  }
+
+  const handleTaskSaved = async (task) => {
+    // Link the created task to action_plans
     try {
       const res = await fetch('/api/operation/action-plans', {
         method: 'POST',
@@ -58,10 +89,12 @@ export default function ActionPlanManager({ clientId, weekStart, users = [], isL
         body: JSON.stringify({
           client_id: clientId,
           week_start: weekStart,
-          title: newPlan.title.trim(),
-          description: newPlan.description.trim() || null,
-          responsible_id: newPlan.responsible_id || null,
-          due_date: newPlan.due_date || null,
+          title: task.title,
+          description: task.description || null,
+          responsible_id: task.assignee_id || null,
+          due_date: task.due_date || null,
+          task_id: task.id,
+          task_public_id: task.task_public_id || null,
         }),
       })
       const json = await res.json()
@@ -69,11 +102,9 @@ export default function ActionPlanManager({ clientId, weekStart, users = [], isL
         const updated = [...plans, json.plan]
         setPlans(updated)
         onCountChange?.(updated.length)
-        setNewPlan({ title: '', responsible_id: '', due_date: '', description: '' })
-        setAdding(false)
       }
     } catch (_) {}
-    setSavingId(null)
+    setShowTaskModal(false)
   }
 
   const handleStatusChange = async (plan, status) => {
@@ -130,10 +161,16 @@ export default function ActionPlanManager({ clientId, weekStart, users = [], isL
     return <div style={{ color: subtext, fontSize: 13, padding: '12px 0' }}>Carregando planos...</div>
   }
 
+  // Default context for the task modal
+  const taskDefaultContext = {
+    space_id: weeklySpaceId || undefined,
+    client_id: clientId || undefined,
+  }
+
   return (
     <div style={{ width: '100%' }}>
       {/* Plan list */}
-      {plans.length === 0 && !adding && (
+      {plans.length === 0 && (
         <div style={{ color: subtext, fontSize: 13, padding: '10px 0', fontStyle: 'italic' }}>
           Nenhum plano de ação para esta semana.
         </div>
@@ -244,81 +281,33 @@ export default function ActionPlanManager({ clientId, weekStart, users = [], isL
         )
       })}
 
-      {/* New plan form */}
-      {adding ? (
-        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, background: inputBg, borderRadius: 10, border: `1px solid ${borderColor}` }}>
-          <div>
-            <span style={labelStyle}>Título do plano *</span>
-            <input
-              autoFocus
-              style={inputStyle}
-              value={newPlan.title}
-              onChange={(e) => setNewPlan((p) => ({ ...p, title: e.target.value }))}
-              placeholder="Ex: Ajustar campanha de leads"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div>
-              <span style={labelStyle}>Responsável</span>
-              <select
-                style={inputStyle}
-                value={newPlan.responsible_id}
-                onChange={(e) => setNewPlan((p) => ({ ...p, responsible_id: e.target.value }))}
-              >
-                <option value="">Selecione</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-              </select>
-            </div>
-            <div>
-              <span style={labelStyle}>Prazo</span>
-              <input
-                type="date" style={inputStyle}
-                value={newPlan.due_date}
-                onChange={(e) => setNewPlan((p) => ({ ...p, due_date: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div>
-            <span style={labelStyle}>Descrição (opcional)</span>
-            <textarea
-              style={{ ...inputStyle, resize: 'vertical', minHeight: 56 }}
-              value={newPlan.description}
-              onChange={(e) => setNewPlan((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Detalhes sobre o plano de ação..."
-              rows={2}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button
-              type="button"
-              style={btnStyle(GREEN)}
-              onClick={handleAdd}
-              disabled={!newPlan.title.trim() || savingId === 'new'}
-            >
-              {savingId === 'new' ? 'Criando...' : '+ Criar e vincular tarefa'}
-            </button>
-            <button type="button" style={btnStyle('#64748b')} onClick={() => { setAdding(false); setNewPlan({ title: '', responsible_id: '', due_date: '', description: '' }) }}>
-              Cancelar
-            </button>
-            <span style={{ fontSize: 11, color: subtext, marginLeft: 4 }}>
-              Uma tarefa será criada automaticamente na Central de Tarefas
-            </span>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          style={{
-            marginTop: 10, display: 'flex', alignItems: 'center', gap: 6,
-            background: 'transparent', border: `1px dashed ${GREEN}66`, borderRadius: 8,
-            color: GREEN, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', width: '100%',
-            justifyContent: 'center',
-          }}
-        >
-          <i className="bx bx-plus" /> Adicionar plano de ação
-        </button>
+      {/* Add task button */}
+      <button
+        type="button"
+        onClick={handleOpenTaskModal}
+        disabled={loadingSpace || !clientId || !weekStart}
+        style={{
+          marginTop: 10, display: 'flex', alignItems: 'center', gap: 6,
+          background: 'transparent', border: `1px dashed ${GREEN}66`, borderRadius: 8,
+          color: GREEN, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', width: '100%',
+          justifyContent: 'center', opacity: loadingSpace ? 0.6 : 1,
+        }}
+      >
+        <i className={`bx ${loadingSpace ? 'bx-loader-alt bx-spin' : 'bx-plus'}`} />
+        {loadingSpace ? 'Preparando espaço...' : 'Adicionar tarefa ao Plano de Ação'}
+      </button>
+
+      {showTaskModal && (
+        <NewTaskModal
+          onClose={() => setShowTaskModal(false)}
+          onSaved={handleTaskSaved}
+          defaultContext={taskDefaultContext}
+          spaces={[]}
+          clients={clients}
+          workspaceUsers={users}
+          statuses={statuses}
+          customFields={[]}
+        />
       )}
     </div>
   )

@@ -131,7 +131,7 @@ export async function POST(request) {
     if (ctx.error) return ctx.error
 
     const body = await request.json()
-    const { client_id, title, description, responsible_id, due_date, week_start } = body
+    const { client_id, title, description, responsible_id, due_date, week_start, task_id: externalTaskId, task_public_id: externalTaskPublicId } = body
 
     if (!client_id || !title?.trim()) {
       return NextResponse.json({ error: 'client_id e title são obrigatórios.' }, { status: 400 })
@@ -178,7 +178,18 @@ export async function POST(request) {
 
     if (planError) throw planError
 
-    // 4. Auto-create task in Central de Tarefas
+    // 4. If an external task_id is provided, link it directly (task already created via modal)
+    if (externalTaskId) {
+      await ctx.adminSupabase
+        .from('action_plans')
+        .update({ task_id: externalTaskId, task_public_id: externalTaskPublicId || null })
+        .eq('id', plan.id)
+      plan.task_id = externalTaskId
+      plan.task_public_id = externalTaskPublicId || null
+      return NextResponse.json({ plan })
+    }
+
+    // Otherwise auto-create task in Central de Tarefas
     try {
       const spaceId = await resolveActionPlanSpace(ctx.adminSupabase, ctx.workspaceId, ctx.user.id, week.label)
       const statusId = await resolveInitialStatus(ctx.adminSupabase, ctx.workspaceId)
