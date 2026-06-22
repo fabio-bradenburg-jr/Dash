@@ -187,6 +187,18 @@
   height: clamp(240px, 28vw, 400px);
 }
 
+.lpLogoImg {
+  position: absolute;
+  inset: 0;
+  width: 68%;
+  height: 68%;
+  margin: auto;
+  top: 0; left: 0; right: 0; bottom: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(38,194,129,0.35));
+  z-index: 4;
+}
+
 /* Outer ring with LED spin */
 .lpRing {
   position: absolute;

@@ -113,111 +113,42 @@ export default function IntegracaoPage() {
               {/* Glow center */}
               <div className={styles.lpGlowCenter} />
 
-              {/* Full SVG: circuit lines + bird logo */}
-              <svg className={styles.lpSvg} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Circuit lines behind logo */}
+              <svg className={styles.lpCircuit} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  {/* Bird gradient — bright top-left to darker bottom-right */}
-                  <linearGradient id="birdGrad" x1="72" y1="72" x2="350" y2="360" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%"   stopColor="#09eb82" />
-                    <stop offset="55%"  stopColor="#26c281" />
-                    <stop offset="100%" stopColor="#00975a" />
-                  </linearGradient>
-                  {/* Glow filter for the bird shapes */}
-                  <filter id="birdGlow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="7" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                  {/* Glow filter for circuit trails */}
                   <filter id="trailGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                   </filter>
                 </defs>
-
-                {/* ── Circuit lines (static, faint) ── */}
-                <path d="M 44 195 H 92 V 140 H 118" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
-                <path d="M 44 210 H 92 V 265 H 118" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
-                <path d="M 356 140 H 318 V 95  H 290" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
-                <path d="M 356 265 H 318 V 310 H 290" stroke="rgba(38,194,129,0.15)" strokeWidth="1.5" />
-                <path d="M 200 44  V 95  H 240" stroke="rgba(38,194,129,0.10)" strokeWidth="1.5" />
-                <path d="M 200 356 V 310 H 240" stroke="rgba(38,194,129,0.10)" strokeWidth="1.5" />
-                {/* Endpoint pads */}
-                <circle cx="118" cy="140" r="3" fill="rgba(38,194,129,0.35)" />
-                <circle cx="118" cy="265" r="3" fill="rgba(38,194,129,0.35)" />
-                <circle cx="290" cy="95"  r="3" fill="rgba(38,194,129,0.35)" />
-                <circle cx="290" cy="310" r="3" fill="rgba(38,194,129,0.35)" />
-                <circle cx="240" cy="95"  r="3" fill="rgba(38,194,129,0.25)" />
-                <circle cx="240" cy="310" r="3" fill="rgba(38,194,129,0.25)" />
-
-                {/* ── Travelling lights ── */}
+                <path d="M 44 185 H 90 V 135 H 118" stroke="rgba(38,194,129,0.22)" strokeWidth="1.5" />
+                <path d="M 44 215 H 90 V 268 H 118" stroke="rgba(38,194,129,0.22)" strokeWidth="1.5" />
+                <path d="M 356 148 H 316 V 95  H 284" stroke="rgba(38,194,129,0.22)" strokeWidth="1.5" />
+                <path d="M 356 258 H 316 V 312 H 284" stroke="rgba(38,194,129,0.22)" strokeWidth="1.5" />
+                <path d="M 198 44  V 90  H 248 V 110" stroke="rgba(38,194,129,0.16)" strokeWidth="1.5" />
+                <path d="M 198 356 V 310 H 248 V 292" stroke="rgba(38,194,129,0.16)" strokeWidth="1.5" />
+                <circle cx="118" cy="135" r="3.5" fill="rgba(38,194,129,0.45)" />
+                <circle cx="118" cy="268" r="3.5" fill="rgba(38,194,129,0.45)" />
+                <circle cx="284" cy="95"  r="3.5" fill="rgba(38,194,129,0.45)" />
+                <circle cx="284" cy="312" r="3.5" fill="rgba(38,194,129,0.45)" />
+                <circle cx="248" cy="110" r="3"   fill="rgba(38,194,129,0.3)" />
+                <circle cx="248" cy="292" r="3"   fill="rgba(38,194,129,0.3)" />
                 <path className={styles.lpTrail1}
-                  d="M 44 195 H 92 V 140 H 118"
+                  d="M 44 185 H 90 V 135 H 118"
                   stroke="#26c281" strokeWidth="2" strokeLinecap="round"
                   strokeDasharray="200" strokeDashoffset="200" filter="url(#trailGlow)" />
                 <path className={styles.lpTrail2}
-                  d="M 356 140 H 318 V 95 H 290"
+                  d="M 356 148 H 316 V 95 H 284"
                   stroke="#4ade80" strokeWidth="2" strokeLinecap="round"
                   strokeDasharray="200" strokeDashoffset="200" filter="url(#trailGlow)" />
                 <path className={styles.lpTrail3}
-                  d="M 200 356 V 310 H 240"
+                  d="M 198 356 V 310 H 248 V 292"
                   stroke="#26c281" strokeWidth="2" strokeLinecap="round"
                   strokeDasharray="160" strokeDashoffset="160" filter="url(#trailGlow)" />
-
-                {/* ══════════════════════════════════
-                    BIRD LOGO — 3 geometric pieces
-                    ══════════════════════════════════ */}
-
-                {/* ── Piece 1: Bird head + body (left column) ──
-                    Head: circle ~center(152,152) r=72
-                    Beak: small hook protruding left
-                    Stem: vertical bar going down
-                */}
-                <g filter="url(#birdGlow)">
-                  {/* Head circle with beak hook cut */}
-                  <path fill="url(#birdGrad)" d="
-                    M 152 80
-                    A 72 72 0 0 1 224 152
-                    A 72 72 0 0 1 152 224
-                    A 72 72 0 0 1 84  174
-                    Q 66 162 66 152
-                    Q 66 142 84  130
-                    A 72 72 0 0 1 152 80
-                    Z
-                  " />
-                  {/* Eye / nostril — white curved notch */}
-                  <path fill="white" d="M 96 118 A 15 9 0 0 1 124 114 A 15 9 0 0 0 96 118 Z" opacity="0.92" />
-
-                  {/* Stem / body bar */}
-                  <rect x="130" y="222" width="40" height="140" rx="8" fill="url(#birdGrad)" />
-                </g>
-
-                {/* ── Piece 2: Right top wing (large D-shape) ──
-                    Left edge flat at x=176, extends right with semicircle
-                    Top y=80, bottom y=226
-                */}
-                <path fill="url(#birdGrad)" filter="url(#birdGlow)"
-                  d="M 176 80 H 284 A 73 73 0 0 1 284 226 H 176 Z" />
-
-                {/* ── Piece 3: Right bottom tail (smaller D-shape) ──
-                    Left edge at x=176, smaller arc
-                    Top y=246, bottom y=360
-                */}
-                <path fill="url(#birdGrad)" filter="url(#birdGlow)"
-                  d="M 176 246 H 233 A 57 57 0 0 1 176 360 Z" />
-
-                {/* ── Subtle edge highlight on each piece ── */}
-                <path
-                  d="M 152 80 A 72 72 0 0 1 224 152 A 72 72 0 0 1 152 224 A 72 72 0 0 1 84 174 Q 66 162 66 152 Q 66 142 84 130 A 72 72 0 0 1 152 80 Z"
-                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
-                <path d="M 176 80 H 284 A 73 73 0 0 1 284 226 H 176 Z"
-                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
-                <path d="M 176 246 H 233 A 57 57 0 0 1 176 360 Z"
-                  stroke="rgba(134,239,172,0.25)" strokeWidth="1" fill="none" />
               </svg>
+
+              {/* Actual LP bird logo on top */}
+              <img src="/assessoria-lp-logo.png" alt="Assessoria LP" className={styles.lpLogoImg} />
             </div>
           </div>
         </section>
