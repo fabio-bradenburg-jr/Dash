@@ -16829,7 +16829,7 @@ export default function DashboardShell({
     >
       {/* Notification bell — fixed top-right */}
       <div style={{
-        position: 'fixed', top: 14, right: 18, zIndex: 10000,
+        position: 'fixed', top: 14, right: 18, zIndex: 99998,
         display: 'flex', alignItems: 'center',
       }}>
         <NotificationBell isLight={isLightAppMode} />

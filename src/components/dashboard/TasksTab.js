@@ -5,6 +5,7 @@ import StatusTemplatesManager from '@/components/dashboard/StatusTemplatesManage
 import UserFilterPicker from '@/components/dashboard/UserFilterPicker'
 import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnManager'
 import AutomationsTab from '@/components/dashboard/AutomationsTab'
+import NewTaskModal from '@/components/dashboard/NewTaskModal'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -1108,7 +1109,7 @@ function CalendarView({ spaceTasks, statuses, onOpenPanel }) {
 }
 
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, viewMode, columns }) {
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, columns }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
 
   const filteredByStatus = statuses.map(status => ({
@@ -1140,8 +1141,8 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
         <button
           type="button"
           onClick={() => {
-            const firstStatus = statuses[0]
-            if (firstStatus) onAddTask({ title: 'Nova tarefa', status_id: firstStatus.id, space_id: space.id })
+            if (onNewTask) onNewTask({ space_id: space.id, status_id: statuses[0]?.id })
+            else if (onAddTask) { const firstStatus = statuses[0]; if (firstStatus) onAddTask({ title: 'Nova tarefa', status_id: firstStatus.id, space_id: space.id }) }
           }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
         >
@@ -1238,6 +1239,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
   const [showAutomations, setShowAutomations] = useState(false)
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false)
+  const [newTaskContext, setNewTaskContext] = useState({})
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -1441,10 +1444,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         {view === 'home' && (
           <button
             type="button"
-            onClick={() => {
-              const firstStatus = statuses[0]
-              if (firstStatus) handleAddTask({ title: 'Nova tarefa', status_id: firstStatus.id })
-            }}
+            onClick={() => { setNewTaskContext({}); setShowNewTaskModal(true) }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#fff', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <i className="bx bx-plus" style={{ fontSize: 16 }}></i>
@@ -1485,6 +1485,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onQuickUpdate={handleQuickUpdate}
             onAddTask={handleAddTask}
+            onNewTask={ctx => { setNewTaskContext(ctx); setShowNewTaskModal(true) }}
             viewMode={viewMode}
             columns={columns}
           />
@@ -1552,6 +1553,21 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             </div>
           </div>
         </>
+      )}
+
+      {showNewTaskModal && (
+        <NewTaskModal
+          onClose={() => setShowNewTaskModal(false)}
+          onSaved={(task) => {
+            setTasks(prev => [...prev, task])
+          }}
+          defaultContext={newTaskContext}
+          spaces={spaces}
+          clients={clients}
+          workspaceUsers={workspaceUsers || []}
+          statuses={statuses}
+          customFields={customFields}
+        />
       )}
     </div>
   )

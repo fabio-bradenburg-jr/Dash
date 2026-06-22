@@ -163,7 +163,7 @@ export default function NotificationBell({ isLight = false, supabaseClient = nul
           background: bg, border: `1px solid ${borderColor}`,
           borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,.35)',
           display: 'flex', flexDirection: 'column',
-          zIndex: 9999,
+          zIndex: 99999,
         }}>
           {/* Header */}
           <div style={{ padding: '14px 16px 10px', borderBottom: `1px solid ${borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
