@@ -14,7 +14,7 @@ const FIVE_PS = [
   { icon: 'bx-target-lock',     title: 'Planejamento Estratégico', desc: 'Definimos público, produto, estratégia e metas antes de qualquer ação.' },
   { icon: 'bx-git-branch',      title: 'Processos Comerciais',     desc: 'Scripts, fluxos e CRM para transformar leads em vendas de forma previsível.' },
   { icon: 'bxs-group',          title: 'Potenciais Clientes',      desc: 'Captação ativa de leads qualificados com anúncios e formulários filtrados.' },
-  { icon: 'bx-bar-chart-alt-2', title: 'PAC',                      desc: 'Controle de performance com indicadores claros e ações de melhoria contínua.' },
+  { icon: 'bx-bar-chart-alt-2', title: 'PAC',                      desc: 'Programa de Aceleração. Acompanhamento individual e contínuo. Encontros mensais para ajustar estratégias na prática e garantir crescimento previsível.' },
   { icon: 'bx-receipt',         title: 'Prestação de Contas',      desc: 'Relatórios e reuniões mensais para transparência total nos resultados.' },
 ]
 
