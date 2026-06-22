@@ -3300,6 +3300,20 @@ export default function DashboardShell({
   const [grEditingTask, setGrEditingTask] = useState(null)
   const [grNewTask, setGrNewTask] = useState(null)
   const [grManageMode, setGrManageMode] = useState(false)
+  const [onboardingManageMode, setOnboardingManageMode] = useState(false)
+  const [onboardingPhaseDefs, setOnboardingPhaseDefs] = useState([])
+  const [onboardingPhaseDefsLoaded, setOnboardingPhaseDefsLoaded] = useState(false)
+  const [offboardingManageMode, setOffboardingManageMode] = useState(false)
+  const [offboardingPhaseDefs, setOffboardingPhaseDefs] = useState([])
+  const [offboardingPhaseDefsLoaded, setOffboardingPhaseDefsLoaded] = useState(false)
+  const [obEditingPhase, setObEditingPhase] = useState(null)
+  const [obEditingItem, setObEditingItem] = useState(null)
+  const [obNewPhase, setObNewPhase] = useState(null)
+  const [obNewItem, setObNewItem] = useState(null)
+  const [offbEditingPhase, setOffbEditingPhase] = useState(null)
+  const [offbEditingItem, setOffbEditingItem] = useState(null)
+  const [offbNewPhase, setOffbNewPhase] = useState(null)
+  const [offbNewItem, setOffbNewItem] = useState(null)
   const [navPermissions, setNavPermissions] = useState([])
   const [myNavPermissions, setMyNavPermissions] = useState([])
   const [permSelectedUserId, setPermSelectedUserId] = useState('')
@@ -3852,6 +3866,15 @@ export default function DashboardShell({
     } catch { setGrTaskDefsLoaded(true) }
   }, [])
 
+  const loadOnboardingPhaseDefs = useCallback(async (type = 'onboarding') => {
+    try {
+      const res = await fetch(`/api/onboarding-tasks/definitions?type=${type}`, { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      if (type === 'onboarding') { setOnboardingPhaseDefs(Array.isArray(data.phases) ? data.phases : []); setOnboardingPhaseDefsLoaded(true) }
+      else { setOffboardingPhaseDefs(Array.isArray(data.phases) ? data.phases : []); setOffboardingPhaseDefsLoaded(true) }
+    } catch { if (type === 'onboarding') setOnboardingPhaseDefsLoaded(true); else setOffboardingPhaseDefsLoaded(true) }
+  }, [])
+
   const loadNavPermissions = useCallback(async () => {
     if (!isMaster) return
     try {
@@ -3883,6 +3906,8 @@ export default function DashboardShell({
 
   useEffect(() => { loadGrCompletions() }, [loadGrCompletions])
   useEffect(() => { if (activeTab === 'gr-tarefas' && !grTaskDefsLoaded) loadGrTaskDefs() }, [activeTab, grTaskDefsLoaded, loadGrTaskDefs])
+  useEffect(() => { if (activeTab === 'onboarding' && !onboardingPhaseDefsLoaded) loadOnboardingPhaseDefs('onboarding') }, [activeTab, onboardingPhaseDefsLoaded, loadOnboardingPhaseDefs])
+  useEffect(() => { if (activeTab === 'offboarding' && !offboardingPhaseDefsLoaded) loadOnboardingPhaseDefs('offboarding') }, [activeTab, offboardingPhaseDefsLoaded, loadOnboardingPhaseDefs])
   useEffect(() => { if (activeTab === 'usuarios') loadNavPermissions() }, [activeTab, loadNavPermissions])
   useEffect(() => { if (user && !isMaster) loadMyNavPermissions() }, [user, isMaster, loadMyNavPermissions])
 
@@ -17188,7 +17213,7 @@ export default function DashboardShell({
         {activeTab === 'semanal' && (isMaster || hasNavAccess('semanal')) && renderWeeklyClientPanel()}
 
         {activeTab === 'onboarding' && isMaster && (() => {
-          const ONBOARDING_PHASES = [
+          const ONBOARDING_PHASES_FALLBACK = [
             {
               id: 'estrutura',
               label: '1. Estrutura inicial',
@@ -17366,6 +17391,7 @@ export default function DashboardShell({
               ],
             },
           ]
+          const ONBOARDING_PHASES = onboardingPhaseDefsLoaded ? onboardingPhaseDefs : ONBOARDING_PHASES_FALLBACK
 
           const totalTasks = ONBOARDING_PHASES.reduce((sum, p) => sum + p.tasks.length, 0)
           const onboardingClients = clients.filter((c) => {
@@ -17410,6 +17436,14 @@ export default function DashboardShell({
                 <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <span className="management-hero-kicker"><i className="bx bx-list-check" style={{ marginRight: 5 }}></i>Onboarding</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
+                {isMaster && (
+                  <button type="button" className="btn btn-secondary" style={{ position: 'absolute', top: 28, right: 28, fontSize: '0.8rem', padding: '5px 12px', zIndex: 2 }} onClick={() => {
+                    setOnboardingManageMode(v => !v)
+                    if (!onboardingPhaseDefsLoaded) {
+                      fetch('/api/onboarding-tasks/definitions?type=onboarding').then(r => r.json()).then(d => { if (d.phases) { setOnboardingPhaseDefs(d.phases); setOnboardingPhaseDefsLoaded(true) } })
+                    }
+                  }}>{onboardingManageMode ? 'Fechar' : 'Editar tarefas'}</button>
+                )}
                 <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
 
                 {/* Metrics panel */}
@@ -18184,6 +18218,107 @@ export default function DashboardShell({
               )}
             </section>
 
+            {isMaster && onboardingManageMode && (
+              <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                    <i className="bx bx-list-ul" style={{ marginRight: 8, color: '#26c281' }}></i>
+                    Editar Tarefas de Onboarding
+                  </h3>
+                  <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setObNewPhase({ label: '', icon: 'bx-check' })}>
+                    <i className="bx bx-plus"></i> Nova fase
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {obNewPhase && (
+                    <div style={{ background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <strong style={{ fontSize: '0.85rem' }}>Nova fase</strong>
+                      <input type="text" className="input-field" placeholder="Nome da fase" value={obNewPhase.label} onChange={e => setObNewPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                      <input type="text" className="input-field" placeholder="Ícone (ex: bx-check)" value={obNewPhase.icon} onChange={e => setObNewPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} disabled={!obNewPhase.label.trim()} onClick={async () => {
+                          const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', type: 'onboarding', ...obNewPhase }) })
+                          const data = await res.json()
+                          if (data.phase) { setOnboardingPhaseDefs(prev => [...prev, data.phase]); setObNewPhase(null) }
+                        }}>Salvar</button>
+                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setObNewPhase(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  )}
+                  {(onboardingPhaseDefsLoaded ? onboardingPhaseDefs : []).map(phase => (
+                    <div key={phase.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
+                      {obEditingPhase?.id === phase.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                          <input type="text" className="input-field" value={obEditingPhase.label} onChange={e => setObEditingPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                          <input type="text" className="input-field" value={obEditingPhase.icon} onChange={e => setObEditingPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} onClick={async () => {
+                              const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', id: obEditingPhase.id, label: obEditingPhase.label, icon: obEditingPhase.icon }) })
+                              const data = await res.json()
+                              if (data.phase) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === data.phase.id ? { ...p, label: data.phase.label, icon: data.phase.icon } : p)); setObEditingPhase(null) }
+                            }}>Salvar</button>
+                            <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setObEditingPhase(null)}>Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                          <i className={`bx ${phase.icon}`} style={{ color: '#26c281', fontSize: 16 }}></i>
+                          <span style={{ flex: 1, fontWeight: 700, fontSize: '0.9rem' }}>{phase.label}</span>
+                          <button type="button" className="btn-icon" title="Editar fase" onClick={() => setObEditingPhase({ ...phase })} style={{ color: '#94a3b8', fontSize: '1rem' }}><i className="bx bx-edit"></i></button>
+                          <button type="button" className="btn-icon" title="Excluir fase" onClick={async () => {
+                            if (!confirm(`Excluir fase "${phase.label}" e todas as suas tarefas?`)) return
+                            await fetch(`/api/onboarding-tasks/definitions?entity=phase&id=${phase.id}`, { method: 'DELETE' })
+                            setOnboardingPhaseDefs(prev => prev.filter(p => p.id !== phase.id))
+                          }} style={{ color: '#ef4444', fontSize: '1rem' }}><i className="bx bx-trash"></i></button>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
+                        {obNewItem?.phase_id === phase.id && (
+                          <div style={{ background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.2)', borderRadius: 8, padding: '8px 12px', display: 'flex', gap: 8 }}>
+                            <input type="text" className="input-field" placeholder="Nome da tarefa" value={obNewItem.label} onChange={e => setObNewItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
+                            <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} disabled={!obNewItem.label.trim()} onClick={async () => {
+                              const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', phase_id: phase.id, label: obNewItem.label }) })
+                              const data = await res.json()
+                              if (data.item) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: [...p.tasks, data.item] } : p)); setObNewItem(null) }
+                            }}>Salvar</button>
+                            <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setObNewItem(null)}>Cancelar</button>
+                          </div>
+                        )}
+                        {(phase.tasks || []).map(task => (
+                          <div key={task._id || task.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            {obEditingItem?._id === task._id ? (
+                              <>
+                                <input type="text" className="input-field" value={obEditingItem.label} onChange={e => setObEditingItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
+                                <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} onClick={async () => {
+                                  const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', id: obEditingItem._id, label: obEditingItem.label }) })
+                                  const data = await res.json()
+                                  if (data.item) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.map(t => t._id === data.item._id ? data.item : t) } : p)); setObEditingItem(null) }
+                                }}>Salvar</button>
+                                <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setObEditingItem(null)}>Cancelar</button>
+                              </>
+                            ) : (
+                              <>
+                                <span style={{ flex: 1, fontSize: '0.83rem', opacity: 0.85 }}>{task.label}</span>
+                                <button type="button" className="btn-icon" onClick={() => setObEditingItem({ ...task })} style={{ color: '#94a3b8', fontSize: '0.95rem' }}><i className="bx bx-edit"></i></button>
+                                <button type="button" className="btn-icon" onClick={async () => {
+                                  if (!confirm(`Excluir tarefa "${task.label}"?`)) return
+                                  await fetch(`/api/onboarding-tasks/definitions?entity=item&id=${task._id}`, { method: 'DELETE' })
+                                  setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.filter(t => t._id !== task._id) } : p))
+                                }} style={{ color: '#ef4444', fontSize: '0.95rem' }}><i className="bx bx-trash"></i></button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px', alignSelf: 'flex-start', marginTop: 4 }} onClick={() => setObNewItem({ phase_id: phase.id, label: '' })}>
+                          <i className="bx bx-plus"></i> Nova tarefa
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {isMaster && (
               <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -18281,7 +18416,7 @@ export default function DashboardShell({
         })()}
 
         {activeTab === 'offboarding' && isMaster && (() => {
-          const OFFBOARDING_PHASES = [
+          const OFFBOARDING_PHASES_FALLBACK = [
             {
               id: 'off1', label: 'Etapa 1 — Comunicação Inicial', icon: 'bx-message-dots',
               tasks: [
@@ -18320,6 +18455,7 @@ export default function DashboardShell({
               ],
             },
           ]
+          const OFFBOARDING_PHASES = offboardingPhaseDefsLoaded ? offboardingPhaseDefs : OFFBOARDING_PHASES_FALLBACK
           const totalTasks = OFFBOARDING_PHASES.reduce((s, p) => s + p.tasks.length, 0)
           const PHASE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#64748b']
           const churnClients = (clients || []).filter((c) => {
@@ -18363,6 +18499,14 @@ export default function DashboardShell({
                 <span style={{ display: 'inline-block', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#ef4444', marginBottom: 6, opacity: 0.85 }}><i className="bx bx-log-out" style={{ marginRight: 5 }}></i>Offboarding</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Offboarding de clientes</h2>
                 <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist de encerramento para clientes com status Churn.</p>
+                {isMaster && (
+                  <button type="button" className="btn btn-secondary" style={{ position: 'absolute', top: 28, right: 28, fontSize: '0.8rem', padding: '5px 12px', zIndex: 2 }} onClick={() => {
+                    setOffboardingManageMode(v => !v)
+                    if (!offboardingPhaseDefsLoaded) {
+                      fetch('/api/onboarding-tasks/definitions?type=offboarding').then(r => r.json()).then(d => { if (d.phases) { setOffboardingPhaseDefs(d.phases); setOffboardingPhaseDefsLoaded(true) } })
+                    }
+                  }}>{offboardingManageMode ? 'Fechar' : 'Editar tarefas'}</button>
+                )}
 
                 {/* Metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12, marginTop: 20 }}>
@@ -18528,6 +18672,107 @@ export default function DashboardShell({
             </section>
           )
         })()}
+
+        {activeTab === 'offboarding' && isMaster && offboardingManageMode && (
+          <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                <i className="bx bx-list-ul" style={{ marginRight: 8, color: '#ef4444' }}></i>
+                Editar Tarefas de Offboarding
+              </h3>
+              <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setOffbNewPhase({ label: '', icon: 'bx-check' })}>
+                <i className="bx bx-plus"></i> Nova fase
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {offbNewPhase && (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <strong style={{ fontSize: '0.85rem' }}>Nova fase</strong>
+                  <input type="text" className="input-field" placeholder="Nome da fase" value={offbNewPhase.label} onChange={e => setOffbNewPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                  <input type="text" className="input-field" placeholder="Ícone (ex: bx-check)" value={offbNewPhase.icon} onChange={e => setOffbNewPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} disabled={!offbNewPhase.label.trim()} onClick={async () => {
+                      const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', type: 'offboarding', ...offbNewPhase }) })
+                      const data = await res.json()
+                      if (data.phase) { setOffboardingPhaseDefs(prev => [...prev, data.phase]); setOffbNewPhase(null) }
+                    }}>Salvar</button>
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setOffbNewPhase(null)}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+              {(offboardingPhaseDefsLoaded ? offboardingPhaseDefs : []).map(phase => (
+                <div key={phase.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
+                  {offbEditingPhase?.id === phase.id ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                      <input type="text" className="input-field" value={offbEditingPhase.label} onChange={e => setOffbEditingPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                      <input type="text" className="input-field" value={offbEditingPhase.icon} onChange={e => setOffbEditingPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} onClick={async () => {
+                          const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', id: offbEditingPhase.id, label: offbEditingPhase.label, icon: offbEditingPhase.icon }) })
+                          const data = await res.json()
+                          if (data.phase) { setOffboardingPhaseDefs(prev => prev.map(p => p.id === data.phase.id ? { ...p, label: data.phase.label, icon: data.phase.icon } : p)); setOffbEditingPhase(null) }
+                        }}>Salvar</button>
+                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setOffbEditingPhase(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <i className={`bx ${phase.icon}`} style={{ color: '#ef4444', fontSize: 16 }}></i>
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: '0.9rem' }}>{phase.label}</span>
+                      <button type="button" className="btn-icon" onClick={() => setOffbEditingPhase({ ...phase })} style={{ color: '#94a3b8', fontSize: '1rem' }}><i className="bx bx-edit"></i></button>
+                      <button type="button" className="btn-icon" onClick={async () => {
+                        if (!confirm(`Excluir fase "${phase.label}" e todas as suas tarefas?`)) return
+                        await fetch(`/api/onboarding-tasks/definitions?entity=phase&id=${phase.id}`, { method: 'DELETE' })
+                        setOffboardingPhaseDefs(prev => prev.filter(p => p.id !== phase.id))
+                      }} style={{ color: '#ef4444', fontSize: '1rem' }}><i className="bx bx-trash"></i></button>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
+                    {offbNewItem?.phase_id === phase.id && (
+                      <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '8px 12px', display: 'flex', gap: 8 }}>
+                        <input type="text" className="input-field" placeholder="Nome da tarefa" value={offbNewItem.label} onChange={e => setOffbNewItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
+                        <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} disabled={!offbNewItem.label.trim()} onClick={async () => {
+                          const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', phase_id: phase.id, label: offbNewItem.label }) })
+                          const data = await res.json()
+                          if (data.item) { setOffboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: [...p.tasks, data.item] } : p)); setOffbNewItem(null) }
+                        }}>Salvar</button>
+                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setOffbNewItem(null)}>Cancelar</button>
+                      </div>
+                    )}
+                    {(phase.tasks || []).map(task => (
+                      <div key={task._id || task.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        {offbEditingItem?._id === task._id ? (
+                          <>
+                            <input type="text" className="input-field" value={offbEditingItem.label} onChange={e => setOffbEditingItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
+                            <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} onClick={async () => {
+                              const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', id: offbEditingItem._id, label: offbEditingItem.label }) })
+                              const data = await res.json()
+                              if (data.item) { setOffboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.map(t => t._id === data.item._id ? data.item : t) } : p)); setOffbEditingItem(null) }
+                            }}>Salvar</button>
+                            <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setOffbEditingItem(null)}>Cancelar</button>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ flex: 1, fontSize: '0.83rem', opacity: 0.85 }}>{task.label}</span>
+                            <button type="button" className="btn-icon" onClick={() => setOffbEditingItem({ ...task })} style={{ color: '#94a3b8', fontSize: '0.95rem' }}><i className="bx bx-edit"></i></button>
+                            <button type="button" className="btn-icon" onClick={async () => {
+                              if (!confirm(`Excluir tarefa "${task.label}"?`)) return
+                              await fetch(`/api/onboarding-tasks/definitions?entity=item&id=${task._id}`, { method: 'DELETE' })
+                              setOffboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.filter(t => t._id !== task._id) } : p))
+                            }} style={{ color: '#ef4444', fontSize: '0.95rem' }}><i className="bx bx-trash"></i></button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px', alignSelf: 'flex-start', marginTop: 4 }} onClick={() => setOffbNewItem({ phase_id: phase.id, label: '' })}>
+                      <i className="bx bx-plus"></i> Nova tarefa
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {isBrandingModalOpen && canManageUsers && (
           <div className="modal-overlay" onClick={() => setIsBrandingModalOpen(false)}>
