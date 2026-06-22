@@ -23,6 +23,33 @@ export async function GET(request) {
     const status_id = url.searchParams.get('status_id')
     const assignee_id = url.searchParams.get('assignee_id')
     const client_id = url.searchParams.get('client_id')
+    const archived = url.searchParams.get('archived') === 'true'
+
+    if (archived) {
+      let query = ctx.adminSupabase
+        .from('tasks')
+        .select('*, task_status_items(id, name, color)')
+        .eq('workspace_id', workspaceId)
+        .eq('is_archived', true)
+        .order('archived_at', { ascending: false })
+
+      if (status_id) query = query.eq('status_item_id', status_id)
+      if (assignee_id) query = query.eq('assignee_id', assignee_id)
+      if (client_id) query = query.eq('client_id', client_id)
+
+      const { data, error } = await query
+      if (error) throw error
+
+      const tasks = (data || []).map(t => {
+        const si = t.task_status_items
+        return {
+          ...t,
+          status_id: t.status_item_id ?? t.status_id ?? null,
+          status: si ? { id: si.id, label: si.name, color: si.color } : null,
+        }
+      })
+      return NextResponse.json({ tasks })
+    }
 
     let query = ctx.adminSupabase
       .from('tasks')
@@ -146,6 +173,50 @@ export async function PUT(request) {
     if (body.status_id !== undefined) updates.status_item_id = body.status_id
     if (body.status_item_id !== undefined) updates.status_item_id = body.status_item_id
 
+    // Fetch current task state to handle closed/archived transitions
+    const { data: currentTask } = await ctx.adminSupabase
+      .from('tasks')
+      .select('closed_at, archived_at, status_item_id')
+      .eq('id', id)
+      .eq('workspace_id', ctx.accessContext.workspaceId)
+      .single()
+
+    // Handle status closed tracking
+    const newStatusItemId = updates.status_item_id
+    if (newStatusItemId !== undefined) {
+      if (newStatusItemId) {
+        // Check if the new status is a closed status
+        const { data: statusItem } = await ctx.adminSupabase
+          .from('task_status_items')
+          .select('is_closed')
+          .eq('id', newStatusItemId)
+          .single()
+
+        if (statusItem?.is_closed && !currentTask?.closed_at) {
+          updates.closed_at = new Date().toISOString()
+          updates.closed_by = ctx.user.id
+        } else if (!statusItem?.is_closed && currentTask?.closed_at) {
+          updates.closed_at = null
+          updates.closed_by = null
+        }
+      } else {
+        // Clearing status — also clear closed
+        if (currentTask?.closed_at) {
+          updates.closed_at = null
+          updates.closed_by = null
+        }
+      }
+    }
+
+    // Handle archive/restore tracking
+    if (body.is_archived === true && !currentTask?.archived_at) {
+      updates.archived_at = new Date().toISOString()
+      updates.archived_by = ctx.user.id
+    } else if (body.is_archived === false && currentTask?.archived_at) {
+      updates.archived_at = null
+      updates.archived_by = null
+    }
+
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
       .update(updates)
@@ -155,6 +226,26 @@ export async function PUT(request) {
       .single()
 
     if (error) throw error
+
+    // Log activity
+    let action = null
+    if (body.is_archived === true) action = 'archived'
+    else if (body.is_archived === false && currentTask?.archived_at) action = 'restored'
+    else if (newStatusItemId !== undefined) {
+      if (updates.closed_at && !currentTask?.closed_at) action = 'closed'
+      else if (!updates.closed_at && currentTask?.closed_at) action = 'reopened'
+    }
+
+    if (action) {
+      await ctx.adminSupabase.from('task_activity_log').insert({
+        task_id: id,
+        workspace_id: ctx.accessContext.workspaceId,
+        actor_id: ctx.user.id,
+        action,
+        metadata: {},
+      })
+    }
+
     const si = data.task_status_items
     return NextResponse.json({ task: {
       ...data,
@@ -176,6 +267,15 @@ export async function DELETE(request) {
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     if (hard) {
+      // Log before deleting (cascade will remove the log entry too, but we log the intent)
+      await ctx.adminSupabase.from('task_activity_log').insert({
+        task_id: id,
+        workspace_id: ctx.accessContext.workspaceId,
+        actor_id: ctx.user.id,
+        action: 'deleted',
+        metadata: {},
+      })
+
       const { error } = await ctx.adminSupabase
         .from('tasks')
         .delete()
@@ -185,10 +285,23 @@ export async function DELETE(request) {
     } else {
       const { error } = await ctx.adminSupabase
         .from('tasks')
-        .update({ is_archived: true, updated_at: new Date().toISOString() })
+        .update({
+          is_archived: true,
+          archived_at: new Date().toISOString(),
+          archived_by: ctx.user.id,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .eq('workspace_id', ctx.accessContext.workspaceId)
       if (error) throw error
+
+      await ctx.adminSupabase.from('task_activity_log').insert({
+        task_id: id,
+        workspace_id: ctx.accessContext.workspaceId,
+        actor_id: ctx.user.id,
+        action: 'archived',
+        metadata: {},
+      })
     }
 
     return NextResponse.json({ ok: true })

@@ -82,11 +82,31 @@ export async function DELETE(request, { params }) {
     const hard = new URL(request.url).searchParams.get('hard') === 'true'
 
     if (hard) {
+      // Log before deleting
+      await ctx.adminSupabase.from('task_activity_log').insert({
+        task_id: id,
+        workspace_id: ctx.accessContext.workspaceId,
+        actor_id: ctx.user.id,
+        action: 'deleted',
+        metadata: {},
+      })
       const { error } = await ctx.adminSupabase.from('tasks').delete().eq('id', id).eq('workspace_id', ctx.accessContext.workspaceId)
       if (error) throw error
     } else {
-      const { error } = await ctx.adminSupabase.from('tasks').update({ is_archived: true, updated_at: new Date().toISOString() }).eq('id', id).eq('workspace_id', ctx.accessContext.workspaceId)
+      const { error } = await ctx.adminSupabase.from('tasks').update({
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+        archived_by: ctx.user.id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id).eq('workspace_id', ctx.accessContext.workspaceId)
       if (error) throw error
+      await ctx.adminSupabase.from('task_activity_log').insert({
+        task_id: id,
+        workspace_id: ctx.accessContext.workspaceId,
+        actor_id: ctx.user.id,
+        action: 'archived',
+        metadata: {},
+      })
     }
 
     return NextResponse.json({ ok: true })

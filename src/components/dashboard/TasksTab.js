@@ -6,6 +6,7 @@ import UserFilterPicker from '@/components/dashboard/UserFilterPicker'
 import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnManager'
 import AutomationsTab from '@/components/dashboard/AutomationsTab'
 import NewTaskModal from '@/components/dashboard/NewTaskModal'
+import ArchivedTasksPanel from '@/components/dashboard/ArchivedTasksPanel'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -491,7 +492,7 @@ function StatusGroup({ status, tasks, statuses, clients, workspaceUsers, onOpenP
 }
 
 // ---- Side Panel ----
-function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated }) {
+function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster }) {
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
   const [subtasks, setSubtasks] = useState([])
@@ -503,6 +504,18 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
   const [newComment, setNewComment] = useState('')
   const [newSubtask, setNewSubtask] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirmHardDelete, setConfirmHardDelete] = useState(false)
+  const [hardDeleting, setHardDeleting] = useState(false)
+
+  async function handleHardDelete() {
+    setHardDeleting(true)
+    try {
+      await fetch(`/api/tasks/${taskId}?hard=true`, { method: 'DELETE' })
+      onClose()
+    } finally {
+      setHardDeleting(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -760,6 +773,43 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
             Criado em {new Date(task.created_at).toLocaleDateString('pt-BR')}
             {saving && <span style={{ marginLeft: 8, color: '#26c281' }}>Salvando...</span>}
           </div>
+
+          {isMaster && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {!confirmHardDelete ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmHardDelete(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(239,68,68,0.35)', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem' }}
+                >
+                  <i className="bx bx-trash" /> Excluir definitivamente
+                </button>
+              ) : (
+                <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8 }}>
+                  <div style={{ fontSize: '0.82rem', color: '#fca5a5', marginBottom: 10 }}>
+                    Tem certeza? Esta ação não pode ser desfeita.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleHardDelete}
+                      disabled={hardDeleting}
+                      style={{ padding: '5px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, opacity: hardDeleting ? 0.6 : 1 }}
+                    >
+                      {hardDeleting ? 'Excluindo...' : 'Sim, excluir'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmHardDelete(false)}
+                      style={{ padding: '5px 14px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.82rem' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1239,6 +1289,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
   const [showAutomations, setShowAutomations] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+  const [showClosedTasks, setShowClosedTasks] = useState(false)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [newTaskContext, setNewTaskContext] = useState({})
 
@@ -1254,6 +1306,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           color: item.color,
           is_completed: item.is_completed,
           is_initial: item.is_initial,
+          is_closed: item.is_closed,
           pauses_sla: item.pauses_sla,
           sort_order: item.sort_order,
         })))
@@ -1287,6 +1340,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           setFilterAssignees(prefs.filter_assignee_ids)
         }
         if (prefs.default_view_mode) setViewMode(prefs.default_view_mode)
+        if (prefs.show_closed_tasks !== undefined) setShowClosedTasks(!!prefs.show_closed_tasks)
       }
       setPrefsLoaded(true)
     }).catch(() => setPrefsLoaded(true))
@@ -1339,6 +1393,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const filteredTasks = tasks.filter(t => {
     if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee_id)) return false
     if (filterClient && t.client_id !== filterClient) return false
+    if (!showClosedTasks && t.closed_at) return false
     return true
   })
 
@@ -1418,6 +1473,25 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
         >
           <i className="bx bx-cog"></i> Status
+        </button>
+
+        {/* Toggle fechadas */}
+        <button
+          type="button"
+          onClick={() => setShowClosedTasks(v => !v)}
+          title={showClosedTasks ? 'Ocultar tarefas fechadas' : 'Mostrar tarefas fechadas'}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: showClosedTasks ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${showClosedTasks ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.1)'}`, color: showClosedTasks ? '#6366f1' : '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}
+        >
+          <i className={`bx ${showClosedTasks ? 'bx-show' : 'bx-hide'}`}></i> Fechadas
+        </button>
+
+        {/* Arquivadas */}
+        <button
+          type="button"
+          onClick={() => setShowArchived(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
+        >
+          <i className="bx bx-archive"></i> Arquivadas
         </button>
 
         {isMaster && (
@@ -1506,6 +1580,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             workspaceUsers={workspaceUsers}
             onClose={() => setSelectedTaskId(null)}
             onUpdated={handlePanelUpdate}
+            isMaster={isMaster}
           />
         </>
       )}
@@ -1567,6 +1642,20 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           workspaceUsers={workspaceUsers || []}
           statuses={statuses}
           customFields={customFields}
+        />
+      )}
+
+      {showArchived && (
+        <ArchivedTasksPanel
+          workspaceUsers={workspaceUsers || []}
+          clients={clients || []}
+          spaces={spaces}
+          statuses={statuses}
+          onClose={() => setShowArchived(false)}
+          onRestored={(task) => {
+            setTasks(prev => [...prev, task])
+          }}
+          isMaster={isMaster}
         />
       )}
     </div>
