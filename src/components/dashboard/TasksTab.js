@@ -1523,15 +1523,15 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         />
       )}
 
-      {/* Automations overlay */}
+      {/* Automations overlay — z-index above notification bell (10000) */}
       {showAutomations && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1100 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 10001 }}
             onClick={() => setShowAutomations(false)}
           />
           <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1101,
+            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 10002,
             width: '780px', maxWidth: '95vw',
             background: 'var(--bg-panel, #111113)',
             borderLeft: '1px solid rgba(255,255,255,0.08)',
@@ -1541,7 +1541,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, background: 'var(--bg-panel, #111113)', zIndex: 1 }}>
               <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <i className="bx bx-zap" style={{ color: '#26c281' }} /> Automações
+                <i className="bxs-zap" style={{ color: '#26c281', fontSize: 18 }} /> Automações
               </span>
               <button onClick={() => setShowAutomations(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20, display: 'flex', alignItems: 'center' }}>
                 <i className="bx bx-x" />
