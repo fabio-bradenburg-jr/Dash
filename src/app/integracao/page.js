@@ -82,6 +82,8 @@ export default function IntegracaoPage() {
         <section id="hero" className={`${styles.section} ${styles.sectionHero}`}>
           <div className={styles.heroGlow} />
           <div className={styles.ledRing} />
+
+          {/* Left: text */}
           <div className={styles.heroContent}>
             <span className={styles.heroBadge}>MÉTODO LP</span>
             <h1 className={styles.heroTitle}>Integração<br /><span className={styles.green}>Método LP</span></h1>
@@ -92,6 +94,129 @@ export default function IntegracaoPage() {
             <button className={styles.ctaBtn} onClick={() => scrollTo('como-funciona')}>
               Começar integração <i className="bx bx-chevron-down" />
             </button>
+          </div>
+
+          {/* Right: LP logo LED */}
+          <div className={styles.heroVisual}>
+            <div className={styles.lpLogoWrap}>
+              {/* Background */}
+              <div className={styles.lpBg} />
+              {/* Outer LED ring */}
+              <div className={styles.lpRing} />
+              {/* Inner counter-spinning ring */}
+              <div className={styles.lpRingInner} />
+              {/* Corner dots */}
+              <div className={styles.lpCorner} />
+              <div className={styles.lpCorner} />
+              <div className={styles.lpCorner} />
+              <div className={styles.lpCorner} />
+              {/* Glow center */}
+              <div className={styles.lpGlowCenter} />
+
+              {/* Circuit lines SVG */}
+              <svg className={styles.lpCircuit} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Static circuit paths */}
+                <path d="M 48 200 H 100 V 140 H 140" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
+                <path d="M 48 200 H 100 V 260 H 140" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
+                <path d="M 352 160 H 310 V 100 H 270" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
+                <path d="M 352 240 H 310 V 300 H 270" stroke="rgba(38,194,129,0.18)" strokeWidth="1.5" />
+                <path d="M 200 48 V 100 H 140 V 140" stroke="rgba(38,194,129,0.12)" strokeWidth="1.5" />
+                <path d="M 200 352 V 300 H 270 V 260" stroke="rgba(38,194,129,0.12)" strokeWidth="1.5" />
+                {/* Small endpoint dots */}
+                <circle cx="140" cy="140" r="3" fill="rgba(38,194,129,0.4)" />
+                <circle cx="140" cy="260" r="3" fill="rgba(38,194,129,0.4)" />
+                <circle cx="270" cy="100" r="3" fill="rgba(38,194,129,0.4)" />
+                <circle cx="270" cy="300" r="3" fill="rgba(38,194,129,0.4)" />
+
+                {/* Animated travelling light — path 1 */}
+                <path
+                  className={styles.lpTrail1}
+                  d="M 48 200 H 100 V 140 H 140"
+                  stroke="#26c281"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="300"
+                  strokeDashoffset="300"
+                  filter="url(#glow)"
+                />
+                {/* Animated travelling light — path 2 */}
+                <path
+                  className={styles.lpTrail2}
+                  d="M 352 160 H 310 V 100 H 270"
+                  stroke="#4ade80"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="260"
+                  strokeDashoffset="260"
+                  filter="url(#glow)"
+                />
+                {/* Animated travelling light — path 3 */}
+                <path
+                  className={styles.lpTrail3}
+                  d="M 200 352 V 300 H 270 V 260"
+                  stroke="#26c281"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="220"
+                  strokeDashoffset="220"
+                  filter="url(#glow)"
+                />
+                <defs>
+                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+              </svg>
+
+              {/* LP letters SVG */}
+              <svg className={styles.lpSvg} viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="lpGrad" x1="120" y1="130" x2="280" y2="280" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#4ade80" />
+                    <stop offset="50%" stopColor="#26c281" />
+                    <stop offset="100%" stopColor="#1ba86d" />
+                  </linearGradient>
+                  <filter id="letterGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="6" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+
+                {/* L */}
+                <path
+                  d="M 120 130 L 120 270 L 195 270"
+                  stroke="url(#lpGrad)"
+                  strokeWidth="26"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#letterGlow)"
+                />
+                {/* P body */}
+                <path
+                  d="M 218 130 L 218 270"
+                  stroke="url(#lpGrad)"
+                  strokeWidth="26"
+                  strokeLinecap="round"
+                  filter="url(#letterGlow)"
+                />
+                {/* P bowl */}
+                <path
+                  d="M 218 130 Q 310 130 310 185 Q 310 240 218 240"
+                  stroke="url(#lpGrad)"
+                  strokeWidth="26"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  filter="url(#letterGlow)"
+                />
+
+                {/* Subtle dot accents at stroke endpoints */}
+                <circle cx="120" cy="130" r="5" fill="#86efac" opacity="0.7" />
+                <circle cx="195" cy="270" r="5" fill="#86efac" opacity="0.7" />
+                <circle cx="218" cy="270" r="5" fill="#86efac" opacity="0.7" />
+              </svg>
+            </div>
           </div>
         </section>
 
