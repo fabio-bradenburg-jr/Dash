@@ -3314,6 +3314,8 @@ export default function DashboardShell({
   const [offbEditingItem, setOffbEditingItem] = useState(null)
   const [offbNewPhase, setOffbNewPhase] = useState(null)
   const [offbNewItem, setOffbNewItem] = useState(null)
+  const obDragRef = useRef({})
+  const offbDragRef = useRef({})
   const [navPermissions, setNavPermissions] = useState([])
   const [myNavPermissions, setMyNavPermissions] = useState([])
   const [permSelectedUserId, setPermSelectedUserId] = useState('')
@@ -3864,6 +3866,12 @@ export default function DashboardShell({
       setGrTaskDefs(Array.isArray(data.tasks) ? data.tasks : [])
       setGrTaskDefsLoaded(true)
     } catch { setGrTaskDefsLoaded(true) }
+  }, [])
+
+  const persistReorder = useCallback(async (entity, items) => {
+    await Promise.all(items.map((item, i) =>
+      fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity, id: item.id, sort_order: i }) })
+    ))
   }, [])
 
   const loadOnboardingPhaseDefs = useCallback(async (type = 'onboarding') => {
@@ -17553,9 +17561,24 @@ export default function DashboardShell({
                     </div>
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {onboardingPhaseDefs.map(phase => (
-                      <div key={phase.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden' }}>
+                    {onboardingPhaseDefs.map((phase, phaseIdx) => (
+                      <div key={phase.id}
+                        draggable
+                        onDragStart={() => { obDragRef.current.phaseIdx = phaseIdx }}
+                        onDragOver={e => { e.preventDefault(); obDragRef.current.phaseOverIdx = phaseIdx }}
+                        onDrop={() => {
+                          const from = obDragRef.current.phaseIdx; const to = obDragRef.current.phaseOverIdx
+                          if (from === to || from == null || to == null) return
+                          setOnboardingPhaseDefs(prev => {
+                            const arr = [...prev]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
+                            persistReorder('phase', arr)
+                            return arr
+                          })
+                          obDragRef.current = {}
+                        }}
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden', cursor: 'grab' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                          <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 18, opacity: 0.3, cursor: 'grab', flexShrink: 0 }}></i>
                           {obEditingPhase?.id === phase.id ? (
                             <>
                               <input type="text" className="input-field" value={obEditingPhase.label} onChange={e => setObEditingPhase(v => ({ ...v, label: e.target.value }))} style={{ flex: 1, fontSize: '0.85rem', padding: '4px 8px' }} />
@@ -17591,8 +17614,25 @@ export default function DashboardShell({
                           </div>
                         )}
                         <div style={{ padding: '4px 0' }}>
-                          {(phase.tasks || []).map(task => (
-                            <div key={task._id || task.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          {(phase.tasks || []).map((task, taskIdx) => (
+                            <div key={task._id || task.id}
+                              draggable
+                              onDragStart={e => { e.stopPropagation(); obDragRef.current = { taskPhaseId: phase.id, taskIdx } }}
+                              onDragOver={e => { e.preventDefault(); e.stopPropagation(); obDragRef.current.taskOverIdx = taskIdx }}
+                              onDrop={e => {
+                                e.stopPropagation()
+                                const { taskPhaseId, taskIdx: from, taskOverIdx: to } = obDragRef.current
+                                if (taskPhaseId !== phase.id || from === to || from == null || to == null) return
+                                setOnboardingPhaseDefs(prev => prev.map(p => {
+                                  if (p.id !== phase.id) return p
+                                  const arr = [...p.tasks]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
+                                  persistReorder('item', arr.map(t => ({ id: t._id })))
+                                  return { ...p, tasks: arr }
+                                }))
+                                obDragRef.current = {}
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'grab' }}>
+                              <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 16, opacity: 0.25, cursor: 'grab', flexShrink: 0 }}></i>
                               {obEditingItem?._id === task._id ? (
                                 <>
                                   <input type="text" className="input-field" value={obEditingItem.label} onChange={e => setObEditingItem(v => ({ ...v, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
@@ -18664,9 +18704,24 @@ export default function DashboardShell({
                     </div>
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {offboardingPhaseDefs.map(phase => (
-                      <div key={phase.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden' }}>
+                    {offboardingPhaseDefs.map((phase, phaseIdx) => (
+                      <div key={phase.id}
+                        draggable
+                        onDragStart={() => { offbDragRef.current.phaseIdx = phaseIdx }}
+                        onDragOver={e => { e.preventDefault(); offbDragRef.current.phaseOverIdx = phaseIdx }}
+                        onDrop={() => {
+                          const from = offbDragRef.current.phaseIdx; const to = offbDragRef.current.phaseOverIdx
+                          if (from === to || from == null || to == null) return
+                          setOffboardingPhaseDefs(prev => {
+                            const arr = [...prev]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
+                            persistReorder('phase', arr)
+                            return arr
+                          })
+                          offbDragRef.current = {}
+                        }}
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden', cursor: 'grab' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                          <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 18, opacity: 0.3, cursor: 'grab', flexShrink: 0 }}></i>
                           {offbEditingPhase?.id === phase.id ? (
                             <>
                               <input type="text" className="input-field" value={offbEditingPhase.label} onChange={e => setOffbEditingPhase(v => ({ ...v, label: e.target.value }))} style={{ flex: 1, fontSize: '0.85rem', padding: '4px 8px' }} />
@@ -18702,8 +18757,25 @@ export default function DashboardShell({
                           </div>
                         )}
                         <div style={{ padding: '4px 0' }}>
-                          {(phase.tasks || []).map(task => (
-                            <div key={task._id || task.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          {(phase.tasks || []).map((task, taskIdx) => (
+                            <div key={task._id || task.id}
+                              draggable
+                              onDragStart={e => { e.stopPropagation(); offbDragRef.current = { taskPhaseId: phase.id, taskIdx } }}
+                              onDragOver={e => { e.preventDefault(); e.stopPropagation(); offbDragRef.current.taskOverIdx = taskIdx }}
+                              onDrop={e => {
+                                e.stopPropagation()
+                                const { taskPhaseId, taskIdx: from, taskOverIdx: to } = offbDragRef.current
+                                if (taskPhaseId !== phase.id || from === to || from == null || to == null) return
+                                setOffboardingPhaseDefs(prev => prev.map(p => {
+                                  if (p.id !== phase.id) return p
+                                  const arr = [...p.tasks]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
+                                  persistReorder('item', arr.map(t => ({ id: t._id })))
+                                  return { ...p, tasks: arr }
+                                }))
+                                offbDragRef.current = {}
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'grab' }}>
+                              <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 16, opacity: 0.25, cursor: 'grab', flexShrink: 0 }}></i>
                               {offbEditingItem?._id === task._id ? (
                                 <>
                                   <input type="text" className="input-field" value={offbEditingItem.label} onChange={e => setOffbEditingItem(v => ({ ...v, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />

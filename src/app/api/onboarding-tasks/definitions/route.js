@@ -126,6 +126,7 @@ export async function PUT(request) {
       const updates = {}
       if (body.label !== undefined) updates.label = String(body.label).trim()
       if (body.icon !== undefined) updates.icon = String(body.icon).trim()
+      if (body.sort_order !== undefined) updates.sort_order = Number(body.sort_order)
 
       const { data, error } = await ctx.adminSupabase
         .from('onboarding_task_phases')
@@ -138,6 +139,7 @@ export async function PUT(request) {
     } else {
       const updates = {}
       if (body.label !== undefined) updates.label = String(body.label).trim()
+      if (body.sort_order !== undefined) updates.sort_order = Number(body.sort_order)
 
       const { data, error } = await ctx.adminSupabase
         .from('onboarding_task_items')
