@@ -12,6 +12,8 @@ import ReportsTab from '@/components/dashboard/ReportsTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
 import FunnelTab from '@/components/dashboard/FunnelTab'
 import TasksTab from '@/components/dashboard/TasksTab'
+import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
+import NotificationBell from '@/components/dashboard/NotificationBell'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -3192,7 +3194,7 @@ export default function DashboardShell({
   externalAppPanelColor = '',
   externalAppTextColor = '',
 }) {
-  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday', 'operacao'])
+  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday'])
   const { user, profile, access, appearance, updateAppearance, loading: userLoading } = useUser()
   const supabase = createClient()
   const dashboardRef = useRef(null)
@@ -3342,6 +3344,7 @@ export default function DashboardShell({
   const [clientGroups, setClientGroups] = useState([])
   const [products, setProducts] = useState([])
   const [operationCards, setOperationCards] = useState([])
+  const [operationCardsLoaded, setOperationCardsLoaded] = useState(false)
   const [operationSettings, setOperationSettings] = useState(() => createOperationSettingsRecord())
   const [clientImplementationPhases, setClientImplementationPhases] = useState([])
   const [clientSystemFields, setClientSystemFields] = useState([])
@@ -3748,6 +3751,44 @@ export default function DashboardShell({
     })
   }, [dashboardEligibleClients, activeClientId])
 
+  const loadOperationCards = useCallback(async () => {
+    if (!hasLoadedPreferences) return
+    try {
+      const res = await fetch('/api/operation/cards', { cache: 'no-store' })
+      const json = await res.json().catch(() => ({}))
+      if (Array.isArray(json.cards)) {
+        setOperationCards(json.cards.map((c) => ({
+          id: c.id,
+          taskCode: c.task_code,
+          taskType: c.task_type,
+          clientId: c.client_id,
+          title: c.title,
+          content: c.content,
+          lane: c.lane,
+          status: c.status,
+          priority: c.priority,
+          assigneeIds: c.assignee_ids || [],
+          tags: c.tags || [],
+          subtasks: c.subtasks || [],
+          comments: c.comments || [],
+          customFieldValues: c.custom_field_values || {},
+          startDate: c.start_date,
+          dueDate: c.due_date,
+          segment: c.segment,
+          tier: c.tier,
+          squad: c.squad,
+          createdAt: c.created_at,
+          updatedAt: c.updated_at,
+        })))
+        setOperationCardsLoaded(true)
+      }
+    } catch (_) {}
+  }, [hasLoadedPreferences])
+
+  useEffect(() => {
+    if (activeTab === 'operacao') loadOperationCards()
+  }, [activeTab, loadOperationCards])
+
   const loadWeeklyRecords = useCallback(async () => {
     if (!hasLoadedPreferences) return
     if (activeTab !== 'semanal' && activeTab !== 'clientes' && activeTab !== 'anuncios' && activeTab !== 'campanhas') return
@@ -4012,7 +4053,7 @@ export default function DashboardShell({
           leads: normalizeWeeklyInteger(weeklyForm.leads),
           sql: normalizeWeeklyInteger(weeklyForm.sql),
           healthStatus: weeklyForm.healthStatus,
-          actionItems: weeklyForm.actionItemsText.split('\n').map((item) => item.trim()).filter(Boolean).slice(0, 5),
+          actionItems: weeklyForm.actionItemsText.split('\n').map((item) => item.trim()).filter(Boolean),
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -6746,7 +6787,7 @@ export default function DashboardShell({
       setActiveTab('assistant')
     }
 
-    if (['operacao', 'clickup', 'calendar'].includes(activeTab)) {
+    if (['clickup', 'calendar'].includes(activeTab)) {
       setActiveTab('assistant')
     }
 
@@ -6929,7 +6970,7 @@ export default function DashboardShell({
       clients,
       clientGroups,
       products,
-      operationCards,
+      operationCards: [], // persisted to DB via /api/operation/cards
       operationSettings,
       clientImplementationPhases: effectiveClientImplementationPhases,
       clientSystemFields: effectiveClientSystemFields,
@@ -7484,7 +7525,7 @@ export default function DashboardShell({
     )
   }, [operationLanesByKey, operationStatuses])
 
-  const handleCreateOperationCard = (event) => {
+  const handleCreateOperationCard = async (event) => {
     event.preventDefault()
     if (!canPersistClientChanges) return
     if (!newOperationClientId || !newOperationTitle.trim()) return
@@ -7497,29 +7538,55 @@ export default function DashboardShell({
     const status = operationStatusesByKey.get(newOperationStatus)
       ? newOperationStatus
       : operationStatuses[0]?.key || 'aberto'
-    const responsibleNames = newOperationAssigneeIds
-      .map((assigneeId) => operationUsersById.get(assigneeId)?.full_name || operationUsersById.get(assigneeId)?.email || '')
-      .filter(Boolean)
-    const nextCard = createOperationCardRecord({
-      clientId: newOperationClientId,
-      taskType: newOperationTaskType,
-      title: newOperationTitle.trim(),
-      content: newOperationContent.trim(),
-      lane,
-      status,
-      priority: newOperationPriority,
-      responsible: responsibleNames.join(', ') || linkedClient?.projectManager || '',
-      assigneeIds: newOperationAssigneeIds,
-      segment: linkedClient?.segment || '',
-      tier: linkedClient?.tier || '',
-      squad: linkedClient?.squad || '',
-      tags: normalizeSelectOptionsInput(newOperationTags),
-      subtasks: buildOperationSubtasksFromLane(lane, status),
-      createdAt: now,
-      updatedAt: now,
-    })
 
-    setOperationCards((current) => [nextCard, ...current])
+    try {
+      const res = await fetch('/api/operation/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: newOperationClientId,
+          title: newOperationTitle.trim(),
+          content: newOperationContent.trim() || null,
+          task_type: newOperationTaskType,
+          lane,
+          status,
+          priority: newOperationPriority,
+          assignee_ids: newOperationAssigneeIds,
+          tags: normalizeSelectOptionsInput(newOperationTags),
+          segment: linkedClient?.segment || '',
+          tier: linkedClient?.tier || '',
+          squad: linkedClient?.squad || '',
+        }),
+      })
+      const json = await res.json()
+      if (json.card) {
+        const c = json.card
+        const nextCard = {
+          id: c.id,
+          taskCode: c.task_code,
+          taskType: c.task_type,
+          clientId: c.client_id,
+          title: c.title,
+          content: c.content,
+          lane: c.lane,
+          status: c.status,
+          priority: c.priority,
+          assigneeIds: c.assignee_ids || [],
+          tags: c.tags || [],
+          subtasks: buildOperationSubtasksFromLane(lane, status),
+          comments: [],
+          customFieldValues: {},
+          segment: c.segment,
+          tier: c.tier,
+          squad: c.squad,
+          createdAt: c.created_at,
+          updatedAt: c.updated_at,
+        }
+        setOperationCards((current) => [nextCard, ...current])
+        setExpandedOperationCardId(nextCard.id)
+      }
+    } catch (_) {}
+
     setIsOperationCreateModalOpen(false)
     setNewOperationClientId('')
     setNewOperationTitle('')
@@ -7530,8 +7597,6 @@ export default function DashboardShell({
     setNewOperationPriority('sem_prioridade')
     setNewOperationLane('setup')
     setNewOperationStatus(operationStatuses[0]?.key || 'aberto')
-    setExpandedOperationCardId(nextCard.id)
-    setActiveTab('clientes')
   }
 
   const handleOperationCardFieldChange = (cardId, fieldName, value) => {
@@ -7540,6 +7605,23 @@ export default function DashboardShell({
     if (JSON.stringify(currentCard[fieldName]) === JSON.stringify(value)) return
 
     const activity = buildOperationCardFieldActivityMessage(currentCard, fieldName, value)
+
+    // Map frontend field names to DB column names
+    const dbFieldMap = {
+      lane: 'lane', status: 'status', priority: 'priority', title: 'title',
+      content: 'content', taskType: 'task_type', assigneeIds: 'assignee_ids',
+      tags: 'tags', subtasks: 'subtasks', comments: 'comments',
+      dueDate: 'due_date', startDate: 'start_date', segment: 'segment',
+      tier: 'tier', squad: 'squad', isArchived: 'is_archived',
+    }
+    const dbField = dbFieldMap[fieldName]
+    if (dbField) {
+      fetch('/api/operation/cards', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cardId, [dbField]: value }),
+      }).catch(() => {})
+    }
 
     setOperationCards((current) =>
       current.map((card) =>
@@ -14930,7 +15012,7 @@ export default function DashboardShell({
         <div>
           <span className="eyebrow">Imputação</span>
           <h2>Dados da semana</h2>
-          <p className="chart-subtitle">Escolha o cliente, preencha os números acompanhados com o time e limite o plano de ação a 5 tópicos.</p>
+          <p className="chart-subtitle">Escolha o cliente, preencha os números acompanhados com o time e registre os planos de ação da semana.</p>
         </div>
       </div>
 
@@ -15015,17 +15097,23 @@ export default function DashboardShell({
         })}
       </div>
 
-      <label className="input-group weekly-action-input" style={weeklyFieldStyle}>
-        <span>Plano de ação interno, até 5 tópicos</span>
-        <textarea
-          style={weeklyTextareaStyle}
-          value={weeklyForm.actionItemsText}
-          onChange={(event) => setWeeklyForm((current) => ({ ...current, actionItemsText: event.target.value.split('\n').slice(0, 5).join('\n') }))}
-          placeholder={'1. Ajustar campanha de leads\n2. Revisar follow-up comercial\n3. Marcar reunião de alinhamento'}
-          rows={6}
-        />
-        <small>{weeklyForm.actionItemsText.split('\n').filter((item) => item.trim()).length}/5 tópicos preenchidos</small>
-      </label>
+      <div className="input-group weekly-action-input" style={{ ...weeklyFieldStyle, gridColumn: '1 / -1' }}>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 8, color: isLightAppMode ? '#475569' : '#94a3b8' }}>
+          Plano de ação integrado — tarefas criadas automaticamente na Central de Tarefas
+        </span>
+        {weeklyForm.clientId ? (
+          <ActionPlanManager
+            clientId={weeklyForm.clientId}
+            weekStart={weeklyWeekStart}
+            users={operationAssignableUsers}
+            isLight={isLightAppMode}
+          />
+        ) : (
+          <div style={{ color: isLightAppMode ? '#94a3b8' : '#64748b', fontSize: 13, fontStyle: 'italic', padding: '8px 0' }}>
+            Selecione um cliente para gerenciar os planos de ação.
+          </div>
+        )}
+      </div>
 
       <div className="client-create-actions weekly-entry-actions" style={weeklyActionsStyle}>
         <button type="button" className="btn btn-secondary" onClick={() => setIsWeeklyEntryModalOpen(false)}>Cancelar</button>
@@ -16812,6 +16900,12 @@ export default function DashboardShell({
               <span className="nav-label">Controle da Operação</span>
             </button>
           )}
+          {(isMaster || hasNavAccess('operacao')) && (
+            <button type="button" data-tooltip="Board de Operação" aria-label="Board de Operação" className={`nav-item nav-button ${activeTab === 'operacao' ? 'active' : ''}`} onClick={() => setActiveTab('operacao')}>
+              <i className="bx bx-columns"></i>
+              <span className="nav-label">Board de Operação</span>
+            </button>
+          )}
           {(isMaster || hasNavAccess('tarefas')) && (
             <button type="button" data-tooltip="Central de Tarefas" aria-label="Central de Tarefas" className={`nav-item nav-button ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('tarefas')}>
               <i className="bx bx-task"></i>
@@ -17056,6 +17150,7 @@ export default function DashboardShell({
           )}
 
           <div className="header-actions header-actions-wrap">
+            <NotificationBell isLight={isLightAppMode} />
             {activeTab === 'apresentacao' && (
               <>
                 <div className="date-picker glass-item">

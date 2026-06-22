@@ -48,7 +48,6 @@ function normalizeActionItems(value) {
   return items
     .map((item) => String(item || '').trim())
     .filter(Boolean)
-    .slice(0, 5)
 }
 
 function normalizeJsonArray(value) {
