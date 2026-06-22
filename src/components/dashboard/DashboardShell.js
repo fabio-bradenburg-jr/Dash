@@ -21571,16 +21571,10 @@ export default function DashboardShell({
           canManageUsers ? (
             <section className="clients-layout users-management-layout simple-team-layout">
               <div className="glass-panel management-hero users-intro-card">
-                <div className="management-hero-copy">
+                <div className="management-hero-copy" style={{maxWidth:'100%'}}>
                   <span className="management-hero-kicker">Team access</span>
                   <h2>Time e permissões</h2>
                   <p>Cadastre pessoas, escolha quais dashboards cada uma pode acessar e libere ou bloqueie IA e integrações.</p>
-                </div>
-                <div className="management-stats-grid">
-                  <div className="management-stat-card"><small>Pessoas cadastradas</small><strong>{formatNumber(usersList.length)}</strong></div>
-                  <div className="management-stat-card"><small>Dashboards disponíveis</small><strong>{formatNumber(dashboardEligibleClients.length)}</strong></div>
-                  <div className="management-stat-card"><small>IA liberada</small><strong>{formatNumber(usersList.filter((managedUser) => (managedUser.ai_access_level || 'team') !== 'none').length)}</strong></div>
-                  <div className="management-stat-card"><small>Integrações liberadas</small><strong>{formatNumber(usersList.filter((managedUser) => managedUser.role === 'master' || managedUser.can_edit_integrations).length)}</strong></div>
                 </div>
               </div>
 
@@ -39592,10 +39586,7 @@ export default function DashboardShell({
 
         .simple-team-layout .management-hero {
           padding: 28px;
-          display: grid;
-          grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
-          gap: 24px;
-          align-items: stretch;
+          display: block;
         }
 
         .simple-team-layout .management-hero-copy {
