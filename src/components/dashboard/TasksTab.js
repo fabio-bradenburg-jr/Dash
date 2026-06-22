@@ -132,7 +132,7 @@ function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuick
           <i className="bx bx-dots-horizontal-rounded"></i>
         </button>
         {menuOpen && (
-          <div style={{ position: 'absolute', right: 0, top: '100%', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 100, minWidth: 140, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 100, minWidth: 140, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
             <button type="button" onClick={() => { setMenuOpen(false); onOpenPanel(task) }} style={{ display: 'block', width: '100%', padding: '8px 14px', background: 'none', border: 'none', color: '#e2e8f0', cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem' }}>
               <i className="bx bx-pencil" style={{ marginRight: 8 }}></i>Editar
             </button>
@@ -287,12 +287,12 @@ function NewSpaceModal({ onClose, onCreate }) {
     } finally { setSaving(false) }
   }
 
-  const inputStyle = { background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '7px 10px', fontSize: '0.85rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+  const inputStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '7px 10px', fontSize: '0.85rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
   const labelStyle = { fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5, display: 'block' }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 440, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div style={{ background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 440, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9' }}>Novo Espaço</h3>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>
@@ -576,10 +576,10 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 
   const labelStyle = { fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }
   const fieldWrap = { marginBottom: 16 }
-  const selectStyle = { background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', width: '100%', outline: 'none' }
+  const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', width: '100%', outline: 'none' }
 
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 480, background: '#0f172a', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
+    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 480, background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Detalhes da tarefa</span>
         <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20, padding: 4, borderRadius: 4 }}>
@@ -699,7 +699,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
                 placeholder="Adicionar item..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.82rem', outline: 'none' }}
               />
-              <button type="button" onClick={addCheckItem} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
+              <button type="button" onClick={addCheckItem} style={{ background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
                 <i className="bx bx-plus"></i>
               </button>
             </div>
@@ -721,7 +721,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
                 placeholder="Adicionar subtarefa..."
                 style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.82rem', outline: 'none' }}
               />
-              <button type="button" onClick={addSubtask} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
+              <button type="button" onClick={addSubtask} style={{ background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
                 <i className="bx bx-plus"></i>
               </button>
             </div>
@@ -960,7 +960,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     return true
   })
 
-  const selectStyle = { background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '5px 10px', fontSize: '0.82rem', outline: 'none' }
+  const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '5px 10px', fontSize: '0.82rem', outline: 'none' }
 
   return (
     <div style={{ minHeight: '100%', color: '#e2e8f0', position: 'relative' }}>
