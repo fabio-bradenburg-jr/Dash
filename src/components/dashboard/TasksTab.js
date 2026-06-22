@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import StatusTemplatesManager from '@/components/dashboard/StatusTemplatesManager'
+import UserFilterPicker from '@/components/dashboard/UserFilterPicker'
+import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnManager'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -916,81 +918,98 @@ function BoardView({ spaceTasks, statuses, clients, workspaceUsers, onOpenPanel,
 }
 
 // ---- Table View ----
-function TableView({ spaceTasks, statuses, clients, workspaceUsers, onOpenPanel, onQuickUpdate }) {
-  const thStyle = { padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }
-  const tdStyle = { padding: '10px 12px', fontSize: '0.83rem', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' }
-
+function TableView({ spaceTasks, statuses, clients, workspaceUsers, onOpenPanel, onQuickUpdate, columns = [] }) {
   const PRIORITY_LABELS = { urgent: 'Urgente', high: 'Alta', medium: 'Média', low: 'Baixa', none: '—' }
   const PRIORITY_COLORS = { urgent: '#ef4444', high: '#f97316', medium: '#eab308', low: '#3b82f6', none: '#64748b' }
+
+  const visibleCols = columns.filter(c => c.visible)
+  const thStyle = { padding: '8px 12px', fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap', userSelect: 'none' }
+  const tdStyle = { padding: '10px 12px', fontSize: '0.83rem', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' }
+
+  function renderCell(task, colKey) {
+    const status = statuses.find(s => s.id === task.status_id)
+    const assignee = workspaceUsers?.find(u => u.id === task.assignee_id)
+    const client = clients?.find(c => c.id === task.client_id)
+    const overdue = isPast(task.due_date)
+
+    switch (colKey) {
+      case 'title':
+        return (
+          <td key={colKey} style={{ ...tdStyle, fontWeight: 600, color: '#f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <StatusDot color={status?.color} size={8} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{task.title}</span>
+              {task.subtask_count > 0 && <span style={{ fontSize: '0.7rem', color: '#64748b', background: 'rgba(100,116,139,0.15)', borderRadius: 8, padding: '0 5px', flexShrink: 0 }}>{task.subtask_count}</span>}
+            </div>
+          </td>
+        )
+      case 'status':
+        return (
+          <td key={colKey} style={tdStyle}>
+            {status ? <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8, background: status.color + '22', color: status.color, fontWeight: 600, whiteSpace: 'nowrap' }}>{status.label}</span> : <span style={{ color: '#334155' }}>—</span>}
+          </td>
+        )
+      case 'priority':
+        return (
+          <td key={colKey} style={tdStyle}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: PRIORITY_COLORS[task.priority] || '#64748b' }}>{PRIORITY_LABELS[task.priority] || '—'}</span>
+          </td>
+        )
+      case 'assignee':
+        return (
+          <td key={colKey} style={tdStyle}>
+            {assignee ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Avatar name={assignee.full_name || assignee.email} size={22} />
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{assignee.full_name || assignee.email}</span>
+              </div>
+            ) : <span style={{ color: '#334155' }}>—</span>}
+          </td>
+        )
+      case 'client':
+        return <td key={colKey} style={{ ...tdStyle, color: '#94a3b8', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client?.name || <span style={{ color: '#334155' }}>—</span>}</td>
+      case 'due_date':
+        return <td key={colKey} style={{ ...tdStyle, color: overdue ? '#ef4444' : '#94a3b8', whiteSpace: 'nowrap' }}>{task.due_date ? formatDate(task.due_date) : <span style={{ color: '#334155' }}>—</span>}</td>
+      case 'start_date':
+        return <td key={colKey} style={{ ...tdStyle, color: '#94a3b8', whiteSpace: 'nowrap' }}>{task.start_date ? formatDate(task.start_date) : <span style={{ color: '#334155' }}>—</span>}</td>
+      case 'task_public_id':
+        return <td key={colKey} style={{ ...tdStyle, color: '#26c281', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{task.task_public_id || '—'}</td>
+      case 'created_at':
+        return <td key={colKey} style={{ ...tdStyle, color: '#64748b', whiteSpace: 'nowrap' }}>{task.created_at ? formatDate(task.created_at.slice(0, 10)) : '—'}</td>
+      default:
+        // Custom field columns
+        return <td key={colKey} style={{ ...tdStyle, color: '#64748b' }}>—</td>
+    }
+  }
 
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={thStyle}>Tarefa</th>
-            <th style={thStyle}>Status</th>
-            <th style={thStyle}>Prioridade</th>
-            <th style={thStyle}>Responsável</th>
-            <th style={thStyle}>Cliente</th>
-            <th style={thStyle}>Vencimento</th>
-            <th style={thStyle}>ID</th>
+            {visibleCols.map(col => (
+              <th key={col.key} style={{ ...thStyle, width: col.width }}>
+                {col.isCustom && <span style={{ color: col.color || '#26c281', marginRight: 5 }}>●</span>}
+                {col.label}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {spaceTasks.length === 0 && (
-            <tr><td colSpan={7} style={{ ...tdStyle, textAlign: 'center', color: '#334155', padding: 32 }}>Nenhuma tarefa neste espaço</td></tr>
+            <tr><td colSpan={visibleCols.length} style={{ ...tdStyle, textAlign: 'center', color: '#334155', padding: 32 }}>Nenhuma tarefa neste espaço</td></tr>
           )}
-          {spaceTasks.map(task => {
-            const status = statuses.find(s => s.id === task.status_id)
-            const assignee = workspaceUsers?.find(u => u.id === task.assignee_id)
-            const client = clients?.find(c => c.id === task.client_id)
-            const overdue = isPast(task.due_date)
-            return (
-              <tr
-                key={task.id}
-                style={{ cursor: 'pointer' }}
-                onClick={() => onOpenPanel(task)}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <td style={{ ...tdStyle, fontWeight: 600, color: '#f1f5f9', maxWidth: 280 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <StatusDot color={status?.color} size={8} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
-                    {task.subtask_count > 0 && <span style={{ fontSize: '0.7rem', color: '#64748b', background: 'rgba(100,116,139,0.15)', borderRadius: 8, padding: '0 5px', flexShrink: 0 }}>{task.subtask_count}</span>}
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  {status ? (
-                    <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: 8, background: status.color + '22', color: status.color, fontWeight: 600, whiteSpace: 'nowrap' }}>{status.label}</span>
-                  ) : <span style={{ color: '#334155' }}>—</span>}
-                </td>
-                <td style={tdStyle}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: PRIORITY_COLORS[task.priority] || '#64748b' }}>
-                    {PRIORITY_LABELS[task.priority] || '—'}
-                  </span>
-                </td>
-                <td style={tdStyle}>
-                  {assignee ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Avatar name={assignee.full_name || assignee.email} size={22} />
-                      <span style={{ color: '#94a3b8', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{assignee.full_name || assignee.email}</span>
-                    </div>
-                  ) : <span style={{ color: '#334155' }}>—</span>}
-                </td>
-                <td style={{ ...tdStyle, color: '#94a3b8', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {client?.name || <span style={{ color: '#334155' }}>—</span>}
-                </td>
-                <td style={{ ...tdStyle, color: overdue ? '#ef4444' : '#94a3b8', whiteSpace: 'nowrap' }}>
-                  {task.due_date ? formatDate(task.due_date) : <span style={{ color: '#334155' }}>—</span>}
-                </td>
-                <td style={{ ...tdStyle, color: '#26c281', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  {task.task_public_id || '—'}
-                </td>
-              </tr>
-            )
-          })}
+          {spaceTasks.map(task => (
+            <tr
+              key={task.id}
+              style={{ cursor: 'pointer' }}
+              onClick={() => onOpenPanel(task)}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {visibleCols.map(col => renderCell(task, col.key))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -1088,7 +1107,7 @@ function CalendarView({ spaceTasks, statuses, onOpenPanel }) {
 }
 
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, viewMode }) {
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, viewMode, columns }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
 
   const filteredByStatus = statuses.map(status => ({
@@ -1184,6 +1203,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           workspaceUsers={workspaceUsers}
           onOpenPanel={onOpenPanel}
           onQuickUpdate={onQuickUpdate}
+          columns={columns}
         />
       )}
 
@@ -1203,13 +1223,17 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [statuses, setStatuses] = useState([])
   const [tasks, setTasks] = useState([])
   const [spaces, setSpaces] = useState([])
+  const [customFields, setCustomFields] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
-  const [filterAssignee, setFilterAssignee] = useState('')
+  // Multi-user filter — defaults to current user (Minhas tarefas)
+  const [filterAssignees, setFilterAssignees] = useState(() => currentUserId ? [currentUserId] : [])
   const [filterClient, setFilterClient] = useState('')
   const [view, setView] = useState('home')
   const [selectedSpace, setSelectedSpace] = useState(null)
   const [viewMode, setViewMode] = useState('list') // list | board | table | calendar
+  const [columns, setColumns] = useState(DEFAULT_COLUMNS)
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
 
@@ -1235,17 +1259,47 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [taskRes, spacesRes] = await Promise.all([
+      const [taskRes, spacesRes, fieldsRes] = await Promise.all([
         fetch('/api/tasks'),
         fetch('/api/tasks/spaces'),
+        fetch('/api/tasks/custom-fields?entity_type=task'),
       ])
-      const [taskJson, spacesJson] = await Promise.all([taskRes.json(), spacesRes.json()])
+      const [taskJson, spacesJson, fieldsJson] = await Promise.all([taskRes.json(), spacesRes.json(), fieldsRes.json()])
       if (taskJson.tasks) setTasks(taskJson.tasks)
       if (spacesJson.spaces) setSpaces(spacesJson.spaces)
+      if (fieldsJson.fields) setCustomFields(fieldsJson.fields)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  // Load user preferences (filter + columns + last view)
+  useEffect(() => {
+    fetch('/api/tasks/preferences').then(r => r.json()).then(json => {
+      if (json.preferences) {
+        const prefs = json.preferences
+        if (Array.isArray(prefs.filter_assignee_ids) && prefs.filter_assignee_ids.length > 0) {
+          setFilterAssignees(prefs.filter_assignee_ids)
+        }
+        if (prefs.default_view_mode) setViewMode(prefs.default_view_mode)
+      }
+      setPrefsLoaded(true)
+    }).catch(() => setPrefsLoaded(true))
+  }, [])
+
+  // Persist user preferences when filters/viewMode change
+  const savePrefsTimeout = useRef(null)
+  useEffect(() => {
+    if (!prefsLoaded) return
+    clearTimeout(savePrefsTimeout.current)
+    savePrefsTimeout.current = setTimeout(() => {
+      fetch('/api/tasks/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filter_assignee_ids: filterAssignees, default_view_mode: viewMode }),
+      }).catch(() => {})
+    }, 800)
+  }, [filterAssignees, viewMode, prefsLoaded])
 
   useEffect(() => { loadData(); loadStatuses() }, [loadData, loadStatuses])
 
@@ -1273,7 +1327,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   }
 
   const filteredTasks = tasks.filter(t => {
-    if (filterAssignee && t.assignee_id !== filterAssignee) return false
+    if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee_id)) return false
     if (filterClient && t.client_id !== filterClient) return false
     return true
   })
@@ -1289,24 +1343,24 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           {view === 'space' && selectedSpace ? selectedSpace.name : 'Tarefas'}
         </h2>
 
-        {view !== 'home' && (
-          <>
-            <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)} style={selectStyle}>
-              <option value="">Todos os responsaveis</option>
-              {(workspaceUsers || []).map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-            </select>
+        {/* User filter — always visible */}
+        <UserFilterPicker
+          users={workspaceUsers || []}
+          value={filterAssignees}
+          onChange={setFilterAssignees}
+          currentUserId={currentUserId}
+        />
 
-            <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={selectStyle}>
-              <option value="">Todos os clientes</option>
-              {(clients || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+        {/* Client filter */}
+        <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={selectStyle}>
+          <option value="">Todos os clientes</option>
+          {(clients || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
 
-            {(filterAssignee || filterClient) && (
-              <button type="button" onClick={() => { setFilterAssignee(''); setFilterClient('') }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}>
-                <i className="bx bx-x"></i> Limpar filtros
-              </button>
-            )}
-          </>
+        {(filterAssignees.length > 0 || filterClient) && (
+          <button type="button" onClick={() => { setFilterAssignees([]); setFilterClient('') }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <i className="bx bx-x"></i> Limpar
+          </button>
         )}
 
         <div style={{ flex: 1 }} />
@@ -1337,6 +1391,15 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
               </button>
             ))}
           </div>
+        )}
+
+        {/* Column manager — visible in table view */}
+        {view === 'space' && viewMode === 'table' && (
+          <ColumnManager
+            columns={columns}
+            onChange={setColumns}
+            customFields={customFields}
+          />
         )}
 
         <button
@@ -1406,6 +1469,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onQuickUpdate={handleQuickUpdate}
             onAddTask={handleAddTask}
             viewMode={viewMode}
+            columns={columns}
           />
         </div>
       )}
