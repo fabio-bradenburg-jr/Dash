@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import StatusTemplatesManager from '@/components/dashboard/StatusTemplatesManager'
 import UserFilterPicker from '@/components/dashboard/UserFilterPicker'
 import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnManager'
+import AutomationsTab from '@/components/dashboard/AutomationsTab'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -1236,6 +1237,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
+  const [showAutomations, setShowAutomations] = useState(false)
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -1304,7 +1306,12 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   useEffect(() => { loadData(); loadStatuses() }, [loadData, loadStatuses])
 
   async function handleAddTask(fields) {
-    const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields) })
+    // Default assignee to current user so the task remains visible under "Minhas tarefas" filter
+    const payload = {
+      assignee_id: currentUserId || null,
+      ...fields,
+    }
+    const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     const json = await res.json()
     if (json.task) setTasks(prev => [...prev, json.task])
   }
@@ -1410,6 +1417,16 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           <i className="bx bx-cog"></i> Status
         </button>
 
+        {isMaster && (
+          <button
+            type="button"
+            onClick={() => setShowAutomations(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: showAutomations ? 'rgba(38,194,129,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${showAutomations ? 'rgba(38,194,129,0.35)' : 'rgba(255,255,255,0.1)'}`, color: showAutomations ? '#26c281' : '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}
+          >
+            <i className="bx bx-zap"></i> Automações
+          </button>
+        )}
+
         {view === 'home' && (
           <button
             type="button"
@@ -1504,6 +1521,37 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           onClose={() => setShowNewSpaceModal(false)}
           onCreate={handleSpaceCreated}
         />
+      )}
+
+      {/* Automations overlay */}
+      {showAutomations && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1100 }}
+            onClick={() => setShowAutomations(false)}
+          />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1101,
+            width: '780px', maxWidth: '95vw',
+            background: 'var(--bg-panel, #111113)',
+            borderLeft: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '-20px 0 60px rgba(0,0,0,0.6)',
+            overflowY: 'auto',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, background: 'var(--bg-panel, #111113)', zIndex: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <i className="bx bx-zap" style={{ color: '#26c281' }} /> Automações
+              </span>
+              <button onClick={() => setShowAutomations(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: 20, display: 'flex', alignItems: 'center' }}>
+                <i className="bx bx-x" />
+              </button>
+            </div>
+            <div style={{ flex: 1 }}>
+              <AutomationsTab workspaceUsers={workspaceUsers || []} isMaster={isMaster} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
