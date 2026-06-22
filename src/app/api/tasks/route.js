@@ -28,7 +28,7 @@ export async function GET(request) {
       .from('tasks')
       .select(`
         *,
-        task_statuses(id, label, color),
+        task_status_items(id, name, color),
         subtask_count:tasks(count)
       `)
       .eq('workspace_id', workspaceId)
@@ -36,7 +36,7 @@ export async function GET(request) {
       .is('parent_task_id', null)
       .order('sort_order', { ascending: true })
 
-    if (status_id) query = query.eq('status_id', status_id)
+    if (status_id) query = query.eq('status_item_id', status_id)
     if (assignee_id) query = query.eq('assignee_id', assignee_id)
     if (client_id) query = query.eq('client_id', client_id)
 
@@ -59,12 +59,16 @@ export async function GET(request) {
       }
     }
 
-    // Enrich with assignee info from workspace users if available
-    const tasks = (data || []).map(t => ({
-      ...t,
-      status: t.task_statuses || null,
-      subtask_count: subtaskCounts[t.id] || 0,
-    }))
+    const tasks = (data || []).map(t => {
+      const si = t.task_status_items
+      return {
+        ...t,
+        // Expose status_item_id as status_id so the frontend needs no changes
+        status_id: t.status_item_id ?? t.status_id ?? null,
+        status: si ? { id: si.id, label: si.name, color: si.color } : null,
+        subtask_count: subtaskCounts[t.id] || 0,
+      }
+    })
 
     return NextResponse.json({ tasks })
   } catch (error) {
@@ -97,21 +101,29 @@ export async function POST(request) {
       created_by: ctx.user.id,
       priority: body.priority || 'none',
     }
-    if (body.status_id) insert.status_id = body.status_id
+    // status_id from frontend maps to status_item_id in DB
+    if (body.status_id) insert.status_item_id = body.status_id
+    if (body.status_item_id) insert.status_item_id = body.status_item_id
     if (body.assignee_id) insert.assignee_id = body.assignee_id
     if (body.client_id) insert.client_id = body.client_id
     if (body.due_date) insert.due_date = body.due_date
     if (body.description) insert.description = body.description
     if (body.parent_task_id) insert.parent_task_id = body.parent_task_id
+    if (body.space_id) insert.space_id = body.space_id
 
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
       .insert(insert)
-      .select('*, task_statuses(id, label, color)')
+      .select('*, task_status_items(id, name, color)')
       .single()
 
     if (error) throw error
-    return NextResponse.json({ task: { ...data, status: data.task_statuses || null } })
+    const si = data.task_status_items
+    return NextResponse.json({ task: {
+      ...data,
+      status_id: data.status_item_id ?? null,
+      status: si ? { id: si.id, label: si.name, color: si.color } : null,
+    } })
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -126,21 +138,29 @@ export async function PUT(request) {
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
-    const fields = ['title', 'description', 'status_id', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id']
+    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id', 'space_id']
     for (const f of fields) {
       if (body[f] !== undefined) updates[f] = body[f]
     }
+    // status_id from frontend maps to status_item_id in DB
+    if (body.status_id !== undefined) updates.status_item_id = body.status_id
+    if (body.status_item_id !== undefined) updates.status_item_id = body.status_item_id
 
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
       .update(updates)
       .eq('id', id)
       .eq('workspace_id', ctx.accessContext.workspaceId)
-      .select('*, task_statuses(id, label, color)')
+      .select('*, task_status_items(id, name, color)')
       .single()
 
     if (error) throw error
-    return NextResponse.json({ task: { ...data, status: data.task_statuses || null } })
+    const si = data.task_status_items
+    return NextResponse.json({ task: {
+      ...data,
+      status_id: data.status_item_id ?? null,
+      status: si ? { id: si.id, label: si.name, color: si.color } : null,
+    } })
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
