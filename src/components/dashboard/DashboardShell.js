@@ -11340,6 +11340,8 @@ export default function DashboardShell({
     activeTab,
   ])
 
+  const editModalFieldStyle = { width: '100%', padding: '8px 12px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }
+
   const handleSaveIntegrations = async (event) => {
     event.preventDefault()
     setIsSavingIntegrations(true)
@@ -21615,7 +21617,6 @@ export default function DashboardShell({
                 </div>
               </div>
 
-              {(() => { const fieldStyle = { width: '100%', padding: '8px 12px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }; return (
               <form className=”client-editor-card” onSubmit={handleSaveIntegrations} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                 {/* ── Bloco: Identificação ── */}
@@ -21632,10 +21633,10 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                       {[
-                        { label: 'Nome do cliente', required: true, children: <input type=”text” value={activeClient.name} onChange={(e) => handleClientFieldChange('name', e.target.value)} placeholder=”Nome do cliente” disabled={!canEditActiveClient} style={fieldStyle} /> },
-                        { label: 'CNPJ', children: <input type=”text” value={activeClient.cnpj || ''} onChange={(e) => handleClientFieldChange('cnpj', e.target.value)} placeholder=”00.000.000/0000-00” disabled={!canEditActiveClient} style={fieldStyle} /> },
+                        { label: 'Nome do cliente', required: true, children: <input type=”text” value={activeClient.name} onChange={(e) => handleClientFieldChange('name', e.target.value)} placeholder=”Nome do cliente” disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
+                        { label: 'CNPJ', children: <input type=”text” value={activeClient.cnpj || ''} onChange={(e) => handleClientFieldChange('cnpj', e.target.value)} placeholder=”00.000.000/0000-00” disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
                         { label: 'Gestor de Resultado', children: (
-                          <select value={activeClient.resultManagerUserId || ''} onChange={(e) => handleClientFieldChange('resultManagerUserId', e.target.value)} disabled={!canEditActiveClient} style={fieldStyle}>
+                          <select value={activeClient.resultManagerUserId || ''} onChange={(e) => handleClientFieldChange('resultManagerUserId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
                             <option value=””>Sem gestor selecionado</option>
                             {operationAssignableUsers.map((u) => <option key={`crm-${u.id}`} value={u.id}>{u.full_name || u.email || 'Usuário'}</option>)}
                           </select>
@@ -21694,7 +21695,7 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta de anúncio</span>
-                      <select value={activeClient.metaAdAccountId || ''} onChange={(e) => handleClientFieldChange('metaAdAccountId', e.target.value)} disabled={!canEditActiveClient} style={fieldStyle}>
+                      <select value={activeClient.metaAdAccountId || ''} onChange={(e) => handleClientFieldChange('metaAdAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
                         <option value=””>{hasMetaManualToken || hasMetaOauthConnection ? 'Selecione uma conta' : 'Conecte a Meta em Configurações'}</option>
                         <option value=”__ghost__”>👻 Conta fantasma (sem integração)</option>
                         {adAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
@@ -21717,7 +21718,7 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta Google Ads</span>
-                      <select value={activeClient.googleAdsAccountId || ''} onChange={(e) => handleClientFieldChange('googleAdsAccountId', e.target.value)} disabled={!canEditActiveClient} style={fieldStyle}>
+                      <select value={activeClient.googleAdsAccountId || ''} onChange={(e) => handleClientFieldChange('googleAdsAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
                         <option value=””>{googleAdsConnection.connected ? 'Selecione uma conta' : 'Conecte o Google Ads em Configurações'}</option>
                         {googleAdsAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
                       </select>
@@ -21739,7 +21740,7 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Link da planilha</span>
-                      <input type=”url” placeholder=”https://docs.google.com/spreadsheets/d/...” value={activeClient.leadsSheetUrl || ''} onChange={(e) => handleClientFieldChange('leadsSheetUrl', e.target.value)} disabled={!canEditActiveClient} style={fieldStyle} />
+                      <input type=”url” placeholder=”https://docs.google.com/spreadsheets/d/...” value={activeClient.leadsSheetUrl || ''} onChange={(e) => handleClientFieldChange('leadsSheetUrl', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle} />
                     </label>
                   </div>
                 </div>
@@ -21774,7 +21775,7 @@ export default function DashboardShell({
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'flex-end' }}>
                         <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Token / API Agendor</span>
-                          <input type=”password” value={activeIntegrations.agendorToken || ''} onChange={(e) => handleIntegrationChange('agendorToken', e.target.value, 'integrations')} placeholder=”Cole o token do Agendor” disabled={!canEditActiveClient} style={fieldStyle} />
+                          <input type=”password” value={activeIntegrations.agendorToken || ''} onChange={(e) => handleIntegrationChange('agendorToken', e.target.value, 'integrations')} placeholder=”Cole o token do Agendor” disabled={!canEditActiveClient} style={editModalFieldStyle} />
                         </label>
                         <button type=”button” className=”btn btn-secondary” style={{ fontSize: '0.8rem', padding: '8px 14px', height: 38 }} onClick={handleLoadAgendorPipelines} disabled={!canEditActiveClient || isAgendorPipelinesLoading || !String(activeIntegrations.agendorToken || '').trim()}>
                           {isAgendorPipelinesLoading ? 'Lendo...' : 'Ler pipelines'}
@@ -21832,7 +21833,6 @@ export default function DashboardShell({
                   </div>
                 </div>
               </form>
-              ); })()}
             </div>
           </div>
         )}
