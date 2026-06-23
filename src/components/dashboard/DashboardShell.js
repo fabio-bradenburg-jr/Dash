@@ -21304,236 +21304,315 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'clientes' && (
-          <section className="clients-layout simple-clients-layout">
-            <div className="management-header-row">
-              <div className="management-header-copy">
-                <h2>Clientes</h2>
-                <p>Cadastro simples para conectar APIs e vincular contas de anúncio disponíveis.</p>
-              </div>
-              <button type="button" className="btn btn-primary management-header-button" onClick={openCreateClientModal}>
-                <i className="bx bx-user-plus"></i>
-                Novo cliente
-              </button>
-            </div>
+        {activeTab === 'clientes' && (() => {
+          const nonArchivedClients = clients.filter(c => !c.isArchived)
+          const ativosCount = nonArchivedClients.filter(c => { const st = String(c.status || '').trim().toLowerCase(); return st === 'ativo' || st === '' }).length
+          const pausadosCount = nonArchivedClients.filter(c => String(c.status || '').trim().toLowerCase() === 'pausado').length
+          const churnCount = nonArchivedClients.filter(c => String(c.status || '').trim().toLowerCase() === 'churn').length
+          const archivedCount = clients.filter(c => c.isArchived).length
 
-            <div className="glass-panel users-toolbar-card management-directory-card simple-client-card">
-              <div className="client-registry-controls simple-client-controls">
-                <div className="client-registry-search">
-                  <i className="bx bx-search"></i>
-                  <input
-                    type="text"
-                    value={clientSearch}
-                    onChange={(event) => setClientSearch(event.target.value)}
-                    placeholder="Buscar cliente..."
-                  />
+          const getClientHealthRank = (client) => {
+            if (String(client?.status || '').trim().toLowerCase() === 'churn') return CLIENT_HEALTH_SORT_RANK.churn
+            const latestRecord = latestWeeklyHealthByClientId.get(client.id)
+            return CLIENT_HEALTH_SORT_RANK[latestRecord?.healthStatus] ?? CLIENT_HEALTH_SORT_RANK.empty
+          }
+
+          const displayClients = nonArchivedClients
+            .filter((client) => {
+              const query = clientSearch.trim().toLowerCase()
+              const matchesSearch = !query || [client.name, client.cnpj, client.metaAdAccountId, client.agendorAccountId]
+                .filter(Boolean).some((v) => String(v).toLowerCase().includes(query))
+              const st = String(client.status || '').trim().toLowerCase()
+              const matchesStatus = clientStatusFilter === 'all' ? true
+                : clientStatusFilter === 'ativo' ? (st === 'ativo' || st === '')
+                : clientStatusFilter === 'pausado' ? st === 'pausado'
+                : clientStatusFilter === 'churn' ? st === 'churn'
+                : true
+              return matchesSearch && matchesStatus
+            })
+            .sort((l, r) => {
+              const rankCompare = getClientHealthRank(l) - getClientHealthRank(r)
+              if (rankCompare) return rankCompare
+              return String(l.name || '').localeCompare(String(r.name || ''), 'pt-BR')
+            })
+
+          return (
+            <section className="weekly-dashboard-panel clients-panel">
+              {/* ── Hero header ── */}
+              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    <span className="management-hero-kicker"><i className="bx bx-buildings" style={{ marginRight: 5 }}></i>Clientes</span>
+                    <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Gestão de clientes</h2>
+                    <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Gerencie os clientes cadastrados, acompanhe status e acesse rapidamente as integrações.</p>
+                  </div>
+                  <button type="button" className="btn btn-primary" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }} onClick={openCreateClientModal}>
+                    <i className="bx bx-user-plus"></i>Novo cliente
+                  </button>
+                </div>
+
+                {/* Stat cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
+                  {[
+                    { icon: 'bx-group', label: 'Total', value: nonArchivedClients.length, color: '#94a3b8' },
+                    { icon: 'bx-check-circle', label: 'Ativos', value: ativosCount, color: '#22c55e' },
+                    { icon: 'bx-pause-circle', label: 'Pausados', value: pausadosCount, color: '#f59e0b' },
+                    { icon: 'bx-x-circle', label: 'Churn', value: churnCount, color: '#ef4444' },
+                    { icon: 'bx-archive', label: 'Arquivados', value: archivedCount, color: '#64748b' },
+                  ].map((m) => (
+                    <div key={m.label} className="management-stat-card" style={{ gap: 6 }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 13 }}></i>
+                        {m.label}
+                      </span>
+                      <span style={{ fontSize: '1.5rem', fontWeight: 900, color: m.color, lineHeight: 1 }}>{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Filter bar */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 18 }}>
+                  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
+                    <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
+                    <input
+                      type="text"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      placeholder="Buscar por nome, CNPJ ou conta..."
+                      style={{ width: '100%', padding: '8px 12px 8px 42px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'all', label: 'Todos', count: nonArchivedClients.length },
+                      { id: 'ativo', label: 'Ativos', count: ativosCount },
+                      { id: 'pausado', label: 'Pausados', count: pausadosCount },
+                      { id: 'churn', label: 'Churn', count: churnCount },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setClientStatusFilter(f.id)}
+                        style={{ padding: '7px 12px', borderRadius: 9, border: `1px solid ${clientStatusFilter === f.id ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.08)'}`, background: clientStatusFilter === f.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: clientStatusFilter === f.id ? '#26c281' : 'rgba(255,255,255,0.5)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                      >
+                        {f.label} <span style={{ opacity: 0.6 }}>({f.count})</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="simple-client-list" role="table" aria-label="Clientes cadastrados">
-                <div className="simple-client-row simple-client-row-head" role="row">
-                  <span role="columnheader">Cliente</span>
-                  <span role="columnheader">Status</span>
-                  <span role="columnheader">Saúde</span>
-                  <span role="columnheader">Integrações</span>
-                  <span role="columnheader">Editar</span>
-                </div>
+              {/* ── Client list ── */}
+              <div style={{ padding: '0 0 8px' }}>
+                {displayClients.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 160px 120px 130px', gap: 12, padding: '12px 24px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {['Cliente', 'Status', 'Saúde', 'Integrações', 'Ações'].map(h => (
+                      <span key={h} style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.35 }}>{h}</span>
+                    ))}
+                  </div>
+                )}
 
-                {clients
-                  .filter((client) => {
-                    if (client.isArchived) return false
-                    const query = clientSearch.trim().toLowerCase()
-                    if (!query) return true
-                    return [client.name, client.cnpj, client.metaAdAccountId, client.agendorAccountId]
-                      .filter(Boolean)
-                      .some((value) => String(value).toLowerCase().includes(query))
-                  })
-                  .sort((leftClient, rightClient) => {
-                    const getClientHealthRank = (client) => {
-                      if (String(client?.status || '').trim().toLowerCase() === 'churn') return CLIENT_HEALTH_SORT_RANK.churn
-                      const latestRecord = latestWeeklyHealthByClientId.get(client.id)
-                      return CLIENT_HEALTH_SORT_RANK[latestRecord?.healthStatus] ?? CLIENT_HEALTH_SORT_RANK.empty
-                    }
-                    const rankCompare = getClientHealthRank(leftClient) - getClientHealthRank(rightClient)
-                    if (rankCompare) return rankCompare
-                    return String(leftClient.name || '').localeCompare(String(rightClient.name || ''), 'pt-BR')
-                  })
-                  .map((client) => {
-                    const metaAccount = adAccounts.find((account) => account.id === client.metaAdAccountId)
-                    const hasMeta = Boolean(client.metaAdAccountId)
-                    const hasAgendor = Boolean(client.agendorAccountId || client.integrations?.agendorToken)
-                    const hasLeadsSheet = Boolean(client.leadsSheetUrl && String(client.leadsSheetUrl).trim())
-                    const isChurnClient = String(client.status || '').trim().toLowerCase() === 'churn'
-                    const latestHealthRecord = latestWeeklyHealthByClientId.get(client.id)
-                    const latestHealth = isChurnClient
-                      ? { key: 'churn', label: 'Churn', color: '#64748b' }
-                      : latestHealthRecord
-                        ? (WEEKLY_HEALTH_BY_KEY[latestHealthRecord.healthStatus] || WEEKLY_HEALTH_BY_KEY.attention)
-                        : null
-                    const healthDetail = isChurnClient
-                      ? (client.churnDate ? `Churn em ${formatClientDate(client.churnDate)}` : 'Cliente churn')
-                      : latestHealth
-                        ? formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)
-                        : 'Aguardando semanal'
+                {displayClients.map((client) => {
+                  const metaAccount = adAccounts.find((account) => account.id === client.metaAdAccountId)
+                  const hasMeta = Boolean(client.metaAdAccountId)
+                  const hasAgendor = Boolean(client.agendorAccountId || client.integrations?.agendorToken)
+                  const hasLeadsSheet = Boolean(client.leadsSheetUrl && String(client.leadsSheetUrl).trim())
+                  const isChurnClient = String(client.status || '').trim().toLowerCase() === 'churn'
+                  const latestHealthRecord = latestWeeklyHealthByClientId.get(client.id)
+                  const latestHealth = isChurnClient
+                    ? { key: 'churn', label: 'Churn', color: '#64748b' }
+                    : latestHealthRecord
+                      ? (WEEKLY_HEALTH_BY_KEY[latestHealthRecord.healthStatus] || WEEKLY_HEALTH_BY_KEY.attention)
+                      : null
+                  const healthDetail = isChurnClient
+                    ? (client.churnDate ? `Churn em ${formatClientDate(client.churnDate)}` : 'Cliente churn')
+                    : latestHealth
+                      ? formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)
+                      : 'Aguardando semanal'
 
-                    return (
-                      <div key={client.id} className="simple-client-row" role="row">
+                  return (
+                    <div
+                      key={client.id}
+                      style={{ display: 'grid', gridTemplateColumns: '1fr 160px 160px 120px 130px', gap: 12, padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}
+                      >
+                        <span style={{ width: 40, height: 40, borderRadius: 10, background: client.dashboardColor ? client.dashboardColor + '22' : 'rgba(38,194,129,0.12)', border: `1px solid ${client.dashboardColor ? client.dashboardColor + '44' : 'rgba(38,194,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                          {client.logoUrl
+                            ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <i className="bx bx-building-house" style={{ fontSize: 18, color: client.dashboardColor || '#26c281', opacity: 0.8 }}></i>}
+                        </span>
+                        <span style={{ minWidth: 0 }}>
+                          <strong style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</strong>
+                          <small style={{ fontSize: '0.75rem', opacity: 0.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{metaAccount?.name || client.metaAdAccountId || client.cnpj || 'Sem conta vinculada'}</small>
+                        </span>
+                      </button>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: '0.65rem', opacity: 0.35, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</span>
+                          <select
+                            value={['Ativo', 'Pausado', 'Churn'].includes(client.status) ? client.status : 'Ativo'}
+                            onChange={(e) => handleClientInlineFieldChange(client.id, 'status', e.target.value)}
+                            disabled={!canEditClientRecord(client.id)}
+                            aria-label={`Status de ${client.name}`}
+                            style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontSize: '0.82rem', cursor: canEditClientRecord(client.id) ? 'pointer' : 'default' }}
+                          >
+                            <option value="Ativo">Ativo</option>
+                            <option value="Pausado">Pausado</option>
+                            <option value="Churn">Churn</option>
+                          </select>
+                        </label>
+                        {isChurnClient && (
+                          <input
+                            type="date"
+                            value={client.churnDate || ''}
+                            onChange={(e) => handleClientInlineFieldChange(client.id, 'churnDate', e.target.value)}
+                            disabled={!canEditClientRecord(client.id)}
+                            title="Data do churn"
+                            style={{ padding: '4px 8px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.07)', color: 'inherit', fontSize: '0.78rem', width: '100%', boxSizing: 'border-box' }}
+                          />
+                        )}
+                      </div>
+
+                      <span title={isChurnClient ? 'Cliente marcado como Churn' : latestHealth ? `Último semanal: ${healthDetail}` : 'Sem registro semanal'} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: latestHealth ? (latestHealth.color + '18') : 'rgba(255,255,255,0.05)', color: latestHealth ? latestHealth.color : 'rgba(255,255,255,0.3)', border: `1px solid ${latestHealth ? latestHealth.color + '35' : 'rgba(255,255,255,0.08)'}`, width: 'fit-content' }}>
+                          <i className={`bx ${isChurnClient ? 'bx-x-circle' : latestHealth ? 'bx-heart' : 'bx-time'}`} style={{ fontSize: 12 }}></i>
+                          {latestHealth?.label || 'Sem registro'}
+                        </span>
+                        <small style={{ fontSize: '0.7rem', opacity: 0.35, paddingLeft: 2 }}>{healthDetail}</small>
+                      </span>
+
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} aria-label="Integrações do cliente">
+                        {[
+                          { active: hasMeta, icon: 'bx bxl-meta', title: hasMeta ? 'Meta conectada' : 'Meta não conectada', color: '#0668E1' },
+                          { active: hasAgendor, icon: 'bx bx-git-branch', title: hasAgendor ? 'Agendor cadastrado' : 'Agendor não cadastrado', color: '#f97316' },
+                          { active: hasLeadsSheet, icon: 'bx bx-table', title: hasLeadsSheet ? 'Planilha cadastrada' : 'Sem planilha', color: '#22c55e' },
+                        ].map((integ, idx) => (
+                          <span key={idx} title={integ.title} style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: integ.active ? integ.color + '18' : 'rgba(255,255,255,0.04)', color: integ.active ? integ.color : 'rgba(255,255,255,0.2)', border: `1px solid ${integ.active ? integ.color + '35' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
+                            <i className={integ.icon}></i>
+                          </span>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button
                           type="button"
-                          className="simple-client-name"
-                          onClick={() => {
-                            setActiveClientId(client.id)
-                            setClientEditSection('geral')
-                            setIsEditClientModalOpen(true)
-                          }}
+                          className="btn btn-secondary"
+                          style={{ fontSize: '0.78rem', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
                         >
-                          <span className="simple-client-logo" aria-hidden="true">
-                            {client.logoUrl ? <img src={client.logoUrl} alt="" /> : <i className="bx bx-building-house"></i>}
-                          </span>
-                          <span className="simple-client-copy">
-                            <strong>{client.name}</strong>
-                            <small>{metaAccount?.name || client.metaAdAccountId || client.cnpj || 'Sem conta de anúncio selecionada'}</small>
-                          </span>
+                          <i className="bx bx-edit"></i>Editar
                         </button>
-                        <div className="simple-client-status-col">
-                          <label className="simple-client-status-select" title="Status do cliente">
-                            <span>Status</span>
-                            <select
-                              value={['Ativo', 'Pausado', 'Churn'].includes(client.status) ? client.status : 'Ativo'}
-                              onChange={(event) => handleClientInlineFieldChange(client.id, 'status', event.target.value)}
-                              disabled={!canEditClientRecord(client.id)}
-                              aria-label={`Status de ${client.name}`}
-                            >
-                              <option value="Ativo">Ativo</option>
-                              <option value="Pausado">Pausado</option>
-                              <option value="Churn">Churn</option>
-                            </select>
-                          </label>
-                          {isChurnClient && (
-                            <input
-                              type="date"
-                              className="simple-client-churn-date"
-                              value={client.churnDate || ''}
-                              onChange={(event) => handleClientInlineFieldChange(client.id, 'churnDate', event.target.value)}
-                              disabled={!canEditClientRecord(client.id)}
-                              title="Data do churn"
-                            />
-                          )}
-                        </div>
-                        <span
-                          className={'simple-client-health ' + (latestHealth ? 'active ' + (latestHealth.key || latestHealthRecord?.healthStatus || '') : 'empty')}
-                          style={latestHealth ? { '--client-health-color': latestHealth.color } : undefined}
-                          title={isChurnClient ? 'Cliente marcado como Churn' : latestHealth ? `Último semanal: ${healthDetail}` : 'Sem registro semanal'}
-                        >
-                          <b>{latestHealth?.label || 'Sem registro'}</b>
-                          <small>{healthDetail}</small>
-                        </span>
-                        <div className="simple-client-integration-icons" aria-label="Integrações do cliente">
-                          <span className={hasMeta ? 'simple-client-icon active' : 'simple-client-icon'} title={hasMeta ? 'Meta conectada' : 'Meta não conectada'}>
-                            <i className="bx bxl-meta"></i>
-                          </span>
-                          <span className={hasAgendor ? 'simple-client-icon active' : 'simple-client-icon'} title={hasAgendor ? 'Agendor cadastrado' : 'Agendor não cadastrado'}>
-                            <i className="bx bx-git-branch"></i>
-                          </span>
-                          <span className={hasLeadsSheet ? 'simple-client-icon active' : 'simple-client-icon'} title={hasLeadsSheet ? 'Planilha de leads cadastrada' : 'Sem planilha de leads'}>
-                            <i className="bx bx-table"></i>
-                          </span>
-                        </div>
-                        <div className="simple-client-actions">
+                        {canEditClientRecord(client.id) && (
                           <button
                             type="button"
-                            className="btn btn-secondary simple-client-edit"
-                            onClick={() => {
-                              setActiveClientId(client.id)
-                              setClientEditSection('geral')
-                              setIsEditClientModalOpen(true)
-                            }}
+                            className="btn btn-ghost"
+                            onClick={() => handleArchiveClient(client.id, true)}
+                            title="Arquivar cliente"
+                            style={{ padding: '5px 8px', fontSize: '0.88rem' }}
                           >
-                            Editar
+                            <i className="bx bx-archive-in"></i>
                           </button>
-                          {canEditClientRecord(client.id) && (
-                            <button
-                              type="button"
-                              className="btn btn-ghost simple-client-archive"
-                              onClick={() => handleArchiveClient(client.id, true)}
-                              title="Arquivar cliente"
-                            >
-                              <i className="bx bx-archive-in"></i>
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    )
-                  })}
-              </div>
+                    </div>
+                  )
+                })}
 
-              {!clients.filter(c => !c.isArchived).length && (
-                <div className="empty-panel glass-item users-empty-state compact-empty-state">
-                  <h3>Nenhum cliente cadastrado</h3>
-                  <p>Crie um cliente e selecione a conta de anúncio da Meta para começar.</p>
-                </div>
-              )}
+                {displayClients.length === 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '56px 24px', textAlign: 'center' }}>
+                    <i className="bx bx-buildings" style={{ fontSize: '2.5rem', opacity: 0.2 }}></i>
+                    <div>
+                      <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, opacity: 0.7 }}>
+                        {clientSearch || clientStatusFilter !== 'all' ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado ainda'}
+                      </h3>
+                      <p style={{ margin: 0, fontSize: '0.84rem', opacity: 0.4 }}>
+                        {clientSearch || clientStatusFilter !== 'all'
+                          ? 'Tente ajustar a busca ou os filtros de status.'
+                          : 'Cadastre o primeiro cliente para iniciar o onboarding e organizar os dados operacionais.'}
+                      </p>
+                    </div>
+                    {!clientSearch && clientStatusFilter === 'all' && (
+                      <button type="button" className="btn btn-primary" style={{ marginTop: 4 }} onClick={openCreateClientModal}>
+                        <i className="bx bx-user-plus" style={{ marginRight: 6 }}></i>Novo cliente
+                      </button>
+                    )}
+                  </div>
+                )}
 
-              {clients.some(c => c.isArchived) && (() => {
-                const archivedList = clients.filter(c => c.isArchived && (() => {
-                  const query = clientSearch.trim().toLowerCase()
-                  if (!query) return true
-                  return [c.name, c.cnpj].filter(Boolean).some(v => String(v).toLowerCase().includes(query))
-                })())
-                if (!archivedList.length) return null
-                return (
-                  <details className="archived-clients-section">
-                    <summary className="archived-clients-summary">
-                      <i className="bx bx-archive"></i>
-                      Arquivados ({archivedList.length})
-                    </summary>
-                    <div className="simple-client-list archived-client-list" role="table">
-                      {archivedList.map(client => (
-                        <div key={client.id} className="simple-client-row simple-client-row-archived" role="row">
-                          <span className="simple-client-name">
-                            <span className="simple-client-logo" aria-hidden="true">
-                              {client.logoUrl ? <img src={client.logoUrl} alt="" /> : <i className="bx bx-building-house"></i>}
+                {clients.some(c => c.isArchived) && (() => {
+                  const archivedList = clients.filter(c => c.isArchived && (() => {
+                    const query = clientSearch.trim().toLowerCase()
+                    if (!query) return true
+                    return [c.name, c.cnpj].filter(Boolean).some(v => String(v).toLowerCase().includes(query))
+                  })())
+                  if (!archivedList.length) return null
+                  return (
+                    <details style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8 }}>
+                      <summary style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, opacity: 0.45, userSelect: 'none', listStyle: 'none' }}>
+                        <i className="bx bx-archive" style={{ fontSize: 15 }}></i>
+                        Arquivados ({archivedList.length})
+                        <i className="bx bx-chevron-down" style={{ marginLeft: 'auto', fontSize: 16 }}></i>
+                      </summary>
+                      <div style={{ padding: '0 0 8px' }}>
+                        {archivedList.map(client => (
+                          <div key={client.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', opacity: 0.55 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                                {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ fontSize: 15, opacity: 0.4 }}></i>}
+                              </span>
+                              <span>
+                                <strong style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700 }}>{client.name}</strong>
+                                <small style={{ fontSize: '0.72rem', opacity: 0.5 }}>{client.metaAdAccountId || client.cnpj || 'Arquivado'}</small>
+                              </span>
                             </span>
-                            <span className="simple-client-copy">
-                              <strong>{client.name}</strong>
-                              <small>{client.metaAdAccountId || client.cnpj || 'Arquivado'}</small>
-                            </span>
-                          </span>
-                          <span className="simple-client-archived-badge">Arquivado</span>
-                          <span />
-                          <span />
-                          <div className="simple-client-actions">
                             {canEditClientRecord(client.id) && (
-                              <button
-                                type="button"
-                                className="btn btn-secondary simple-client-edit"
-                                onClick={() => handleArchiveClient(client.id, false)}
-                              >
+                              <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => handleArchiveClient(client.id, false)}>
                                 <i className="bx bx-archive-out"></i> Desarquivar
                               </button>
                             )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )
-              })()}
-            </div>
-          </section>
-        )}
+                        ))}
+                      </div>
+                    </details>
+                  )
+                })()}
+              </div>
+            </section>
+          )
+        })()}
 
         {activeTab === 'clientes' && isEditClientModalOpen && activeClient && (
           <div className="modal-overlay" onClick={() => setIsEditClientModalOpen(false)}>
             <div className="modal-card modal-card-wide glass-panel modal-client-editor simple-client-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
-                <div>
-                  <h3>Editar cliente</h3>
-                  <p>Configure apenas identificação, APIs e conta de anúncio vinculada.</p>
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {activeClient.logoUrl ? (
+                      <img src={activeClient.logoUrl} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                    ) : (
+                      <span style={{ width: 42, height: 42, borderRadius: 10, background: activeClient.dashboardColor ? activeClient.dashboardColor + '22' : 'rgba(38,194,129,0.12)', border: `1px solid ${activeClient.dashboardColor ? activeClient.dashboardColor + '44' : 'rgba(38,194,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="bx bx-building-house" style={{ fontSize: 20, color: activeClient.dashboardColor || '#26c281', opacity: 0.8 }}></i>
+                      </span>
+                    )}
+                    <div>
+                      <span className="management-hero-kicker" style={{ fontSize: '0.68rem', marginBottom: 2 }}><i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar cliente</span>
+                      <h3 style={{ margin: '2px 0 3px', fontSize: '1.1rem', fontWeight: 900 }}>{activeClient.name}</h3>
+                      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.45 }}>Identifique, configure APIs e vincule a conta de anúncio.</p>
+                    </div>
+                  </div>
+                  <button type="button" className="modal-close" onClick={() => setIsEditClientModalOpen(false)} aria-label="Fechar edição de cliente" style={{ flexShrink: 0, zIndex: 1 }}>
+                    <i className="bx bx-x"></i>
+                  </button>
                 </div>
-                <button type="button" className="modal-close" onClick={() => setIsEditClientModalOpen(false)} aria-label="Fechar edição de cliente">
-                  <i className="bx bx-x"></i>
-                </button>
               </div>
 
               <form className="client-editor-card" onSubmit={handleSaveIntegrations}>
@@ -22033,19 +22112,31 @@ export default function DashboardShell({
         {activeTab === 'clientes' && isCreateClientModalOpen && (
           <div className="modal-overlay" onClick={closeCreateClientModal}>
             <div className="modal-card glass-panel modal-create-client simple-client-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
-                <div>
-                  <h3>Novo cliente</h3>
-                  <p>{createClientStep === 'identity' ? 'Comece apenas com identificação. As integrações vêm no próximo passo.' : 'Agora selecione quais fontes serão usadas no dashboard deste cliente.'}</p>
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <span className="management-hero-kicker" style={{ fontSize: '0.68rem', marginBottom: 4 }}><i className="bx bx-user-plus" style={{ marginRight: 4 }}></i>Novo cliente</span>
+                    <h3 style={{ margin: '4px 0 4px', fontSize: '1.15rem', fontWeight: 900 }}>Cadastrar cliente</h3>
+                    <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.48 }}>
+                      {createClientStep === 'identity' ? 'Preencha a identificação do cliente. As integrações vêm no próximo passo.' : 'Selecione as contas e fontes de dados para o dashboard deste cliente.'}
+                    </p>
+                  </div>
+                  <button type="button" className="modal-close" onClick={closeCreateClientModal} aria-label="Fechar cadastro de cliente" style={{ flexShrink: 0, zIndex: 1 }}>
+                    <i className="bx bx-x"></i>
+                  </button>
                 </div>
-                <button type="button" className="modal-close" onClick={closeCreateClientModal} aria-label="Fechar cadastro de cliente">
-                  <i className="bx bx-x"></i>
-                </button>
               </div>
 
-              <div className="client-create-steps" aria-label="Etapas do cadastro">
-                <span className={createClientStep === 'identity' ? 'active' : ''}>1. Identificação</span>
-                <span className={createClientStep === 'integrations' ? 'active' : ''}>2. Integrações</span>
+              <div className="client-create-steps" style={{ display: 'flex', gap: 8, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} aria-label="Etapas do cadastro">
+                {[
+                  { id: 'identity', label: '1. Identificação' },
+                  { id: 'integrations', label: '2. Integrações' },
+                ].map((step) => (
+                  <span key={step.id} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: createClientStep === step.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: createClientStep === step.id ? '#26c281' : 'rgba(255,255,255,0.3)', border: `1px solid ${createClientStep === step.id ? 'rgba(38,194,129,0.35)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
+                    {step.label}
+                  </span>
+                ))}
               </div>
 
               <form className="client-create-stack" onSubmit={handleCreateClient}>
