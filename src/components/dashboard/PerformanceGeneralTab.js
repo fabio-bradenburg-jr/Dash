@@ -645,15 +645,15 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   const [sheetLoading, setSheetLoading] = useState(false)
 
   useEffect(() => {
-    const url = client.googleSheetsUrl || client.leadsSheetUrl || ''
+    const url = client.leadsSheetUrl || ''
     if (!url) return
     setSheetLoading(true)
+    setSheetData(null)
     const params = new URLSearchParams({ url })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
-    if (client.googleSheetsStatusColumn) params.set('status_column', client.googleSheetsStatusColumn)
-    fetch('/api/google-sheets/summary?' + params.toString())
+    fetch('/api/google-sheets/leads-analytics?' + params.toString())
       .then(r => r.json())
-      .then(data => setSheetData(data?.totalRows != null ? data : null))
+      .then(data => setSheetData(data?.overview ? data : null))
       .catch(() => setSheetData(null))
       .finally(() => setSheetLoading(false))
   }, [client.id])
@@ -830,41 +830,70 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
             </div>
           )}
 
-          {/* Planilha — shown only when client has a sheet configured */}
-          {(client.googleSheetsUrl || client.leadsSheetUrl) && (
+          {/* Planilha de Leads */}
+          {client.leadsSheetUrl && (
             <div>
-              <SectionTitle>Resumo da Planilha</SectionTitle>
+              <SectionTitle>Planilha de Leads</SectionTitle>
               {sheetLoading
                 ? <EmptyBlock icon="bx-loader-alt">Carregando dados da planilha...</EmptyBlock>
                 : !sheetData
                   ? <EmptyBlock icon="bx-table">Não foi possível carregar os dados da planilha.</EmptyBlock>
-                  : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <MetricCard label="Total de registros" value={NUM(sheetData.totalRows)} accent />
-                        {(sheetData.numericColumns || []).slice(0, 4).map((col) => (
-                          <MetricCard
-                            key={col.id}
-                            label={col.header}
-                            value={col.type === 'currency' ? BRL(col.sum) : col.type === 'percent' ? PCT(col.sum / col.valueCount) : NUM(col.sum)}
-                          />
-                        ))}
-                      </div>
-                      {sheetData.statusSummary && (
-                        <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textSub, marginBottom: 6 }}>{sheetData.statusSummary.header}</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {(sheetData.statusSummary.counts || []).slice(0, 10).map((s) => (
-                              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid ' + C.border, borderRadius: 20, fontSize: '0.78rem' }}>
-                                <span style={{ color: C.textSub }}>{s.label}</span>
-                                <span style={{ fontWeight: 800, color: C.text }}>{NUM(s.count)}</span>
+                  : (() => {
+                    const ov = sheetData.overview || {}
+                    const total = ov.total || 0
+                    const pct = (v) => total > 0 ? ' ' + Math.round((v / total) * 100) + '%' : ''
+                    const LEAD_METRICS = [
+                      { label: 'Total de Leads',  value: total,            color: '#60a5fa', icon: 'bx-user-plus',   sub: '' },
+                      { label: 'Público-alvo',    value: ov.publicoAlvo,   color: '#a78bfa', icon: 'bx-target-lock', sub: pct(ov.publicoAlvo) },
+                      { label: 'Qualificados',    value: ov.qualified,     color: '#22c55e', icon: 'bx-check-shield', sub: pct(ov.qualified) },
+                      { label: 'Convertidos',     value: ov.converted,     color: '#10b981', icon: 'bx-trophy',      sub: pct(ov.converted) },
+                      { label: 'Perdidos',        value: ov.lost,          color: '#ef4444', icon: 'bx-x-circle',    sub: pct(ov.lost) },
+                      { label: 'Sem Resposta',    value: ov.noreply,       color: '#f59e0b', icon: 'bx-time',        sub: pct(ov.noreply) },
+                    ]
+                    const topAdsSheet = (sheetData.ads || [])
+                      .filter(a => (a.publicoAlvo || 0) > 0)
+                      .sort((a, b) => (b.publicoAlvo || 0) - (a.publicoAlvo || 0))
+                      .slice(0, 3)
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
+                          {LEAD_METRICS.map((m) => (
+                            <div key={m.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 34, height: 34, borderRadius: 10, background: m.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <i className={'bx ' + m.icon} style={{ color: m.color, fontSize: 17 }} />
                               </div>
-                            ))}
-                          </div>
+                              <div>
+                                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: m.color, lineHeight: 1.1 }}>
+                                  {NUM(m.value || 0)}{m.sub && <span style={{ fontSize: '0.7rem', fontWeight: 600, color: C.textSub, marginLeft: 4 }}>{m.sub}</span>}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: C.textSub, marginTop: 2 }}>{m.label}</div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </div>
-                  )
+                        {topAdsSheet.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textSub, marginBottom: 8 }}>Top 3 Criativos — Público Alvo</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {topAdsSheet.map((ad, idx) => (
+                                <div key={ad.name || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 13px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#a78bfa', width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ad.name || 'Sem título'}</div>
+                                    <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '0.72rem', color: C.textSub }}>Leads: <strong style={{ color: C.text }}>{NUM(ad.total || 0)}</strong></span>
+                                      <span style={{ fontSize: '0.72rem', color: C.textSub }}>Público-alvo: <strong style={{ color: '#a78bfa' }}>{NUM(ad.publicoAlvo || 0)}</strong></span>
+                                      <span style={{ fontSize: '0.72rem', color: C.textSub }}>Qualif.: <strong style={{ color: '#22c55e' }}>{NUM(ad.qualified || 0)}</strong></span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()
               }
             </div>
           )}
