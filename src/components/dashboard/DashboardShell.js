@@ -7460,6 +7460,13 @@ export default function DashboardShell({
     } catch (error) {
       alert(error.message || 'Cliente criado na tela, mas não foi possível salvar no Supabase agora.')
     }
+
+    // Auto-create password space for the new client (best-effort)
+    fetch('/api/clients/password-spaces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: newClient.id }),
+    }).catch(() => {})
   }
 
   const handleRemoveClient = async (clientId) => {

@@ -30,13 +30,19 @@ export async function GET(request) {
 
     if (!clientId) return NextResponse.json({ error: 'client_id obrigatório.' }, { status: 400 })
 
-    const { data, error } = await ctx.adminSupabase
+    const includeArchived = url.searchParams.get('include_archived') === 'true'
+
+    let accQuery = ctx.adminSupabase
       .from('client_accesses')
       .select('*')
       .eq('workspace_id', ctx.workspaceId)
       .eq('client_id', clientId)
       .order('category')
       .order('sort_order')
+
+    if (!includeArchived) accQuery = accQuery.eq('is_archived', false)
+
+    const { data, error } = await accQuery
 
     if (error) throw error
 
@@ -124,7 +130,7 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
 
     const body = await request.json()
-    const { id, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status, sort_order } = body
+    const { id, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status, sort_order, is_archived } = body
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
@@ -139,6 +145,7 @@ export async function PUT(request) {
     if (notes !== undefined) { updates.notes = notes?.trim() || null; changed.push('notes') }
     if (status !== undefined) { updates.status = status; changed.push('status') }
     if (sort_order !== undefined) { updates.sort_order = Number(sort_order); changed.push('sort_order') }
+    if (is_archived !== undefined) { updates.is_archived = !!is_archived; changed.push('is_archived') }
 
     const { data, error } = await ctx.adminSupabase
       .from('client_accesses')
