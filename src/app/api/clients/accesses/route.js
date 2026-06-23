@@ -73,7 +73,7 @@ export async function POST(request) {
     if (ctx.error) return ctx.error
 
     const body = await request.json()
-    const { client_id, category, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status } = body
+    const { client_id, category, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status, metadata } = body
 
     if (!client_id || !platform_name?.trim()) {
       return NextResponse.json({ error: 'client_id e platform_name são obrigatórios.' }, { status: 400 })
@@ -103,6 +103,7 @@ export async function POST(request) {
         url: accessUrl?.trim() || null,
         notes: notes?.trim() || null,
         status: status || 'active',
+        metadata: metadata || null,
         sort_order: (maxRow?.sort_order ?? -1) + 1,
         created_by: ctx.user.id,
       })
@@ -130,7 +131,7 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
 
     const body = await request.json()
-    const { id, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status, sort_order, is_archived } = body
+    const { id, platform_name, icon, icon_color, login, password, url: accessUrl, notes, status, sort_order, is_archived, metadata } = body
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
@@ -146,6 +147,7 @@ export async function PUT(request) {
     if (status !== undefined) { updates.status = status; changed.push('status') }
     if (sort_order !== undefined) { updates.sort_order = Number(sort_order); changed.push('sort_order') }
     if (is_archived !== undefined) { updates.is_archived = !!is_archived; changed.push('is_archived') }
+    if (metadata !== undefined) { updates.metadata = metadata; changed.push('metadata') }
 
     const { data, error } = await ctx.adminSupabase
       .from('client_accesses')
