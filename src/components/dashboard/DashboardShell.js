@@ -21617,13 +21617,13 @@ export default function DashboardShell({
                 </div>
               </div>
 
-              <form className=”client-editor-card” onSubmit={handleSaveIntegrations} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <form className="client-editor-card" onSubmit={handleSaveIntegrations} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                 {/* ── Bloco: Identificação ── */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                     <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: currentTheme.main + '18', color: currentTheme.main, border: `1px solid ${currentTheme.main}33`, flexShrink: 0 }}>
-                      <i className=”bx bx-id-card”></i>
+                      <i className="bx bx-id-card"></i>
                     </span>
                     <div>
                       <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Identificação</strong>
@@ -21633,11 +21633,11 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                       {[
-                        { label: 'Nome do cliente', required: true, children: <input type=”text” value={activeClient.name} onChange={(e) => handleClientFieldChange('name', e.target.value)} placeholder=”Nome do cliente” disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
-                        { label: 'CNPJ', children: <input type=”text” value={activeClient.cnpj || ''} onChange={(e) => handleClientFieldChange('cnpj', e.target.value)} placeholder=”00.000.000/0000-00” disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
+                        { label: 'Nome do cliente', required: true, children: <input type="text" value={activeClient.name} onChange={(e) => handleClientFieldChange('name', e.target.value)} placeholder="Nome do cliente" disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
+                        { label: 'CNPJ', children: <input type="text" value={activeClient.cnpj || ''} onChange={(e) => handleClientFieldChange('cnpj', e.target.value)} placeholder="00.000.000/0000-00" disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
                         { label: 'Gestor de Resultado', children: (
                           <select value={activeClient.resultManagerUserId || ''} onChange={(e) => handleClientFieldChange('resultManagerUserId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
-                            <option value=””>Sem gestor selecionado</option>
+                            <option value="">Sem gestor selecionado</option>
                             {operationAssignableUsers.map((u) => <option key={`crm-${u.id}`} value={u.id}>{u.full_name || u.email || 'Usuário'}</option>)}
                           </select>
                         )},
@@ -21652,18 +21652,18 @@ export default function DashboardShell({
                     {/* Logo */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
                       <div style={{ width: 52, height: 52, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                        {activeClient.logoUrl ? <img src={activeClient.logoUrl} alt={`Logo ${activeClient.name}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className=”bx bx-image-add” style={{ fontSize: 22, opacity: 0.35 }}></i>}
+                        {activeClient.logoUrl ? <img src={activeClient.logoUrl} alt={`Logo ${activeClient.name}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="bx bx-image-add" style={{ fontSize: 22, opacity: 0.35 }}></i>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <strong style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: 2 }}>Logo do cliente</strong>
                         <p style={{ margin: '0 0 8px', fontSize: '0.75rem', opacity: 0.4 }}>Aparece no topo do dashboard e personaliza a apresentação com a marca do cliente.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <label className=”btn btn-secondary” style={{ fontSize: '0.78rem', padding: '5px 12px', cursor: canEditActiveClient ? 'pointer' : 'not-allowed' }}>
-                            <input type=”file” accept=”image/*” onChange={handleClientLogoUpload} disabled={!canEditActiveClient} style={{ display: 'none' }} />
+                          <label className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px', cursor: canEditActiveClient ? 'pointer' : 'not-allowed' }}>
+                            <input type="file" accept="image/*" onChange={handleClientLogoUpload} disabled={!canEditActiveClient} style={{ display: 'none' }} />
                             {activeClient.logoUrl ? 'Trocar logo' : 'Subir logo'}
                           </label>
                           {activeClient.logoUrl && (
-                            <button type=”button” className=”btn btn-ghost” style={{ fontSize: '0.78rem', padding: '5px 12px' }} onClick={() => handleClientFieldChange('logoUrl', '')} disabled={!canEditActiveClient}>
+                            <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem', padding: '5px 12px' }} onClick={() => handleClientFieldChange('logoUrl', '')} disabled={!canEditActiveClient}>
                               Remover
                             </button>
                           )}
@@ -21673,7 +21673,7 @@ export default function DashboardShell({
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Cor do dashboard</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '6px 10px' }}>
-                          <input type=”color” value={activeClientDashboardHex} onChange={(e) => handleClientDashboardHexChange('dashboardColor', e.target.value)} disabled={!canEditActiveClient} aria-label=”Cor do dashboard do cliente” style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: canEditActiveClient ? 'pointer' : 'default', padding: 0, borderRadius: 6 }} />
+                          <input type="color" value={activeClientDashboardHex} onChange={(e) => handleClientDashboardHexChange('dashboardColor', e.target.value)} disabled={!canEditActiveClient} aria-label="Cor do dashboard do cliente" style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: canEditActiveClient ? 'pointer' : 'default', padding: 0, borderRadius: 6 }} />
                           <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.7 }}>{activeClientDashboardHex.toUpperCase()}</span>
                         </div>
                       </div>
@@ -21685,7 +21685,7 @@ export default function DashboardShell({
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                     <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#0668E118', color: '#0668E1', border: '1px solid #0668E133', flexShrink: 0 }}>
-                      <i className=”bx bxl-meta”></i>
+                      <i className="bx bxl-meta"></i>
                     </span>
                     <div>
                       <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Meta Ads</strong>
@@ -21696,8 +21696,8 @@ export default function DashboardShell({
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta de anúncio</span>
                       <select value={activeClient.metaAdAccountId || ''} onChange={(e) => handleClientFieldChange('metaAdAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
-                        <option value=””>{hasMetaManualToken || hasMetaOauthConnection ? 'Selecione uma conta' : 'Conecte a Meta em Configurações'}</option>
-                        <option value=”__ghost__”>👻 Conta fantasma (sem integração)</option>
+                        <option value="">{hasMetaManualToken || hasMetaOauthConnection ? 'Selecione uma conta' : 'Conecte a Meta em Configurações'}</option>
+                        <option value="__ghost__">👻 Conta fantasma (sem integração)</option>
                         {adAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
                       </select>
                     </label>
@@ -21708,7 +21708,7 @@ export default function DashboardShell({
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                     <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#10b98118', color: '#10b981', border: '1px solid #10b98133', flexShrink: 0 }}>
-                      <i className=”bx bxl-google”></i>
+                      <i className="bx bxl-google"></i>
                     </span>
                     <div>
                       <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Google Ads</strong>
@@ -21719,7 +21719,7 @@ export default function DashboardShell({
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta Google Ads</span>
                       <select value={activeClient.googleAdsAccountId || ''} onChange={(e) => handleClientFieldChange('googleAdsAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
-                        <option value=””>{googleAdsConnection.connected ? 'Selecione uma conta' : 'Conecte o Google Ads em Configurações'}</option>
+                        <option value="">{googleAdsConnection.connected ? 'Selecione uma conta' : 'Conecte o Google Ads em Configurações'}</option>
                         {googleAdsAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
                       </select>
                     </label>
@@ -21730,7 +21730,7 @@ export default function DashboardShell({
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                     <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#22c55e18', color: '#22c55e', border: '1px solid #22c55e33', flexShrink: 0 }}>
-                      <i className=”bx bx-table”></i>
+                      <i className="bx bx-table"></i>
                     </span>
                     <div>
                       <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Planilha de Leads</strong>
@@ -21740,7 +21740,7 @@ export default function DashboardShell({
                   <div style={{ padding: '16px 18px' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Link da planilha</span>
-                      <input type=”url” placeholder=”https://docs.google.com/spreadsheets/d/...” value={activeClient.leadsSheetUrl || ''} onChange={(e) => handleClientFieldChange('leadsSheetUrl', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle} />
+                      <input type="url" placeholder="https://docs.google.com/spreadsheets/d/..." value={activeClient.leadsSheetUrl || ''} onChange={(e) => handleClientFieldChange('leadsSheetUrl', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle} />
                     </label>
                   </div>
                 </div>
@@ -21748,8 +21748,8 @@ export default function DashboardShell({
                 {/* ── Bloco: CRM toggle ── */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 18px' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: canEditActiveClient ? 'pointer' : 'default' }}>
-                    <input type=”checkbox” checked={activeClientUsesManualCrm} onChange={(e) => handleToggleManualCrmForActiveClient(e.target.checked)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
-                    <span style={{ width: 40, height: 22, borderRadius: 11, background: activeClientUsesManualCrm ? '#26c281' : 'rgba(255,255,255,0.12)', position: 'relative', flexShrink: 0, transition: 'background 0.2s', border: activeClientUsesManualCrm ? '1px solid #26c28155' : '1px solid rgba(255,255,255,0.15)' }} aria-hidden=”true”>
+                    <input type="checkbox" checked={activeClientUsesManualCrm} onChange={(e) => handleToggleManualCrmForActiveClient(e.target.checked)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
+                    <span style={{ width: 40, height: 22, borderRadius: 11, background: activeClientUsesManualCrm ? '#26c281' : 'rgba(255,255,255,0.12)', position: 'relative', flexShrink: 0, transition: 'background 0.2s', border: activeClientUsesManualCrm ? '1px solid #26c28155' : '1px solid rgba(255,255,255,0.15)' }} aria-hidden="true">
                       <span style={{ position: 'absolute', top: 2, left: activeClientUsesManualCrm ? 20 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}></span>
                     </span>
                     <div>
@@ -21764,7 +21764,7 @@ export default function DashboardShell({
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                       <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#f9731618', color: '#f97316', border: '1px solid #f9731633', flexShrink: 0 }}>
-                        <i className=”bx bx-git-branch”></i>
+                        <i className="bx bx-git-branch"></i>
                       </span>
                       <div>
                         <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Agendor</strong>
@@ -21775,9 +21775,9 @@ export default function DashboardShell({
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'flex-end' }}>
                         <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Token / API Agendor</span>
-                          <input type=”password” value={activeIntegrations.agendorToken || ''} onChange={(e) => handleIntegrationChange('agendorToken', e.target.value, 'integrations')} placeholder=”Cole o token do Agendor” disabled={!canEditActiveClient} style={editModalFieldStyle} />
+                          <input type="password" value={activeIntegrations.agendorToken || ''} onChange={(e) => handleIntegrationChange('agendorToken', e.target.value, 'integrations')} placeholder="Cole o token do Agendor" disabled={!canEditActiveClient} style={editModalFieldStyle} />
                         </label>
-                        <button type=”button” className=”btn btn-secondary” style={{ fontSize: '0.8rem', padding: '8px 14px', height: 38 }} onClick={handleLoadAgendorPipelines} disabled={!canEditActiveClient || isAgendorPipelinesLoading || !String(activeIntegrations.agendorToken || '').trim()}>
+                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '8px 14px', height: 38 }} onClick={handleLoadAgendorPipelines} disabled={!canEditActiveClient || isAgendorPipelinesLoading || !String(activeIntegrations.agendorToken || '').trim()}>
                           {isAgendorPipelinesLoading ? 'Lendo...' : 'Ler pipelines'}
                         </button>
                       </div>
@@ -21787,7 +21787,7 @@ export default function DashboardShell({
                       )}
 
                       {[
-                        { label: 'Pipelines para puxar para o dash', hint: 'Escolha um ou mais funis do Agendor. O dashboard usará apenas os pipelines selecionados.', options: agendorPipelineOptions, selected: selectedAgendorPipelineIds, onToggle: handleAgendorPipelineToggle, getKey: p => p.id, getLabel: p => p.label || p.name || p.id, empty: 'Cole o token e clique em “Ler pipelines” para selecionar os funis disponíveis.' },
+                        { label: 'Pipelines para puxar para o dash', hint: 'Escolha um ou mais funis do Agendor. O dashboard usará apenas os pipelines selecionados.', options: agendorPipelineOptions, selected: selectedAgendorPipelineIds, onToggle: handleAgendorPipelineToggle, getKey: p => p.id, getLabel: p => p.label || p.name || p.id, empty: 'Cole o token e clique em "Ler pipelines" para selecionar os funis disponíveis.' },
                         { label: 'Etapas consideradas qualificadas', hint: 'Marque quais etapas contam como qualificado nas taxas comerciais.', options: visibleAgendorStageOptions, selected: selectedAgendorStageNames, onToggle: handleAgendorQualifiedStageToggle, getKey: s => s.id || s.label, getLabel: s => s.label || s.name, empty: 'Depois de selecionar os pipelines, marque as etapas qualificadas.' },
                       ].map(({ label, hint, options, selected, onToggle, getKey, getLabel, empty }) => (
                         <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -21802,7 +21802,7 @@ export default function DashboardShell({
                               const isActive = Array.isArray(selected) && (selected.includes(key) || selected.includes(itemLabel))
                               return (
                                 <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, cursor: canEditActiveClient ? 'pointer' : 'default', background: isActive ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)', color: isActive ? '#f97316' : 'rgba(255,255,255,0.5)', border: `1px solid ${isActive ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
-                                  <input type=”checkbox” checked={isActive} onChange={() => onToggle(item.id !== undefined ? item.id : item)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
+                                  <input type="checkbox" checked={isActive} onChange={() => onToggle(item.id !== undefined ? item.id : item)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
                                   {itemLabel}
                                 </label>
                               )
@@ -21820,14 +21820,14 @@ export default function DashboardShell({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingTop: 4 }}>
                   <div>
                     {canEditActiveClient && (
-                      <button type=”button” className=”btn btn-ghost” style={{ fontSize: '0.78rem', color: '#f87171' }} onClick={() => handleRemoveClient(activeClient.id)}>
-                        <i className=”bx bx-trash” style={{ marginRight: 4 }}></i>Remover cliente
+                      <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem', color: '#f87171' }} onClick={() => handleRemoveClient(activeClient.id)}>
+                        <i className="bx bx-trash" style={{ marginRight: 4 }}></i>Remover cliente
                       </button>
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type=”button” className=”btn btn-secondary” style={{ fontSize: '0.82rem' }} onClick={() => setIsEditClientModalOpen(false)}>Fechar</button>
-                    <button type=”submit” className=”btn btn-primary” style={{ fontSize: '0.82rem' }} disabled={isSavingIntegrations || !canEditActiveClient}>
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.82rem' }} onClick={() => setIsEditClientModalOpen(false)}>Fechar</button>
+                    <button type="submit" className="btn btn-primary" style={{ fontSize: '0.82rem' }} disabled={isSavingIntegrations || !canEditActiveClient}>
                       {isSavingIntegrations ? 'Salvando...' : 'Salvar alterações'}
                     </button>
                   </div>
