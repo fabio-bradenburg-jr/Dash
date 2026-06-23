@@ -977,7 +977,7 @@ export default function PerformanceGeneralTab({
   }, [adAccountBalanceRows])
 
   const getClientData = (client) => ({
-    healthKey:   latestWeeklyHealthByClientId?.get(client.id)?.healthKey || 'empty',
+    healthKey:   latestWeeklyHealthByClientId?.get(client.id)?.healthStatus || 'empty',
     adsRow:      adsMap[client.id],
     campaignRow: campaignMap[client.id],
     balanceRow:  balanceMap[client.id],
