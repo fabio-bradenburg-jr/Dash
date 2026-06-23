@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 
 /* ── Health meta ── */
 const HEALTH_META = {
