@@ -16934,7 +16934,7 @@ export default function DashboardShell({
                   {(isMaster || hasNavAccess('acessos')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => setActiveTab('acessos')}>
                       <i className="bx bx-lock-alt"></i>
-                      <span className="nav-label">Acessos</span>
+                      <span className="nav-label">Dados</span>
                     </button>
                   )}
                 </div>
@@ -17996,7 +17996,7 @@ export default function DashboardShell({
                               style={{ height: 36, padding: '0 12px', borderRadius: 10, border: '1px solid rgba(38,194,129,0.35)', background: 'rgba(38,194,129,0.12)', cursor: 'pointer', color: '#26c281', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
                             >
                               <i className="bx bx-key" style={{ fontSize: 15 }}></i>
-                              <span className="nav-label" style={{ fontSize: 12 }}>+ Acesso</span>
+                              <span className="nav-label" style={{ fontSize: 12 }}>+ Dado</span>
                             </button>
                             <button
                               type="button"
