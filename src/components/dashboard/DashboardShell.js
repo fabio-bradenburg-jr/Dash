@@ -7,6 +7,7 @@ import AssistantPage from '@/app/assistant/page'
 import SettingsPage from '@/app/settings/page'
 import ClientNotesPanel from '@/components/dashboard/ClientNotesPanel'
 import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
+import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
@@ -3285,6 +3286,7 @@ export default function DashboardShell({
   // Onboarding checklist state
   const [onboardingRecords, setOnboardingRecords] = useState([])
   const [onboardingExpandedClient, setOnboardingExpandedClient] = useState(null)
+  const [onboardingQuickAccess, setOnboardingQuickAccess] = useState(false)
   const [onboardingSaving, setOnboardingSaving] = useState(false)
   const [onboardingClientFilter, setOnboardingClientFilter] = useState('')
   const [onboardingView, setOnboardingView] = useState('cards')
@@ -17587,6 +17589,7 @@ export default function DashboardShell({
           const overallProgress = totalClients > 0 ? Math.round((totalTasksDone / (totalClients * totalTasks)) * 100) : 0
 
           return (
+            <>
             <section className="weekly-dashboard-panel onboarding-panel">
               <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -17985,13 +17988,24 @@ export default function DashboardShell({
                               {naCount > 0 && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ color: '#94a3b8', fontWeight: 700 }}>{naCount}</span> n/a</span>}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setOnboardingExpandedClient(null)}
-                            style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}
-                          >
-                            <i className="bx bx-x" style={{ fontSize: 20 }}></i>
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setOnboardingQuickAccess(true) }}
+                              title="Cadastrar acesso para este cliente"
+                              style={{ height: 36, padding: '0 12px', borderRadius: 10, border: '1px solid rgba(38,194,129,0.35)', background: 'rgba(38,194,129,0.12)', cursor: 'pointer', color: '#26c281', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}
+                            >
+                              <i className="bx bx-key" style={{ fontSize: 15 }}></i>
+                              <span className="nav-label" style={{ fontSize: 12 }}>+ Acesso</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOnboardingExpandedClient(null)}
+                              style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}
+                            >
+                              <i className="bx bx-x" style={{ fontSize: 20 }}></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -18083,6 +18097,18 @@ export default function DashboardShell({
                 )
               })()}
             </section>
+            {onboardingQuickAccess && (() => {
+              const modalClient = onboardingExpandedClient ? (clients || []).find((c) => c.id === onboardingExpandedClient) : null
+              return (
+                <QuickAddAccessModal
+                  clientId={modalClient?.id || null}
+                  clientName={modalClient?.name || null}
+                  onClose={() => setOnboardingQuickAccess(false)}
+                  onSaved={() => setOnboardingQuickAccess(false)}
+                />
+              )
+            })()}
+            </>
           )
         })()}
 
