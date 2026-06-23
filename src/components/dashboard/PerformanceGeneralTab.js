@@ -1,26 +1,26 @@
 'use client'
 import { useState, useMemo } from 'react'
 
-/* ── Health ── */
+/* ── Health meta ── */
 const HEALTH_META = {
-  with_result: { label: 'Excelente',   color: '#1d8fff', glow: 'rgba(29,143,255,0.28)',   sortRank: 4 },
-  healthy:     { label: 'Saudavel',    color: '#22c55e', glow: 'rgba(34,197,94,0.28)',    sortRank: 3 },
-  attention:   { label: 'Atencao',     color: '#f59e0b', glow: 'rgba(245,158,11,0.28)',   sortRank: 2 },
-  critical:    { label: 'Critico',     color: '#ef4444', glow: 'rgba(239,68,68,0.28)',    sortRank: 0 },
-  integration: { label: 'Integracao',  color: '#8b5cf6', glow: 'rgba(139,92,246,0.28)',  sortRank: 1 },
-  churn:       { label: 'Churn',       color: '#64748b', glow: 'rgba(100,116,139,0.2)',   sortRank: 5 },
-  empty:       { label: 'Sem dados',   color: '#374151', glow: 'rgba(55,65,81,0.15)',     sortRank: 6 },
+  with_result: { label: 'Excelente',    color: '#1d8fff', glow: 'rgba(29,143,255,0.28)',   sortRank: 4 },
+  healthy:     { label: 'Saudável',color: '#22c55e', glow: 'rgba(34,197,94,0.28)',    sortRank: 3 },
+  attention:   { label: 'Atenção', color: '#f59e0b', glow: 'rgba(245,158,11,0.28)', sortRank: 2 },
+  critical:    { label: 'Crítico', color: '#ef4444', glow: 'rgba(239,68,68,0.28)',    sortRank: 0 },
+  integration: { label: 'Integração', color: '#8b5cf6', glow: 'rgba(139,92,246,0.28)', sortRank: 1 },
+  churn:       { label: 'Churn',        color: '#64748b', glow: 'rgba(100,116,139,0.2)',   sortRank: 5 },
+  empty:       { label: 'Sem dados',    color: '#374151', glow: 'rgba(55,65,81,0.15)',     sortRank: 6 },
 }
 
 const FILTER_OPTS = [
-  { key: 'all',         label: 'Todos'      },
-  { key: 'critical',    label: 'Critico'    },
-  { key: 'attention',   label: 'Atencao'    },
-  { key: 'healthy',     label: 'Saudavel'   },
-  { key: 'with_result', label: 'Excelente'  },
-  { key: 'integration', label: 'Integracao' },
-  { key: 'churn',       label: 'Churn'      },
-  { key: 'empty',       label: 'Sem dados'  },
+  { key: 'all',         label: 'Todos'           },
+  { key: 'critical',    label: 'Crítico'    },
+  { key: 'attention',   label: 'Atenção' },
+  { key: 'healthy',     label: 'Saudável'   },
+  { key: 'with_result', label: 'Excelente'        },
+  { key: 'integration', label: 'Integração' },
+  { key: 'churn',       label: 'Churn'            },
+  { key: 'empty',       label: 'Sem dados'        },
 ]
 
 /* ── Format utils ── */
@@ -36,6 +36,10 @@ const PCT = (n) =>
   typeof n === 'number' && isFinite(n)
     ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
     : '-'
+
+const getResults = (item) =>
+  item?.results ?? item?.custom_metrics?.totalConversions ?? 0
+
 const cprStr = (spend, results) => {
   if (typeof results === 'number' && results === 0) return 'Sem resultados'
   if (typeof spend === 'number' && typeof results === 'number' && results > 0) return BRL(spend / results)
@@ -48,15 +52,14 @@ const ctrStr = (clicks, impressions) =>
 
 /* ── Design tokens ── */
 const C = {
-  accent:      '#26c281',
-  bg:          '#0d1117',
-  surface:     '#111827',
-  surface2:    '#1a2235',
-  border:      'rgba(255,255,255,0.08)',
-  borderGlow:  'rgba(38,194,129,0.3)',
-  text:        '#f9fafb',
-  textSub:     '#9ca3af',
-  textMute:    '#4b5563',
+  accent:     '#26c281',
+  surface:    '#111827',
+  surface2:   '#1a2235',
+  border:     'rgba(255,255,255,0.08)',
+  borderGlow: 'rgba(38,194,129,0.3)',
+  text:       '#f9fafb',
+  textSub:    '#9ca3af',
+  textMute:   '#4b5563',
 }
 const LED = {
   glow:      '0 0 10px rgba(38,194,129,0.2), 0 0 20px rgba(38,194,129,0.08)',
@@ -126,7 +129,7 @@ function EmptyBlock({ icon, children }) {
 /* ── BarChart ── */
 function BarChart({ items }) {
   if (!items || !items.length) return (
-    <div style={{ textAlign: 'center', color: C.textMute, padding: 20, fontSize: '0.78rem' }}>Sem dados para o grafico</div>
+    <div style={{ textAlign: 'center', color: C.textMute, padding: 20, fontSize: '0.78rem' }}>Sem dados para o gráfico</div>
   )
   const max = Math.max(...items.map((i) => i.value || 0), 1)
   return (
@@ -136,7 +139,7 @@ function BarChart({ items }) {
         return (
           <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ fontSize: '0.58rem', color: C.textMute, textAlign: 'center', lineHeight: 1.1, maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {typeof it.value === 'number' && it.value >= 1000 ? BRL(it.value) : NUM(it.value)}
+              {typeof it.value === 'number' && it.value > 100 ? BRL(it.value) : NUM(it.value)}
             </div>
             <div style={{ width: '100%', height: pct + '%', background: it.color || C.accent, borderRadius: '4px 4px 0 0', boxShadow: '0 0 8px ' + (it.color || C.accent) + '44', minHeight: 4 }} />
             <div style={{ fontSize: '0.58rem', color: C.textMute, textAlign: 'center', lineHeight: 1.1, maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</div>
@@ -154,7 +157,7 @@ function ChartModal({ title, metrics, items, onClose }) {
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }} />
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ position: 'relative', background: C.surface, border: LED.border, boxShadow: LED.glowHover + ', 0 24px 60px rgba(0,0,0,0.7)', borderRadius: 20, padding: '26px 28px', width: '92vw', maxWidth: 580, maxHeight: '80vh', overflowY: 'auto' }}
+        style={{ position: 'relative', background: C.surface, border: LED.border, boxShadow: LED.glowHover + ', 0 24px 60px rgba(0,0,0,0.7)', borderRadius: 20, padding: '26px 28px', width: '92vw', maxWidth: 560, maxHeight: '80vh', overflowY: 'auto' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ fontWeight: 800, fontSize: '0.93rem', color: C.text }}>{title}</div>
@@ -176,9 +179,10 @@ function ChartModal({ title, metrics, items, onClose }) {
 }
 
 /* ── AdDetailModal ── */
-function AdDetailModal({ ad, campaignName, onClose }) {
+function AdDetailModal({ ad, campaignName, adsetName, onClose }) {
   const [chartOpen, setChartOpen] = useState(false)
-  const cpr = cprStr(ad.spend, ad.results)
+  const results = getResults(ad)
+  const cpr = cprStr(ad.spend, results)
   const ctr = ctrStr(ad.clicks, ad.impressions)
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -188,23 +192,24 @@ function AdDetailModal({ ad, campaignName, onClose }) {
         style={{ position: 'relative', background: C.surface, border: LED.border, boxShadow: LED.glowHover + ', 0 24px 60px rgba(0,0,0,0.8)', borderRadius: 20, padding: '24px 26px', width: '92vw', maxWidth: 540, maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ fontSize: '0.63rem', color: C.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Detalhes do Anuncio</div>
+          <div style={{ fontSize: '0.63rem', color: C.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Detalhes do Anúncio</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textSub, fontSize: 22, cursor: 'pointer', padding: 4, lineHeight: 1 }}><i className="bx bx-x" /></button>
         </div>
         {ad.imageUrl
-          ? <img src={ad.imageUrl} alt={ad.label || ''} style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 12, border: '1px solid ' + C.border }} />
+          ? <img src={ad.imageUrl} alt={ad.label || ad.name || ''} style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 12, border: '1px solid ' + C.border }} />
           : <div style={{ width: '100%', height: 90, borderRadius: 12, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMute, fontSize: 30 }}><i className="bx bx-image-alt" /></div>
         }
         <div>
-          <div style={{ fontWeight: 800, fontSize: '1rem', color: C.text, marginBottom: 4 }}>{ad.label || 'Anuncio sem titulo'}</div>
-          {campaignName && <div style={{ fontSize: '0.72rem', color: C.textSub }}>Campanha: {campaignName}</div>}
+          <div style={{ fontWeight: 800, fontSize: '1rem', color: C.text, marginBottom: 6 }}>{ad.label || ad.name || 'Anúncio sem título'}</div>
+          {campaignName && <div style={{ fontSize: '0.72rem', color: C.textSub, marginBottom: 2 }}>Campanha: {campaignName}</div>}
+          {adsetName && <div style={{ fontSize: '0.72rem', color: C.textSub }}>Conjunto: {adsetName}</div>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           <MetricCard label="Investimento" value={BRL(ad.spend)} accent />
-          <MetricCard label="Resultado" value={NUM(ad.results)} />
-          <MetricCard label="Custo por resultado" value={cpr} warn={ad.results === 0} />
+          <MetricCard label="Resultado" value={NUM(results)} />
+          <MetricCard label="Custo por resultado" value={cpr} warn={results === 0} />
           <MetricCard label="CTR" value={ctr} />
-          <MetricCard label="Impressoes" value={NUM(ad.impressions)} />
+          <MetricCard label="Impressões" value={NUM(ad.impressions)} />
           <MetricCard label="Cliques" value={NUM(ad.clicks)} />
           {ad.spend > 0 && ad.impressions > 0 && (
             <MetricCard label="CPM" value={BRL((ad.spend / ad.impressions) * 1000)} />
@@ -215,26 +220,26 @@ function AdDetailModal({ ad, campaignName, onClose }) {
         </div>
         <button
           onClick={() => setChartOpen(true)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: LED.border, borderRadius: 9, background: 'rgba(38,194,129,0.08)', color: C.accent, fontWeight: 700, fontSize: '0.77rem', cursor: 'pointer', boxShadow: LED.glow, width: 'fit-content', transition: 'box-shadow 0.15s' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: LED.border, borderRadius: 9, background: 'rgba(38,194,129,0.08)', color: C.accent, fontWeight: 700, fontSize: '0.77rem', cursor: 'pointer', boxShadow: LED.glow, width: 'fit-content' }}
           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = LED.glowHover }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = LED.glow }}
         >
-          <i className="bx bx-bar-chart-alt-2" /> Ver grafico do anuncio
+          <i className="bx bx-bar-chart-alt-2" /> Ver gráfico do anúncio
         </button>
         {chartOpen && (
           <ChartModal
-            title={'Grafico: ' + (ad.label || 'Anuncio')}
+            title={'Gráfico: ' + (ad.label || ad.name || 'Anúncio')}
             metrics={[
               { label: 'Investimento', value: BRL(ad.spend), accent: true },
-              { label: 'Resultado',    value: NUM(ad.results) },
+              { label: 'Resultado',    value: NUM(results) },
               { label: 'Custo/result', value: cpr },
               { label: 'CTR',          value: ctr },
             ]}
             items={[
-              { label: 'Invest.',  value: ad.spend || 0,      color: C.accent },
-              { label: 'Cliques',  value: ad.clicks || 0,     color: '#1d8fff' },
+              { label: 'Invest.',  value: ad.spend || 0,               color: C.accent  },
+              { label: 'Cliques',  value: ad.clicks || 0,              color: '#1d8fff' },
+              { label: 'Result.',  value: results || 0,                color: '#f59e0b' },
               { label: 'Impr./k',  value: (ad.impressions || 0) / 1000, color: '#8b5cf6' },
-              { label: 'Result.',  value: ad.results || 0,    color: '#f59e0b' },
             ]}
             onClose={() => setChartOpen(false)}
           />
@@ -244,11 +249,110 @@ function AdDetailModal({ ad, campaignName, onClose }) {
   )
 }
 
+/* ── AdRow (inside adset) ── */
+function AdRow({ ad, campaignName, adsetName, onChartClick }) {
+  const [selectedAd, setSelectedAd] = useState(null)
+  const results = getResults(ad)
+  const cpr = cprStr(ad.spend, results)
+  const ctr = ctrStr(ad.clicks, ad.impressions)
+  return (
+    <div>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}
+        onClick={() => setSelectedAd(ad)}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.05)'; e.currentTarget.style.borderColor = C.borderGlow }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)' }}
+      >
+        {ad.imageUrl
+          ? <img src={ad.imageUrl} alt={ad.name || ''} style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+          : <div style={{ width: 34, height: 34, borderRadius: 6, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: C.textMute }}><i className="bx bx-image-alt" style={{ fontSize: 14 }} /></div>
+        }
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#d1d5db', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{ad.name || ad.label || 'Anúncio'}</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Pill label="Invest." value={BRL(ad.spend)} accent />
+            <Pill label="Result." value={NUM(results)} />
+            <Pill label="CPR" value={cpr} warn={results === 0} />
+            <Pill label="CTR" value={ctr} />
+          </div>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onChartClick({ ...ad, results }) }}
+          style={{ flexShrink: 0, padding: '4px 8px', border: LED.border, borderRadius: 6, background: 'rgba(38,194,129,0.07)', color: C.accent, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: LED.glow }}
+          title="Ver gráfico do anúncio"
+        >
+          <i className="bx bx-bar-chart-alt-2" />
+        </button>
+        <i className="bx bx-right-arrow-alt" style={{ color: C.textMute, fontSize: 14, flexShrink: 0 }} />
+      </div>
+      {selectedAd && (
+        <AdDetailModal ad={selectedAd} campaignName={campaignName} adsetName={adsetName} onClose={() => setSelectedAd(null)} />
+      )}
+    </div>
+  )
+}
+
+/* ── AdsetRow ── */
+function AdsetRow({ adset, campaignName, onChartClick }) {
+  const [expanded, setExpanded] = useState(false)
+  const [hov, setHov] = useState(false)
+  const isActive = (adset.effectiveStatus || '').toUpperCase() === 'ACTIVE'
+  const cpr = cprStr(adset.spend, adset.results)
+  const ctr = ctrStr(adset.clicks, adset.impressions)
+  return (
+    <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, overflow: 'hidden', transition: 'border-color 0.15s', borderColor: hov ? 'rgba(38,194,129,0.2)' : 'rgba(255,255,255,0.06)' }}>
+      <div
+        onClick={() => setExpanded((v) => !v)}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', cursor: 'pointer', background: hov ? 'rgba(38,194,129,0.03)' : 'rgba(255,255,255,0.015)', userSelect: 'none', transition: 'background 0.15s' }}
+      >
+        <i className={'bx bx-chevron-' + (expanded ? 'down' : 'right')} style={{ color: C.textMute, fontSize: 13, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.77rem', fontWeight: 600, color: '#d1d5db', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 230 }}>{adset.name}</span>
+            <span style={{ fontSize: '0.59rem', color: isActive ? '#22c55e' : C.textMute, background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(107,114,128,0.1)', border: '1px solid ' + (isActive ? 'rgba(34,197,94,0.3)' : 'rgba(107,114,128,0.2)'), borderRadius: 20, padding: '1px 6px', fontWeight: 700 }}>
+              {isActive ? 'Ativo' : 'Pausado'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Pill label="Invest." value={BRL(adset.spend)} accent />
+            <Pill label="Result." value={NUM(adset.results)} />
+            <Pill label="CPR" value={cpr} warn={adset.results === 0} />
+            <Pill label="CTR" value={ctr} />
+            <Pill label="Impr." value={NUM(adset.impressions)} />
+          </div>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onChartClick({ ...adset, name: adset.name, type: 'adset' }) }}
+          style={{ flexShrink: 0, padding: '4px 8px', border: LED.border, borderRadius: 6, background: 'rgba(38,194,129,0.07)', color: C.accent, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: LED.glow }}
+          title="Ver gráfico do conjunto"
+        >
+          <i className="bx bx-bar-chart-alt-2" /> Gráfico
+        </button>
+      </div>
+      {expanded && (adset.ads || []).length > 0 && (
+        <div style={{ padding: '6px 12px 10px 26px', background: 'rgba(0,0,0,0.1)', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ fontSize: '0.6rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Anúncios</div>
+          {(adset.ads || []).map((ad) => (
+            <AdRow key={ad.adId} ad={ad} campaignName={campaignName} adsetName={adset.name} onChartClick={onChartClick} />
+          ))}
+        </div>
+      )}
+      {expanded && (adset.ads || []).length === 0 && (
+        <div style={{ padding: '10px 12px 12px 26px', background: 'rgba(0,0,0,0.1)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <span style={{ fontSize: '0.74rem', color: C.textMute }}>Nenhum anúncio com gasto neste conjunto.</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── CampaignRow ── */
 function CampaignRow({ campaign, onChartClick }) {
   const [expanded, setExpanded] = useState(false)
   const [hov, setHov] = useState(false)
-  const isActive = campaign.status === 'ACTIVE'
+  const isActive = (campaign.effectiveStatus || campaign.status || '').toUpperCase() === 'ACTIVE'
   const cpr = cprStr(campaign.spend, campaign.results)
   const ctr = ctrStr(campaign.clicks, campaign.impressions)
   return (
@@ -277,20 +381,25 @@ function CampaignRow({ campaign, onChartClick }) {
           </div>
         </div>
         <button
-          onClick={(e) => { e.stopPropagation(); onChartClick(campaign) }}
+          onClick={(e) => { e.stopPropagation(); onChartClick({ ...campaign, type: 'campaign' }) }}
           style={{ flexShrink: 0, padding: '5px 10px', border: LED.border, borderRadius: 7, background: 'rgba(38,194,129,0.07)', color: C.accent, fontSize: '0.69rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, boxShadow: LED.glow, whiteSpace: 'nowrap', transition: 'box-shadow 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = LED.glowHover }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = LED.glow }}
         >
-          <i className="bx bx-bar-chart-alt-2" /> Grafico
+          <i className="bx bx-bar-chart-alt-2" /> Gráfico
         </button>
       </div>
-      {expanded && (
-        <div style={{ padding: '10px 14px 14px 30px', background: 'rgba(0,0,0,0.15)', borderTop: '1px solid ' + C.border }}>
-          <div style={{ fontSize: '0.63rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Conjuntos de anuncios</div>
-          <EmptyBlock icon="bx-info-circle">
-            Dados de conjunto de anuncios nao disponiveis via API no momento. Acesse a aba Anuncios para detalhes por criativo.
-          </EmptyBlock>
+      {expanded && (campaign.adsets || []).length > 0 && (
+        <div style={{ padding: '8px 14px 12px 28px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: '0.61rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Conjuntos de anúncios ({(campaign.adsets || []).length})</div>
+          {(campaign.adsets || []).map((adset) => (
+            <AdsetRow key={adset.adsetId} adset={adset} campaignName={campaign.name} onChartClick={onChartClick} />
+          ))}
+        </div>
+      )}
+      {expanded && (campaign.adsets || []).length === 0 && (
+        <div style={{ padding: '10px 14px 14px 28px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border }}>
+          <span style={{ fontSize: '0.75rem', color: C.textMute }}>Nenhum conjunto de anúncios com gasto nesta campanha.</span>
         </div>
       )}
     </div>
@@ -300,24 +409,42 @@ function CampaignRow({ campaign, onChartClick }) {
 /* ── ClientDetailModal ── */
 function ClientDetailModal({ client, clientData, dateRangeLabel, onClose }) {
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
-  const [campaignChart, setCampaignChart] = useState(null)
-  const [selectedAd, setSelectedAd]       = useState(null)
+  const [activeChart, setActiveChart] = useState(null)
+  const [selectedAd, setSelectedAd]   = useState(null)
 
-  const h              = HEALTH_META[healthKey] || HEALTH_META.empty
-  const campaigns      = campaignRow?.campaigns || []
-  const ads            = adsRow?.ads || []
-  const balanceAccs    = balanceRow?.accounts || []
-  const totalSpend     = campaignRow?.totals?.spend ?? ads.reduce((s, a) => s + (a.spend || 0), 0)
-  const totalResults   = campaignRow?.totals?.results ?? ads.reduce((s, a) => s + (a.results || 0), 0)
-  const totalBalance   = balanceAccs.reduce((s, a) => s + (a.balance || 0), 0)
-  const totalImpr      = ads.reduce((s, a) => s + (a.impressions || 0), 0)
-  const totalClicks    = ads.reduce((s, a) => s + (a.clicks || 0), 0)
-  const topAds         = [...ads].sort((a, b) => {
-    if ((b.results || 0) !== (a.results || 0)) return (b.results || 0) - (a.results || 0)
-    const ca = a.results > 0 ? a.spend / a.results : Infinity
-    const cb = b.results > 0 ? b.spend / b.results : Infinity
-    return ca - cb
-  }).slice(0, 5)
+  const h           = HEALTH_META[healthKey] || HEALTH_META.empty
+  const campaigns   = campaignRow?.campaigns || []
+  const adsRowAds   = adsRow?.ads || []
+  const balanceAccs = balanceRow?.accounts || []
+
+  const totalSpend   = campaignRow?.totals?.spend ?? adsRowAds.reduce((s, a) => s + (a.spend || 0), 0)
+  const totalResults = campaignRow?.totals?.results ?? adsRowAds.reduce((s, a) => s + (getResults(a) || 0), 0)
+  const totalBalance = balanceAccs.reduce((s, a) => s + (a.balance || 0), 0)
+  const totalImpr    = adsRowAds.reduce((s, a) => s + (a.impressions || 0), 0)
+  const totalClicks  = adsRowAds.reduce((s, a) => s + (a.clicks || 0), 0)
+
+  const topAds = useMemo(() => {
+    const allAds = []
+    if (campaigns.length > 0) {
+      campaigns.forEach((camp) => {
+        (camp.adsets || []).forEach((adset) => {
+          (adset.ads || []).forEach((ad) => {
+            allAds.push({ ...ad, _campaignName: camp.name, _adsetName: adset.name })
+          })
+        })
+      })
+    } else {
+      adsRowAds.forEach((ad) => allAds.push(ad))
+    }
+    return [...allAds].sort((a, b) => {
+      const rA = getResults(a) || 0
+      const rB = getResults(b) || 0
+      if (rB !== rA) return rB - rA
+      const cA = rA > 0 ? (a.spend || 0) / rA : Infinity
+      const cB = rB > 0 ? (b.spend || 0) / rB : Infinity
+      return cA - cB
+    }).slice(0, 5)
+  }, [campaigns, adsRowAds])
 
   return (
     <div
@@ -364,7 +491,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, onClose }) {
               <MetricCard label="Investimento" value={BRL(totalSpend)} accent />
               <MetricCard label="Resultados" value={NUM(totalResults)} />
               <MetricCard label="Custo por resultado" value={cprStr(totalSpend, totalResults)} warn={totalResults === 0} />
-              <MetricCard label="Impressoes" value={NUM(totalImpr)} />
+              <MetricCard label="Impressões" value={NUM(totalImpr)} />
               <MetricCard label="Cliques" value={NUM(totalClicks)} />
               <MetricCard label="CTR" value={ctrStr(totalClicks, totalImpr)} />
               {balanceAccs.length > 0 && <MetricCard label="Saldo total" value={BRL(totalBalance)} warn={totalBalance < 50} />}
@@ -374,67 +501,70 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, onClose }) {
           {/* Planilha */}
           <div>
             <SectionTitle>Resumo da Planilha</SectionTitle>
-            <EmptyBlock icon="bx-table">Planilha nao configurada ou sem dados no periodo selecionado.</EmptyBlock>
+            <EmptyBlock icon="bx-table">Planilha não configurada ou sem dados no período selecionado.</EmptyBlock>
           </div>
 
           {/* Campanhas */}
           <div>
-            <SectionTitle>{'Campanhas (' + campaigns.length + ')'}</SectionTitle>
+            <SectionTitle>{'Campanhas → Conjuntos → Anúncios (' + campaigns.length + ')'}</SectionTitle>
             {campaigns.length > 0
               ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {campaigns.map((c) => (
-                    <CampaignRow key={c.id} campaign={c} onChartClick={setCampaignChart} />
+                    <CampaignRow key={c.campaignId || c.id} campaign={c} onChartClick={setActiveChart} />
                   ))}
                 </div>
-              : <EmptyBlock>Nenhuma campanha no periodo selecionado.</EmptyBlock>
+              : <EmptyBlock>Nenhuma campanha no período selecionado.</EmptyBlock>
             }
           </div>
 
           {/* Top 5 anuncios */}
           <div>
-            <SectionTitle>Top 5 Anuncios</SectionTitle>
+            <SectionTitle>Top 5 Anúncios</SectionTitle>
             {topAds.length > 0
               ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {topAds.map((ad, idx) => (
-                    <div
-                      key={ad.adId}
-                      onClick={() => setSelectedAd(ad)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.05)'; e.currentTarget.style.borderColor = C.borderGlow; e.currentTarget.style.boxShadow = LED.glow }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
-                    >
-                      <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                      {ad.imageUrl
-                        ? <img src={ad.imageUrl} alt={ad.label || ''} style={{ width: 44, height: 44, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />
-                        : <div style={{ width: 44, height: 44, borderRadius: 9, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMute, flexShrink: 0 }}><i className="bx bx-image-alt" /></div>
-                      }
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.81rem', fontWeight: 700, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{ad.label || 'Sem titulo'}</div>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <Pill label="Invest." value={BRL(ad.spend)} accent />
-                          <Pill label="Result." value={NUM(ad.results)} />
-                          <Pill label="CPR" value={cprStr(ad.spend, ad.results)} warn={ad.results === 0} />
-                          <Pill label="CTR" value={ctrStr(ad.clicks, ad.impressions)} />
+                  {topAds.map((ad, idx) => {
+                    const results = getResults(ad)
+                    return (
+                      <div
+                        key={ad.adId || idx}
+                        onClick={() => setSelectedAd(ad)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.05)'; e.currentTarget.style.borderColor = C.borderGlow; e.currentTarget.style.boxShadow = LED.glow }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
+                      >
+                        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                        {ad.imageUrl
+                          ? <img src={ad.imageUrl} alt={ad.name || ad.label || ''} style={{ width: 44, height: 44, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div style={{ width: 44, height: 44, borderRadius: 9, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMute, flexShrink: 0 }}><i className="bx bx-image-alt" /></div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.81rem', fontWeight: 700, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{ad.name || ad.label || 'Sem título'}</div>
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            <Pill label="Invest." value={BRL(ad.spend)} accent />
+                            <Pill label="Result." value={NUM(results)} />
+                            <Pill label="CPR" value={cprStr(ad.spend, results)} warn={results === 0} />
+                            <Pill label="CTR" value={ctrStr(ad.clicks, ad.impressions)} />
+                          </div>
                         </div>
+                        <i className="bx bx-right-arrow-alt" style={{ color: C.textMute, fontSize: 18, flexShrink: 0 }} />
                       </div>
-                      <i className="bx bx-right-arrow-alt" style={{ color: C.textMute, fontSize: 18, flexShrink: 0 }} />
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
-              : <EmptyBlock>Sem anuncios com dados no periodo selecionado.</EmptyBlock>
+              : <EmptyBlock>Sem anúncios com dados no período selecionado.</EmptyBlock>
             }
           </div>
 
           {/* Top 5 estados */}
           <div>
             <SectionTitle>Top 5 Estados por Resultado</SectionTitle>
-            <EmptyBlock icon="bx-map">Sem dados de localizacao no periodo selecionado. Esta metrica requer segmentacao geografica via API.</EmptyBlock>
+            <EmptyBlock icon="bx-map">Sem dados de localização no período selecionado. Esta métrica requer segmentação geográfica via API.</EmptyBlock>
           </div>
 
           {/* Top idades */}
           <div>
             <SectionTitle>Top Idades por Resultado</SectionTitle>
-            <EmptyBlock icon="bx-user-circle">Sem dados de faixa etaria no periodo selecionado. Esta metrica requer segmentacao demografica via API.</EmptyBlock>
+            <EmptyBlock icon="bx-user-circle">Sem dados de faixa etária no período selecionado. Esta métrica requer segmentação demográfica via API.</EmptyBlock>
           </div>
 
           {/* Saldos */}
@@ -455,27 +585,31 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, onClose }) {
         </div>
       </div>
 
-      {/* Campaign chart modal */}
-      {campaignChart && (
+      {activeChart && (
         <ChartModal
-          title={'Grafico: ' + campaignChart.name}
+          title={'Gráfico: ' + (activeChart.name || '')}
           metrics={[
-            { label: 'Investimento', value: BRL(campaignChart.spend), accent: true },
-            { label: 'Resultados',   value: NUM(campaignChart.results) },
-            { label: 'Custo/result', value: cprStr(campaignChart.spend, campaignChart.results) },
-            { label: 'Cliques',      value: NUM(campaignChart.clicks) },
+            { label: 'Investimento', value: BRL(activeChart.spend), accent: true },
+            { label: 'Resultados',   value: NUM(getResults(activeChart)) },
+            { label: 'Custo/result', value: cprStr(activeChart.spend, getResults(activeChart)) },
+            { label: 'Cliques',      value: NUM(activeChart.clicks) },
           ]}
           items={[
-            { label: 'Invest.',  value: campaignChart.spend || 0,                          color: C.accent  },
-            { label: 'Cliques',  value: campaignChart.clicks || 0,                         color: '#1d8fff' },
-            { label: 'Impr./k',  value: (campaignChart.impressions || 0) / 1000,           color: '#8b5cf6' },
-            { label: 'Result.',  value: campaignChart.results || 0,                        color: '#f59e0b' },
+            { label: 'Invest.',  value: activeChart.spend || 0,                           color: C.accent  },
+            { label: 'Cliques',  value: activeChart.clicks || 0,                          color: '#1d8fff' },
+            { label: 'Result.',  value: getResults(activeChart) || 0,                     color: '#f59e0b' },
+            { label: 'Impr./k',  value: (activeChart.impressions || 0) / 1000,            color: '#8b5cf6' },
           ]}
-          onClose={() => setCampaignChart(null)}
+          onClose={() => setActiveChart(null)}
         />
       )}
       {selectedAd && (
-        <AdDetailModal ad={selectedAd} campaignName={null} onClose={() => setSelectedAd(null)} />
+        <AdDetailModal
+          ad={selectedAd}
+          campaignName={selectedAd._campaignName || null}
+          adsetName={selectedAd._adsetName || null}
+          onClose={() => setSelectedAd(null)}
+        />
       )}
     </div>
   )
@@ -490,10 +624,10 @@ function ClientCard({ client, clientData, onClick }) {
   const campaigns   = campaignRow?.campaigns || []
   const balanceAccs = balanceRow?.accounts || []
   const totalSpend   = campaignRow?.totals?.spend ?? ads.reduce((s, a) => s + (a.spend || 0), 0)
-  const totalResults = campaignRow?.totals?.results ?? ads.reduce((s, a) => s + (a.results || 0), 0)
+  const totalResults = campaignRow?.totals?.results ?? ads.reduce((s, a) => s + (getResults(a) || 0), 0)
   const totalBalance = balanceAccs.reduce((s, a) => s + (a.balance || 0), 0)
-  const activeCamps  = campaigns.filter((c) => c.status === 'ACTIVE').length
-  const topAd        = [...ads].sort((a, b) => (b.results || 0) - (a.results || 0))[0]
+  const activeCamps  = campaigns.filter((c) => (c.effectiveStatus || c.status || '').toUpperCase() === 'ACTIVE').length
+  const topAd        = [...ads].sort((a, b) => (getResults(b) || 0) - (getResults(a) || 0))[0]
   const lowBalance   = balanceAccs.length > 0 && totalBalance < 50
 
   return (
@@ -511,7 +645,6 @@ function ClientCard({ client, clientData, onClick }) {
         transform: hov ? 'translateY(-2px)' : 'none',
       }}
     >
-      {/* Name + health */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
           {client.logoUrl
@@ -522,8 +655,6 @@ function ClientCard({ client, clientData, onClick }) {
         </div>
         <HealthBadge healthKey={healthKey} />
       </div>
-
-      {/* Metricas obrigatorias */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '0.95rem', fontWeight: 800, color: C.accent }}>{BRL(totalSpend)}</div>
@@ -538,8 +669,6 @@ function ClientCard({ client, clientData, onClick }) {
           <div style={{ fontSize: '0.59rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>CPR</div>
         </div>
       </div>
-
-      {/* Status row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           {activeCamps > 0 && (
@@ -561,13 +690,11 @@ function ClientCard({ client, clientData, onClick }) {
           Ver detalhes <i className="bx bx-right-arrow-alt" />
         </div>
       </div>
-
-      {/* Top ad */}
       {topAd && (
         <div style={{ paddingTop: 10, borderTop: '1px solid ' + C.border, fontSize: '0.69rem', color: C.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <i className="bx bx-trophy" style={{ color: C.accent, marginRight: 4 }} />
-          Top: <strong style={{ color: '#e5e7eb' }}>{topAd.label || 'Sem titulo'}</strong>
-          {topAd.results > 0 && <span style={{ color: C.textMute }}> — {NUM(topAd.results)} result.</span>}
+          Top: <strong style={{ color: '#e5e7eb' }}>{topAd.label || topAd.name || 'Sem título'}</strong>
+          {getResults(topAd) > 0 && <span style={{ color: C.textMute }}> — {NUM(getResults(topAd))} result.</span>}
         </div>
       )}
     </div>
@@ -650,9 +777,7 @@ export default function PerformanceGeneralTab({
       .sort((a, b) => {
         const hA = latestWeeklyHealthByClientId?.get(a.id)?.healthKey || 'empty'
         const hB = latestWeeklyHealthByClientId?.get(b.id)?.healthKey || 'empty'
-        const rA = HEALTH_META[hA]?.sortRank ?? 99
-        const rB = HEALTH_META[hB]?.sortRank ?? 99
-        return rA - rB
+        return (HEALTH_META[hA]?.sortRank ?? 99) - (HEALTH_META[hB]?.sortRank ?? 99)
       })
   }, [clients, latestWeeklyHealthByClientId, healthFilter, search])
 
@@ -665,8 +790,8 @@ export default function PerformanceGeneralTab({
       const camp    = campaignMap[c.id]
       const adsR    = adsMap[c.id]
       const bal     = balanceMap[c.id]
-      const spend   = camp?.totals?.spend   ?? (adsR?.ads || []).reduce((s, a) => s + (a.spend || 0), 0)
-      const results = camp?.totals?.results ?? (adsR?.ads || []).reduce((s, a) => s + (a.results || 0), 0)
+      const spend   = camp?.totals?.spend ?? (adsR?.ads || []).reduce((s, a) => s + (a.spend || 0), 0)
+      const results = camp?.totals?.results ?? (adsR?.ads || []).reduce((s, a) => s + (getResults(a) || 0), 0)
       totalSpend   += spend || 0
       totalResults += results || 0
       if (bal?.accounts) totalBalance += bal.accounts.reduce((s, a) => s + (a.balance || 0), 0)
@@ -675,123 +800,120 @@ export default function PerformanceGeneralTab({
     return { totalSpend, totalResults, totalBalance, criticalCount, attentionCount, activeCount }
   }, [clients, latestWeeklyHealthByClientId, campaignMap, adsMap, balanceMap])
 
-  const isLoading     = adsOverviewLoading || campaignOverviewLoading || adAccountBalanceLoading
-  const presetLabel   = DATE_PRESETS?.find((p) => p.value === dateRange)?.label || dateRange
+  const isLoading   = adsOverviewLoading || campaignOverviewLoading || adAccountBalanceLoading
+  const presetLabel = DATE_PRESETS?.find((p) => p.value === dateRange)?.label || dateRange
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 26 }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 26 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: '0.63rem', fontWeight: 800, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.accent, boxShadow: '0 0 8px rgba(38,194,129,0.7)' }} />
-              Performance
-            </div>
-            <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: C.text, margin: 0, lineHeight: 1.1 }}>Visao Geral</h2>
-            <p style={{ fontSize: '0.78rem', color: C.textMute, margin: '7px 0 0' }}>Saude e performance consolidada de todos os clientes</p>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: '0.63rem', fontWeight: 800, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: C.accent, boxShadow: '0 0 8px rgba(38,194,129,0.7)' }} />
+            Performance
           </div>
-          {/* Period filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <select
-              value={draftDateRange}
-              onChange={(e) => setDraftDateRange(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none', cursor: 'pointer' }}
-            >
-              {(DATE_PRESETS || []).map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-            {draftDateRange === 'custom' && (
-              <>
-                <input type="date" value={draftCustomSince || ''} onChange={(e) => setDraftCustomSince(e.target.value)} style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none' }} />
-                <input type="date" value={draftCustomUntil || ''} onChange={(e) => setDraftCustomUntil(e.target.value)} style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none' }} />
-              </>
-            )}
-            <button
-              onClick={handleApplyDashboardFilters}
-              style={{ padding: '8px 20px', borderRadius: 9, border: 'none', background: C.accent, color: '#000', fontWeight: 800, fontSize: '0.79rem', cursor: 'pointer', boxShadow: LED.glow, whiteSpace: 'nowrap', transition: 'box-shadow 0.15s' }}
-              onMouseEnter={(e) => { e.currentTarget.style.boxShadow = LED.glowHover }}
-              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = LED.glow }}
-            >
-              Aplicar
-            </button>
-          </div>
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: C.text, margin: 0, lineHeight: 1.1 }}>Visão Geral</h2>
+          <p style={{ fontSize: '0.78rem', color: C.textMute, margin: '7px 0 0' }}>Saúde e performance consolidada de todos os clientes</p>
         </div>
-
-        {/* Stat cards */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <StatCard icon="bx-dollar-circle" label="Investimento Total"    value={BRL(stats.totalSpend)}   sub={stats.activeCount + ' clientes com investimento'} color={C.accent} />
-          <StatCard icon="bx-target-lock"   label="Resultados"            value={NUM(stats.totalResults)} sub={'CPR medio: ' + (stats.totalResults > 0 ? BRL(stats.totalSpend / stats.totalResults) : '-')} color="#1d8fff" />
-          <StatCard icon="bx-wallet-alt"    label="Saldo Total"           value={BRL(stats.totalBalance)} sub="somatorio das contas ativas" color="#f59e0b" />
-          <StatCard icon="bx-error-circle"  label="Criticos / Atencao"    value={stats.criticalCount + ' / ' + stats.attentionCount} sub="clientes que precisam de atencao" color="#ef4444" warn={stats.criticalCount > 0} />
-        </div>
-
-        {/* Filter bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '13px 15px', background: 'rgba(255,255,255,0.025)', border: '1px solid ' + C.border, borderRadius: 14 }}>
-          <i className="bx bx-filter-alt" style={{ color: C.textSub, fontSize: 16, flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Buscar cliente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.06)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none', minWidth: 170 }}
-          />
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {FILTER_OPTS.map((opt) => {
-              const hm = HEALTH_META[opt.key]
-              const isActive = healthFilter === opt.key
-              const activeColor = hm?.color || C.accent
-              const activeGlow  = hm?.glow  || 'rgba(38,194,129,0.2)'
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => setHealthFilter(opt.key)}
-                  style={{
-                    padding: '5px 12px', borderRadius: 20,
-                    border: '1px solid ' + (isActive ? activeColor + '55' : C.border),
-                    background: isActive ? activeColor + '15' : 'rgba(255,255,255,0.03)',
-                    color: isActive ? activeColor : C.textSub,
-                    fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
-                    boxShadow: isActive ? '0 0 8px ' + activeGlow : 'none',
-                    transition: 'all 0.15s',
-                  }}
-                >{opt.label}</button>
-              )
-            })}
-          </div>
-          <span style={{ fontSize: '0.71rem', color: C.textMute, marginLeft: 'auto' }}>
-            {sortedClients.length} cliente{sortedClients.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {/* Client grid */}
-        {isLoading && (
-          <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
-            <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 34, color: C.accent, marginBottom: 12, display: 'block' }} />
-            <div style={{ fontSize: '0.83rem' }}>Carregando dados de performance...</div>
-          </div>
-        )}
-        {!isLoading && sortedClients.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
-            <i className="bx bx-search-alt" style={{ fontSize: 38, marginBottom: 10, display: 'block' }} />
-            <div style={{ fontSize: '0.88rem' }}>Nenhum cliente encontrado com os filtros selecionados.</div>
-          </div>
-        )}
-        {!isLoading && sortedClients.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-            {sortedClients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                clientData={getClientData(client)}
-                onClick={() => setActiveModal(client)}
-              />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <select
+            value={draftDateRange}
+            onChange={(e) => setDraftDateRange(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none', cursor: 'pointer' }}
+          >
+            {(DATE_PRESETS || []).map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
             ))}
-          </div>
-        )}
+          </select>
+          {draftDateRange === 'custom' && (
+            <>
+              <input type="date" value={draftCustomSince || ''} onChange={(e) => setDraftCustomSince(e.target.value)} style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none' }} />
+              <input type="date" value={draftCustomUntil || ''} onChange={(e) => setDraftCustomUntil(e.target.value)} style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none' }} />
+            </>
+          )}
+          <button
+            onClick={handleApplyDashboardFilters}
+            style={{ padding: '8px 20px', borderRadius: 9, border: 'none', background: C.accent, color: '#000', fontWeight: 800, fontSize: '0.79rem', cursor: 'pointer', boxShadow: LED.glow, whiteSpace: 'nowrap', transition: 'box-shadow 0.15s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = LED.glowHover }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = LED.glow }}
+          >
+            Aplicar
+          </button>
+        </div>
       </div>
+
+      {/* Stat cards */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <StatCard icon="bx-dollar-circle" label="Investimento Total"  value={BRL(stats.totalSpend)}   sub={stats.activeCount + ' clientes com investimento'} color={C.accent} />
+        <StatCard icon="bx-target-lock"   label="Resultados"          value={NUM(stats.totalResults)} sub={'CPR médio: ' + (stats.totalResults > 0 ? BRL(stats.totalSpend / stats.totalResults) : '-')} color="#1d8fff" />
+        <StatCard icon="bx-wallet-alt"    label="Saldo Total"         value={BRL(stats.totalBalance)} sub="somatório das contas ativas" color="#f59e0b" />
+        <StatCard icon="bx-error-circle"  label="Críticos / Atenção" value={stats.criticalCount + ' / ' + stats.attentionCount} sub="clientes que precisam de atenção" color="#ef4444" warn={stats.criticalCount > 0} />
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '13px 15px', background: 'rgba(255,255,255,0.025)', border: '1px solid ' + C.border, borderRadius: 14 }}>
+        <i className="bx bx-filter-alt" style={{ color: C.textSub, fontSize: 16, flexShrink: 0 }} />
+        <input
+          type="text"
+          placeholder="Buscar cliente..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.06)', color: '#e5e7eb', fontSize: '0.79rem', outline: 'none', minWidth: 170 }}
+        />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {FILTER_OPTS.map((opt) => {
+            const hm = HEALTH_META[opt.key]
+            const isActive = healthFilter === opt.key
+            const ac = hm?.color || C.accent
+            const ag = hm?.glow  || 'rgba(38,194,129,0.2)'
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setHealthFilter(opt.key)}
+                style={{
+                  padding: '5px 12px', borderRadius: 20,
+                  border: '1px solid ' + (isActive ? ac + '55' : C.border),
+                  background: isActive ? ac + '15' : 'rgba(255,255,255,0.03)',
+                  color: isActive ? ac : C.textSub,
+                  fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                  boxShadow: isActive ? '0 0 8px ' + ag : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >{opt.label}</button>
+            )
+          })}
+        </div>
+        <span style={{ fontSize: '0.71rem', color: C.textMute, marginLeft: 'auto' }}>
+          {sortedClients.length} cliente{sortedClients.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Client grid */}
+      {isLoading && (
+        <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
+          <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 34, color: C.accent, marginBottom: 12, display: 'block' }} />
+          <div style={{ fontSize: '0.83rem' }}>Carregando dados de performance...</div>
+        </div>
+      )}
+      {!isLoading && sortedClients.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
+          <i className="bx bx-search-alt" style={{ fontSize: 38, marginBottom: 10, display: 'block' }} />
+          <div style={{ fontSize: '0.88rem' }}>Nenhum cliente encontrado com os filtros selecionados.</div>
+        </div>
+      )}
+      {!isLoading && sortedClients.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+          {sortedClients.map((client) => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              clientData={getClientData(client)}
+              onClick={() => setActiveModal(client)}
+            />
+          ))}
+        </div>
+      )}
 
       {activeModal && (
         <ClientDetailModal
