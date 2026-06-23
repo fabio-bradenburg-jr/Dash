@@ -21206,12 +21206,9 @@ export default function DashboardShell({
         )}
 
         {activeTab === 'acessos' && (isMaster || hasNavAccess('acessos')) && (
-          <section style={{ height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+          <section style={{ height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <ClientAccessesTab
-              clientId={activeClient?.id || null}
-              clientName={activeClient?.name || null}
               clients={clients}
-              onSelectClient={(client) => setActiveClient(client)}
             />
           </section>
         )}
