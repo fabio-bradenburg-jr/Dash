@@ -421,7 +421,13 @@ function AddModal({ category: initCat, onClose, onSaved }) {
   const handleSave = async () => {
     if (!form.platform_name.trim()) return
     setSaving(true)
-    await onSaved({ ...form, category })
+    const meta = form.metadata || {}
+    const enrichedMeta = category === 'location'
+      ? { ...meta, maps_link: buildMapsLink(meta) }
+      : category === 'whatsapp'
+        ? { ...meta, wa_link: buildWaLink(meta.phone_country, meta.phone_ddd, meta.phone_number, meta.default_message) }
+        : meta
+    await onSaved({ ...form, metadata: enrichedMeta, category })
     setSaving(false)
   }
 
@@ -481,7 +487,9 @@ function LocationCard({ access, onUpdate, onDelete }) {
 
   const handleSave = async () => {
     setSaving(true)
-    await onUpdate({ id: access.id, platform_name: form.platform_name, notes: form.notes, metadata: form.metadata })
+    const meta = form.metadata || {}
+    const enrichedMeta = { ...meta, maps_link: buildMapsLink(meta) }
+    await onUpdate({ id: access.id, platform_name: form.platform_name, notes: form.notes, metadata: enrichedMeta })
     setEditing(false)
     setSaving(false)
   }
@@ -559,7 +567,9 @@ function WhatsAppCard({ access, onUpdate, onDelete }) {
 
   const handleSave = async () => {
     setSaving(true)
-    await onUpdate({ id: access.id, platform_name: form.platform_name, notes: form.notes, status: form.status, metadata: form.metadata })
+    const meta = form.metadata || {}
+    const enrichedMeta = { ...meta, wa_link: buildWaLink(meta.phone_country, meta.phone_ddd, meta.phone_number, meta.default_message) }
+    await onUpdate({ id: access.id, platform_name: form.platform_name, notes: form.notes, status: form.status, metadata: enrichedMeta })
     setEditing(false)
     setSaving(false)
   }
