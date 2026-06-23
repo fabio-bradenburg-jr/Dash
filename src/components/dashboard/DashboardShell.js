@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import AssistantPage from '@/app/assistant/page'
 import SettingsPage from '@/app/settings/page'
 import ClientNotesPanel from '@/components/dashboard/ClientNotesPanel'
+import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
@@ -3576,7 +3577,7 @@ export default function DashboardShell({
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
   const PAC_TABS = ['pac-dash', 'pac-calendario', 'pac-tipos']
   const [isPacMenuOpen, setIsPacMenuOpen] = useState(() => PAC_TABS.includes(initialTab))
-  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding']
+  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding', 'acessos']
   const [isSuccessMenuOpen, setIsSuccessMenuOpen] = useState(() => SUCCESS_TABS.includes(initialTab))
   const [globalIntegrations, setGlobalIntegrations] = useState({
     ...DEFAULT_PREFERENCES.globalIntegrations,
@@ -16921,6 +16922,12 @@ export default function DashboardShell({
                       <span className="nav-label">Offboarding</span>
                     </button>
                   )}
+                  {(isMaster || hasNavAccess('acessos')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => setActiveTab('acessos')}>
+                      <i className="bx bx-lock-alt"></i>
+                      <span className="nav-label">Acessos</span>
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -21191,6 +21198,17 @@ export default function DashboardShell({
           </section>
         )}
 
+        {activeTab === 'acessos' && (isMaster || hasNavAccess('acessos')) && (
+          <section style={{ height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+            <ClientAccessesTab
+              clientId={activeClient?.id || null}
+              clientName={activeClient?.name || null}
+              clients={clients}
+              onSelectClient={(client) => setActiveClient(client)}
+            />
+          </section>
+        )}
+
         {activeTab === 'editorial' && (isMaster || hasNavAccess('editorial')) && (
           <section style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <EditorialCalendar
@@ -22280,6 +22298,7 @@ export default function DashboardShell({
                   { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
                   { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
                   { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
+                  { key: 'acessos', label: 'Acessos', group: 'Sucesso do Cliente' },
                   { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
                   { key: 'apresentacao', label: 'Dash', group: 'Performance' },
                   { key: 'campanhas', label: 'Campanhas', group: 'Performance' },
