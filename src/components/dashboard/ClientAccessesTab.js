@@ -5,26 +5,37 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 const STATUS_CONFIG = {
   active:       { label: 'Ativo',               color: '#26c281', bg: 'rgba(38,194,129,.15)' },
   pending:      { label: 'Pendente',            color: '#f59e0b', bg: 'rgba(245,158,11,.15)' },
+  in_review:    { label: 'Em revisão',          color: '#60a5fa', bg: 'rgba(96,165,250,.15)' },
+  outdated:     { label: 'Desatualizado',       color: '#fb923c', bg: 'rgba(251,146,60,.15)' },
   no_access:    { label: 'Sem acesso',          color: '#94a3b8', bg: 'rgba(148,163,184,.15)' },
   needs_update: { label: 'Precisa atualizar',   color: '#f97316', bg: 'rgba(249,115,22,.15)' },
-  problem:      { label: 'Acesso com problema', color: '#ef4444', bg: 'rgba(239,68,68,.15)' },
+  problem:      { label: 'Com problema',        color: '#ef4444', bg: 'rgba(239,68,68,.15)' },
 }
 
-// All categories — access + operational
+// All categories — access + operational + material
 const CATEGORIES = [
   // Accesses (have login/password)
-  { key: 'social',    label: 'Redes Sociais',   icon: 'bxl-instagram', color: '#e1306c', type: 'access' },
-  { key: 'google',    label: 'Google',           icon: 'bxl-google',    color: '#4285f4', type: 'access' },
-  { key: 'site',      label: 'Site',             icon: 'bx-globe',      color: '#06b6d4', type: 'access' },
-  { key: 'crm',       label: 'CRM',              icon: 'bx-filter-alt', color: '#a78bfa', type: 'access' },
-  { key: 'custom',    label: 'Personalizado',    icon: 'bx-plus-circle',color: '#26c281', type: 'access' },
+  { key: 'social',    label: 'Redes Sociais',    icon: 'bxl-instagram',   color: '#e1306c', type: 'access' },
+  { key: 'google',    label: 'Google',            icon: 'bxl-google',      color: '#4285f4', type: 'access' },
+  { key: 'site',      label: 'Site',              icon: 'bx-globe',        color: '#06b6d4', type: 'access' },
+  { key: 'crm',       label: 'CRM',               icon: 'bx-filter-alt',   color: '#a78bfa', type: 'access' },
+  { key: 'custom',    label: 'Personalizado',     icon: 'bx-plus-circle',  color: '#26c281', type: 'access' },
   // Operational (no login/password)
-  { key: 'location',  label: 'Localização',      icon: 'bx-map-pin',    color: '#f97316', type: 'operational' },
-  { key: 'whatsapp',  label: 'WhatsApp Business',icon: 'bxl-whatsapp',  color: '#25D366', type: 'operational' },
+  { key: 'location',  label: 'Localização',       icon: 'bx-map-pin',      color: '#f97316', type: 'operational' },
+  { key: 'whatsapp',  label: 'WhatsApp Business', icon: 'bxl-whatsapp',    color: '#25D366', type: 'operational' },
+  // Materials (links/files)
+  { key: 'document',  label: 'Documento',         icon: 'bx-file-blank',   color: '#60a5fa', type: 'material' },
+  { key: 'link',      label: 'Link Importante',   icon: 'bx-link',         color: '#c084fc', type: 'material' },
+  { key: 'sheet',     label: 'Planilha',          icon: 'bx-spreadsheet',  color: '#34d399', type: 'material' },
 ]
 
 const ACCESS_CATS = CATEGORIES.filter((c) => c.type === 'access')
 const OP_CATS     = CATEGORIES.filter((c) => c.type === 'operational')
+const MAT_CATS    = CATEGORIES.filter((c) => c.type === 'material')
+
+const DOC_TYPES = ['Contrato', 'Briefing', 'Proposta comercial', 'Documento institucional', 'Manual de marca', 'Apresentação', 'PDF do cliente', 'Termo de aprovação', 'Onboarding', 'Outro']
+const LINK_CATS_OPTIONS = ['Site institucional', 'Landing page', 'WhatsApp', 'Formulário', 'Reunião', 'Drive', 'Canva', 'Painel do cliente', 'Proposta', 'Relatório', 'Pasta compartilhada', 'Outro']
+const SHEET_TYPES = ['Leads', 'Qualificação', 'Relatórios', 'Indicadores', 'Comercial', 'Mídia', 'Orçamento', 'Campanhas', 'Contatos', 'Outro']
 
 const DEFAULT_PLATFORMS = {
   social:  ['Instagram', 'Facebook', 'Meta Business', 'LinkedIn', 'TikTok'],
@@ -180,6 +191,29 @@ async function exportToPDF({ clients, accessesByClient, revealPasswords, forClie
         doc.setTextColor(203, 213, 225); doc.text(phone, margin + 4, y + 16)
         if (m.wa_link) { doc.setTextColor(96, 165, 250); doc.text(m.wa_link.slice(0, 70), margin + 4, y + 21) }
         y += 28
+      }
+    }
+
+    // Materials (documents, links, sheets)
+    const matItems = accesses.filter((a) => ['document', 'link', 'sheet'].includes(a.category))
+    if (matItems.length) {
+      checkPage(8); doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(148, 163, 184); doc.text('MATERIAIS E ARQUIVOS', margin + 2, y); y += 6
+      for (const mat of matItems) {
+        checkPage(30); const m = mat.metadata || {}
+        const catLabel = { document: 'Documento', link: 'Link', sheet: 'Planilha' }[mat.category] || 'Material'
+        const subtype = m.doc_type || m.link_category || m.sheet_type || ''
+        const statusDef = STATUS_CONFIG[mat.status] || STATUS_CONFIG.active
+        doc.setFillColor(20, 24, 30); doc.roundedRect(margin, y, contentW, 28, 2, 2, 'F')
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(226, 232, 240); doc.text((mat.metadata?.is_favorite ? '⭐ ' : '') + mat.platform_name, margin + 4, y + 5.5)
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(148, 163, 184)
+        doc.text(`${catLabel}${subtype ? ' · ' + subtype : ''}`, margin + 4, y + 10)
+        const hexColor = statusDef.color.replace('#', '')
+        const [r, gr, b] = [0, 2, 4].map((i) => parseInt(hexColor.slice(i, i + 2), 16))
+        doc.setFillColor(r, gr, b); doc.roundedRect(pageW - margin - 28, y + 2, 26, 6, 1, 1, 'F')
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(255, 255, 255); doc.text(statusDef.label, pageW - margin - 26, y + 5.8)
+        if (m.description) { doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(148, 163, 184); doc.text((m.description).slice(0, 80), margin + 4, y + 16) }
+        if (mat.url) { doc.setTextColor(96, 165, 250); doc.text(mat.url.slice(0, 80), margin + 4, y + 22) }
+        y += 32
       }
     }
     y += 4
@@ -404,6 +438,164 @@ function AccessForm({ form, onChange, category }) {
   )
 }
 
+/* ─── Document Form ──────────────────────────────────────────────── */
+function DocumentForm({ form, onChange }) {
+  const meta = form.metadata || {}
+  const setMeta = (k, v) => onChange('metadata', { ...meta, [k]: v })
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input value={form.platform_name} onChange={(e) => onChange('platform_name', e.target.value)} placeholder="Nome do documento *" style={iStyle()} />
+      <select value={meta.doc_type || ''} onChange={(e) => setMeta('doc_type', e.target.value)} style={iStyle()}>
+        <option value="">Tipo do documento</option>
+        {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+      <input value={form.url} onChange={(e) => onChange('url', e.target.value)} placeholder="Link do documento (Drive, Dropbox, etc.)" style={iStyle()} />
+      <textarea value={meta.description || ''} onChange={(e) => setMeta('description', e.target.value)} placeholder="Descrição" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+      <select value={form.status} onChange={(e) => onChange('status', e.target.value)} style={iStyle()}>
+        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+      </select>
+      <textarea value={form.notes} onChange={(e) => onChange('notes', e.target.value)} placeholder="Observações" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+    </div>
+  )
+}
+
+/* ─── Link Form ──────────────────────────────────────────────────── */
+function LinkForm({ form, onChange }) {
+  const meta = form.metadata || {}
+  const setMeta = (k, v) => onChange('metadata', { ...meta, [k]: v })
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input value={form.platform_name} onChange={(e) => onChange('platform_name', e.target.value)} placeholder="Nome do link *" style={iStyle()} />
+      <input value={form.url} onChange={(e) => onChange('url', e.target.value)} placeholder="URL (https://...)" style={iStyle()} />
+      <select value={meta.link_category || ''} onChange={(e) => setMeta('link_category', e.target.value)} style={iStyle()}>
+        <option value="">Categoria do link</option>
+        {LINK_CATS_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+      <textarea value={meta.description || ''} onChange={(e) => setMeta('description', e.target.value)} placeholder="Descrição" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+      <select value={form.status} onChange={(e) => onChange('status', e.target.value)} style={iStyle()}>
+        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+      </select>
+      <textarea value={form.notes} onChange={(e) => onChange('notes', e.target.value)} placeholder="Observações" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+    </div>
+  )
+}
+
+/* ─── Sheet Form ─────────────────────────────────────────────────── */
+function SheetForm({ form, onChange }) {
+  const meta = form.metadata || {}
+  const setMeta = (k, v) => onChange('metadata', { ...meta, [k]: v })
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input value={form.platform_name} onChange={(e) => onChange('platform_name', e.target.value)} placeholder="Nome da planilha *" style={iStyle()} />
+      <input value={form.url} onChange={(e) => onChange('url', e.target.value)} placeholder="Link da planilha (Google Sheets, etc.)" style={iStyle()} />
+      <select value={meta.sheet_type || ''} onChange={(e) => setMeta('sheet_type', e.target.value)} style={iStyle()}>
+        <option value="">Tipo da planilha</option>
+        {SHEET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+      <textarea value={meta.description || ''} onChange={(e) => setMeta('description', e.target.value)} placeholder="Descrição" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+      <select value={form.status} onChange={(e) => onChange('status', e.target.value)} style={iStyle()}>
+        {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+      </select>
+      <textarea value={form.notes} onChange={(e) => onChange('notes', e.target.value)} placeholder="Observações" rows={2} style={{ ...iStyle(), resize: 'vertical', fontFamily: 'inherit' }} />
+    </div>
+  )
+}
+
+/* ─── Material Card (document / link / sheet) ────────────────────── */
+function MaterialCard({ access, onUpdate, onDelete, onArchive }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ platform_name: access.platform_name, url: access.url || '', notes: access.notes || '', status: access.status, metadata: { ...(access.metadata || {}) } })
+  const [saving, setSaving] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const onChange = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  const cat = CATEGORIES.find((c) => c.key === access.category) || { icon: 'bx-file', color: '#60a5fa', label: 'Material' }
+  const status = STATUS_CONFIG[access.status] || STATUS_CONFIG.active
+  const meta = access.metadata || {}
+  const isFav = !!meta.is_favorite
+
+  const handleSave = async () => {
+    setSaving(true)
+    await onUpdate({ id: access.id, platform_name: form.platform_name, url: form.url, notes: form.notes, status: form.status, metadata: form.metadata })
+    setEditing(false)
+    setSaving(false)
+  }
+
+  const toggleFav = () => onUpdate({ id: access.id, metadata: { ...meta, is_favorite: !isFav } })
+
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${isFav ? cat.color + '55' : BORDER}`, borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: cat.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`bx ${cat.icon}`} style={{ fontSize: 18, color: cat.color }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: TEXT, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {access.platform_name}
+            {isFav && <i className="bx bxs-star" style={{ fontSize: 11, color: '#f59e0b' }} />}
+          </div>
+          <div style={{ fontSize: 11, color: SUB }}>{meta.doc_type || meta.link_category || meta.sheet_type || cat.label}</div>
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, background: status.bg, color: status.color, borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>{status.label}</span>
+        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+          <button type="button" onClick={toggleFav} title={isFav ? 'Remover dos favoritos' : 'Favoritar'}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isFav ? '#f59e0b' : SUB, padding: 3 }}>
+            <i className={`bx bx${isFav ? 's' : ''}-star`} style={{ fontSize: 13 }} />
+          </button>
+          <button type="button" onClick={() => setEditing(!editing)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: SUB, padding: 3 }}><i className="bx bx-edit" style={{ fontSize: 13 }} /></button>
+          <button type="button" onClick={() => onArchive(access.id, !access.is_archived)} title={access.is_archived ? 'Desarquivar' : 'Arquivar'}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: SUB, padding: 3 }}>
+            <i className={`bx ${access.is_archived ? 'bx-archive-out' : 'bx-archive-in'}`} style={{ fontSize: 13 }} />
+          </button>
+          <button type="button" onClick={() => { if (window.confirm('Excluir este item permanentemente?')) onDelete(access.id) }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 3 }}>
+            <i className="bx bx-trash" style={{ fontSize: 13 }} />
+          </button>
+        </div>
+      </div>
+
+      {editing ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {access.category === 'document' ? <DocumentForm form={form} onChange={onChange} /> :
+           access.category === 'link' ? <LinkForm form={form} onChange={onChange} /> :
+           <SheetForm form={form} onChange={onChange} />}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={handleSave} disabled={saving}
+              style={{ background: G, border: 'none', borderRadius: 8, color: '#fff', padding: '7px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+            <button type="button" onClick={() => setEditing(false)}
+              style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, color: SUB, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {meta.description && <p style={{ margin: 0, fontSize: 12, color: SUB, lineHeight: 1.5 }}>{meta.description}</p>}
+          {access.notes && <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.5, fontStyle: 'italic' }}>{access.notes}</p>}
+          {access.url && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <a href={access.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, background: cat.color + '18', color: cat.color, border: `1px solid ${cat.color}33`, borderRadius: 7, padding: '5px 10px', textDecoration: 'none', fontWeight: 600 }}>
+                <i className="bx bx-link-external" style={{ fontSize: 13 }} /> Abrir
+              </a>
+              <button type="button" onClick={() => copyToClipboard(access.url, setCopiedLink)}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, background: copiedLink ? 'rgba(38,194,129,.15)' : 'rgba(255,255,255,.06)', color: copiedLink ? G : SUB, border: 'none', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                <i className={`bx ${copiedLink ? 'bx-check' : 'bx-copy'}`} style={{ fontSize: 13 }} />
+                {copiedLink ? 'Copiado!' : 'Copiar link'}
+              </button>
+            </div>
+          )}
+          <div style={{ fontSize: 10, color: '#334155', borderTop: `1px solid ${BORDER}`, paddingTop: 8 }}>
+            Atualizado em {new Date(access.updated_at).toLocaleDateString('pt-BR')}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ─── Add Modal ──────────────────────────────────────────────────── */
 function AddModal({ category: initCat, onClose, onSaved }) {
   const [category, setCategory] = useState(initCat || 'social')
@@ -443,9 +635,29 @@ function AddModal({ category: initCat, onClose, onSaved }) {
 
         {/* Category picker */}
         <div>
-          <span style={{ ...labelSt, marginBottom: 8 }}>Tipo</span>
+          <span style={{ ...labelSt, marginBottom: 6 }}>Acessos</span>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+            {ACCESS_CATS.map((cat) => (
+              <button key={cat.key} type="button" onClick={() => handleCatChange(cat.key)}
+                style={{ background: category === cat.key ? cat.color + '22' : 'rgba(255,255,255,.05)', border: `1px solid ${category === cat.key ? cat.color + '88' : 'transparent'}`, borderRadius: 20, padding: '5px 12px', fontSize: 11, fontWeight: 600, color: category === cat.key ? cat.color : SUB, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <i className={`bx ${cat.icon}`} style={{ fontSize: 12 }} />
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <span style={{ ...labelSt, marginBottom: 6 }}>Operacional</span>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+            {OP_CATS.map((cat) => (
+              <button key={cat.key} type="button" onClick={() => handleCatChange(cat.key)}
+                style={{ background: category === cat.key ? cat.color + '22' : 'rgba(255,255,255,.05)', border: `1px solid ${category === cat.key ? cat.color + '88' : 'transparent'}`, borderRadius: 20, padding: '5px 12px', fontSize: 11, fontWeight: 600, color: category === cat.key ? cat.color : SUB, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <i className={`bx ${cat.icon}`} style={{ fontSize: 12 }} />
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <span style={{ ...labelSt, marginBottom: 6 }}>Materiais e Arquivos</span>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-            {CATEGORIES.map((cat) => (
+            {MAT_CATS.map((cat) => (
               <button key={cat.key} type="button" onClick={() => handleCatChange(cat.key)}
                 style={{ background: category === cat.key ? cat.color + '22' : 'rgba(255,255,255,.05)', border: `1px solid ${category === cat.key ? cat.color + '88' : 'transparent'}`, borderRadius: 20, padding: '5px 12px', fontSize: 11, fontWeight: 600, color: category === cat.key ? cat.color : SUB, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <i className={`bx ${cat.icon}`} style={{ fontSize: 12 }} />
@@ -455,11 +667,26 @@ function AddModal({ category: initCat, onClose, onSaved }) {
           </div>
         </div>
 
+        {/* Favorite toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+          <input type="checkbox" checked={!!(form.metadata?.is_favorite)} onChange={(e) => onChange('metadata', { ...(form.metadata || {}), is_favorite: e.target.checked })}
+            style={{ accentColor: '#f59e0b', width: 14, height: 14 }} />
+          <span style={{ fontSize: 12, color: SUB, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <i className="bx bxs-star" style={{ color: '#f59e0b', fontSize: 13 }} /> Marcar como favorito / principal
+          </span>
+        </label>
+
         {/* Dynamic form */}
         {category === 'location' ? (
           <LocationForm form={form} onChange={onChange} />
         ) : category === 'whatsapp' ? (
           <WhatsAppForm form={form} onChange={onChange} />
+        ) : category === 'document' ? (
+          <DocumentForm form={form} onChange={onChange} />
+        ) : category === 'link' ? (
+          <LinkForm form={form} onChange={onChange} />
+        ) : category === 'sheet' ? (
+          <SheetForm form={form} onChange={onChange} />
         ) : (
           <AccessForm form={form} onChange={onChange} category={category} />
         )}
@@ -822,16 +1049,23 @@ function DetailDrawer({ client, accesses, allClients, allAccessesByClient, isAll
   const filtered = displayAccesses.filter((a) => {
     if (!showArchived && a.is_archived) return false
     const q = search.toLowerCase()
-    const matchSearch = !q || a.platform_name.toLowerCase().includes(q) || (a.login || '').toLowerCase().includes(q) || (a._clientName || '').toLowerCase().includes(q)
-    const matchCat = filterCat === 'all' || a.category === filterCat
+    const matchSearch = !q || a.platform_name.toLowerCase().includes(q) || (a.login || '').toLowerCase().includes(q) || (a._clientName || '').toLowerCase().includes(q) || (a.metadata?.description || '').toLowerCase().includes(q)
+    const matchCat = filterCat === 'all' || filterCat === 'favorites'
+      ? (filterCat === 'favorites' ? !!(a.metadata?.is_favorite) : true)
+      : a.category === filterCat
     const matchStatus = filterStatus === 'all' || a.status === filterStatus
     return matchSearch && matchCat && matchStatus
   })
 
+  // Sort: favorites first within each section
+  const sortItems = (list) => [...list].sort((a, b) => (b.metadata?.is_favorite ? 1 : 0) - (a.metadata?.is_favorite ? 1 : 0))
+
   const archivedCount = displayAccesses.filter((a) => a.is_archived).length
-  const accessItems = filtered.filter((a) => CATEGORIES.find((c) => c.key === a.category)?.type === 'access')
+  const accessItems = sortItems(filtered.filter((a) => CATEGORIES.find((c) => c.key === a.category)?.type === 'access'))
   const locations = filtered.filter((a) => a.category === 'location')
   const whatsapps = filtered.filter((a) => a.category === 'whatsapp')
+  const materials = sortItems(filtered.filter((a) => CATEGORIES.find((c) => c.key === a.category)?.type === 'material'))
+  const favCount = displayAccesses.filter((a) => !a.is_archived && a.metadata?.is_favorite).length
 
   const renderCatSection = (catItems, catKey) => {
     if (catItems.length === 0) return null
@@ -895,8 +1129,10 @@ function DetailDrawer({ client, accesses, allClients, allAccessesByClient, isAll
           </div>
           <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} style={{ ...iStyle(), width: 'auto', padding: '6px 8px' }}>
             <option value="all">Todos os tipos</option>
+            {favCount > 0 && <option value="favorites">⭐ Favoritos ({favCount})</option>}
             <optgroup label="Acessos">{ACCESS_CATS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</optgroup>
             <optgroup label="Operacional">{OP_CATS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</optgroup>
+            <optgroup label="Materiais">{MAT_CATS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</optgroup>
           </select>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ ...iStyle(), width: 'auto', padding: '6px 8px' }}>
             <option value="all">Todos os status</option>
@@ -928,6 +1164,33 @@ function DetailDrawer({ client, accesses, allClients, allAccessesByClient, isAll
           )}
           {locations.length > 0 && renderCatSection(locations, 'location')}
           {whatsapps.length > 0 && renderCatSection(whatsapps, 'whatsapp')}
+
+          {/* Materials section */}
+          {materials.length > 0 && (
+            <div style={{ padding: '10px 20px 6px', background: 'rgba(255,255,255,.015)', marginTop: 4 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.8px' }}>Materiais e Arquivos</span>
+            </div>
+          )}
+          {materials.length > 0 && MAT_CATS.map((cat) => {
+            const catItems = materials.filter((a) => a.category === cat.key)
+            if (!catItems.length) return null
+            return (
+              <div key={cat.key} style={{ marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px 8px', background: 'rgba(255,255,255,.02)', borderBottom: `1px solid ${BORDER}` }}>
+                  <i className={`bx ${cat.icon}`} style={{ fontSize: 14, color: cat.color }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>{cat.label}</span>
+                  <span style={{ fontSize: 11, color: SUB, background: 'rgba(255,255,255,.06)', borderRadius: 20, padding: '1px 7px' }}>{catItems.length}</span>
+                  {!isAll && <button type="button" onClick={() => setAddModal(cat.key)} style={{ marginLeft: 'auto', background: 'transparent', border: `1px dashed ${cat.color}55`, borderRadius: 6, color: cat.color, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Adicionar</button>}
+                </div>
+                {catItems.map((acc) => (
+                  <div key={acc.id} style={{ padding: '10px 20px', borderBottom: `1px solid ${BORDER}` }}>
+                    {isAll && acc._clientName && <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>{acc._clientName}</div>}
+                    <MaterialCard access={acc} onUpdate={onUpdate} onDelete={onDelete} onArchive={onArchive} />
+                  </div>
+                ))}
+              </div>
+            )
+          })}
 
           {filtered.length === 0 && (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: SUB }}>
