@@ -7,6 +7,7 @@ import AssistantPage from '@/app/assistant/page'
 import SettingsPage from '@/app/settings/page'
 import ClientNotesPanel from '@/components/dashboard/ClientNotesPanel'
 import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
+import PerformanceGeneralTab from '@/components/dashboard/PerformanceGeneralTab'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
@@ -3573,7 +3574,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
+  const ADS_TABS = ['geral', 'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -10415,7 +10416,7 @@ export default function DashboardShell({
   }, [hasLoadedPreferences, activeTab, clients, metaRequestHeaders, adAccountBalanceRefreshNonce])
 
   useEffect(() => {
-    if (!hasLoadedPreferences || activeTab !== 'anuncios') return
+    if (!hasLoadedPreferences || (activeTab !== 'anuncios' && activeTab !== 'geral')) return
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
 
     let cancelled = false
@@ -10464,7 +10465,7 @@ export default function DashboardShell({
   }, [hasLoadedPreferences, activeTab, dateRange, customSince, customUntil, metaRequestHeaders, adsOverviewRefreshNonce])
 
   useEffect(() => {
-    if (!hasLoadedPreferences || activeTab !== 'campanhas') return
+    if (!hasLoadedPreferences || (activeTab !== 'campanhas' && activeTab !== 'geral')) return
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
 
     let cancelled = false
@@ -16955,7 +16956,7 @@ export default function DashboardShell({
               <span className="nav-label">Central de Tarefas</span>
             </button>
           )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
+          {(isMaster || hasNavAccess('geral') || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
             <>
               <button
                 type="button"
@@ -16970,6 +16971,12 @@ export default function DashboardShell({
               </button>
               {isAdsMenuOpen && (
                 <div className="nav-sub-group">
+                  {(isMaster || hasNavAccess('geral')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'geral' ? 'active' : ''}`} onClick={() => setActiveTab('geral')}>
+                      <i className="bx bx-grid-alt"></i>
+                      <span className="nav-label">Geral</span>
+                    </button>
+                  )}
                   {(isMaster || hasNavAccess('apresentacao')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
                       <i className="bx bxs-dashboard"></i>
@@ -20178,6 +20185,32 @@ export default function DashboardShell({
         {activeTab === 'clickup' && renderClickUpOperationalPanel()}
 
         {activeTab === 'monday' && renderMondayOperationalPanel()}
+
+        {activeTab === 'geral' && (isMaster || hasNavAccess('geral')) && (
+          <PerformanceGeneralTab
+            clients={clients}
+            latestWeeklyHealthByClientId={latestWeeklyHealthByClientId}
+            adsOverviewRows={adsOverviewRows}
+            adsOverviewLoading={adsOverviewLoading}
+            campaignOverviewRows={campaignOverviewRows}
+            campaignOverviewLoading={campaignOverviewLoading}
+            adAccountBalanceRows={adAccountBalanceRows}
+            adAccountBalanceLoading={adAccountBalanceLoading}
+            WEEKLY_HEALTH_BY_KEY={WEEKLY_HEALTH_BY_KEY}
+            CLIENT_HEALTH_SORT_RANK={CLIENT_HEALTH_SORT_RANK}
+            dateRange={dateRange}
+            draftDateRange={draftDateRange}
+            setDraftDateRange={setDraftDateRange}
+            draftCustomSince={draftCustomSince}
+            setDraftCustomSince={setDraftCustomSince}
+            draftCustomUntil={draftCustomUntil}
+            setDraftCustomUntil={setDraftCustomUntil}
+            customSince={customSince}
+            customUntil={customUntil}
+            handleApplyDashboardFilters={handleApplyDashboardFilters}
+            DATE_PRESETS={DATE_PRESETS}
+          />
+        )}
 
         {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <section className="campaign-overview-page ads-overview-page">
