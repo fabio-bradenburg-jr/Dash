@@ -124,10 +124,17 @@ function LineChart({ data, width = 500, height = 160 }) {
   const yScaleCPR = (v) => PAD.top + chartH - (v / maxCpr) * chartH
 
   const pathR = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScaleR(d.results || 0).toFixed(1)}`).join(' ')
-  const pathCPR = data.map((d, i) => {
-    const cpr = d.results > 0 ? d.spend / d.results : 0
-    return `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScaleCPR(cpr).toFixed(1)}`
-  }).join(' ')
+  const pathCPR = (() => {
+    let cmd = ''
+    let penUp = true
+    data.forEach((d, i) => {
+      if (d.results <= 0) { penUp = true; return }
+      const cpr = d.spend / d.results
+      cmd += `${penUp ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScaleCPR(cpr).toFixed(1)} `
+      penUp = false
+    })
+    return cmd.trim()
+  })()
 
   const gridLines = 4
   const ticksR = Array.from({ length: gridLines + 1 }, (_, i) => (maxResults / gridLines) * i)
