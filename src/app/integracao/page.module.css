@@ -444,13 +444,13 @@
 /* ── CRM Table ───────────────────────────────────────────────── */
 .crmCard { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; overflow: hidden; }
 .crmHeader {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr 1fr;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr 1.4fr 1.4fr;
   padding: 9px 16px; background: rgba(255,255,255,0.035);
   font-size: 10px; font-weight: 700; letter-spacing: .08em;
   color: rgba(241,241,241,0.3); text-transform: uppercase; gap: 8px;
 }
 .crmRow {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr 1fr;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr 1.4fr 1.4fr;
   padding: clamp(9px, 1.5vh, 13px) 16px;
   border-top: 1px solid rgba(255,255,255,0.04);
   align-items: center; gap: 8px; font-size: clamp(0.78rem, 1.3vw, 0.85rem); transition: background .15s;
@@ -556,8 +556,8 @@
   .vendaGrid { grid-template-columns: 1fr; }
   .funnelWrap { grid-template-columns: 1fr; }
   .crmHeader, .crmRow { grid-template-columns: 2fr 1fr 1fr; }
-  .crmHeader > span:nth-child(4), .crmHeader > span:nth-child(5),
-  .crmRow   > span:nth-child(4), .crmRow   > span:nth-child(5) { display: none; }
+  .crmHeader > span:nth-child(4), .crmHeader > span:nth-child(5), .crmHeader > span:nth-child(6),
+  .crmRow   > span:nth-child(4), .crmRow   > span:nth-child(5), .crmRow   > span:nth-child(6) { display: none; }
 }
 
 @media (max-width: 600px) {

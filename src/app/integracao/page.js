@@ -64,10 +64,10 @@ const CAMPAIGN_METRICS = [
 ]
 
 const FAKE_LEADS = [
-  { nome: 'Carlos Mendes', origem: 'Instagram', hora: '09:14', status: 'Novo',           etapa: 'Recebido'    },
-  { nome: 'Ana Paula S.',  origem: 'Facebook',  hora: '10:02', status: 'Em atendimento', etapa: 'Qualificado' },
-  { nome: 'Roberto Lima',  origem: 'Instagram', hora: '11:37', status: 'Proposta',        etapa: 'Orçamento'  },
-  { nome: 'Mariana Costa', origem: 'Google',    hora: '13:22', status: 'Fechado',         etapa: 'Venda'       },
+  { nome: 'Carlos Mendes', origem: 'Instagram', hora: '09:14', status: 'Novo',           p1: 'Sim, vi pelo feed',       p2: 'Precisa de resultado rápido'     },
+  { nome: 'Ana Paula S.',  origem: 'Facebook',  hora: '10:02', status: 'Em atendimento', p1: 'Não, indicação de amigo', p2: 'Quer escalar o faturamento'      },
+  { nome: 'Roberto Lima',  origem: 'Instagram', hora: '11:37', status: 'Proposta',        p1: 'Sim, acompanha há meses', p2: 'Já tem equipe de vendas'         },
+  { nome: 'Mariana Costa', origem: 'Google',    hora: '13:22', status: 'Fechado',         p1: 'Não, pesquisou no Google', p2: 'Busca previsibilidade de receita' },
 ]
 
 const scrollTo = (id) =>
@@ -290,7 +290,7 @@ export default function IntegracaoPage() {
           </div>
           <div className={`${styles.crmCard} ${styles.ledCard}`}>
             <div className={styles.crmHeader}>
-              <span>Nome</span><span>Origem</span><span>Horário</span><span>Status</span><span>Etapa</span>
+              <span>Nome</span><span>Origem</span><span>Horário</span><span>Status</span><span>Pergunta 1?</span><span>Pergunta 2?</span>
             </div>
             {FAKE_LEADS.map((lead, i) => (
               <div key={i} className={styles.crmRow}>
@@ -298,7 +298,8 @@ export default function IntegracaoPage() {
                 <span className={styles.crmBadge}>{lead.origem}</span>
                 <span className={styles.crmMuted}>{lead.hora}</span>
                 <span className={styles.crmStatus}>{lead.status}</span>
-                <span className={styles.crmMuted}>{lead.etapa}</span>
+                <span className={styles.crmMuted}>{lead.p1}</span>
+                <span className={styles.crmMuted}>{lead.p2}</span>
               </div>
             ))}
           </div>
