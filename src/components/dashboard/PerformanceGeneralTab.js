@@ -177,7 +177,7 @@ function LineChart({ data, width = 500, height = 160 }) {
         })}
 
         {/* CPR line */}
-        <path d={pathCPR} fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.8} />
+        <path d={pathCPR} fill="none" stroke="#6b7280" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.8} />
 
         {/* Results line */}
         <path d={pathR} fill="none" stroke={C.accent} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
@@ -191,7 +191,7 @@ function LineChart({ data, width = 500, height = 160 }) {
         {tooltip && (
           <>
             <circle cx={tooltip.x} cy={yScaleR(tooltip.d.results || 0)} r={4} fill={C.accent} />
-            <circle cx={tooltip.x} cy={yScaleCPR(tooltip.d.results > 0 ? tooltip.d.spend / tooltip.d.results : 0)} r={4} fill="#f59e0b" />
+            <circle cx={tooltip.x} cy={yScaleCPR(tooltip.d.results > 0 ? tooltip.d.spend / tooltip.d.results : 0)} r={4} fill="#6b7280" />
           </>
         )}
       </svg>
@@ -203,7 +203,7 @@ function LineChart({ data, width = 500, height = 160 }) {
           Resultado
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: C.textSub }}>
-          <span style={{ display: 'inline-block', width: 18, height: 2, borderRadius: 2, background: '#f59e0b' }} />
+          <span style={{ display: 'inline-block', width: 18, height: 2, borderRadius: 2, background: '#6b7280' }} />
           Custo por resultado
         </div>
       </div>
@@ -228,7 +228,7 @@ function LineChart({ data, width = 500, height = 160 }) {
         }}>
           <div style={{ fontWeight: 700, color: C.textSub, marginBottom: 4 }}>{fmtDate(tooltip.d.date_start)}</div>
           <div style={{ color: C.accent, marginBottom: 2 }}>Resultado: <strong>{NUM(tooltip.d.results)}</strong></div>
-          <div style={{ color: '#f59e0b' }}>CPR: <strong>{tooltip.d.results > 0 ? BRL(tooltip.d.spend / tooltip.d.results) : '-'}</strong></div>
+          <div style={{ color: '#9ca3af' }}>CPR: <strong>{tooltip.d.results > 0 ? BRL(tooltip.d.spend / tooltip.d.results) : '-'}</strong></div>
           {tooltip.d.ctr != null && <div style={{ color: C.textSub }}>CTR: <strong>{PCT(tooltip.d.ctr * 100)}</strong></div>}
         </div>
       )}
