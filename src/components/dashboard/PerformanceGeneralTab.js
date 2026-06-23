@@ -641,6 +641,22 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
 function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, customSince, customUntil, metaRequestHeaders, onClose }) {
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
   const [selectedAd, setSelectedAd] = useState(null)
+  const [sheetData, setSheetData] = useState(null)
+  const [sheetLoading, setSheetLoading] = useState(false)
+
+  useEffect(() => {
+    const url = client.googleSheetsUrl || client.leadsSheetUrl || ''
+    if (!url) return
+    setSheetLoading(true)
+    const params = new URLSearchParams({ url })
+    if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
+    if (client.googleSheetsStatusColumn) params.set('status_column', client.googleSheetsStatusColumn)
+    fetch('/api/google-sheets/summary?' + params.toString())
+      .then(r => r.json())
+      .then(data => setSheetData(data?.totalRows != null ? data : null))
+      .catch(() => setSheetData(null))
+      .finally(() => setSheetLoading(false))
+  }, [client.id])
 
   const h           = HEALTH_META[healthKey] || HEALTH_META.empty
   const campaigns   = campaignRow?.campaigns || []
@@ -722,12 +738,6 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               <MetricCard label="CTR" value={ctrStr(totalClicks, totalImpr)} />
               {balanceAccs.length > 0 && <MetricCard label="Saldo total" value={BRL(totalBalance)} warn={totalBalance < 50} />}
             </div>
-          </div>
-
-          {/* Planilha */}
-          <div>
-            <SectionTitle>Resumo da Planilha</SectionTitle>
-            <EmptyBlock icon="bx-table">Planilha não configurada ou sem dados no período selecionado.</EmptyBlock>
           </div>
 
           {/* Campanhas */}
@@ -817,6 +827,45 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Planilha — shown only when client has a sheet configured */}
+          {(client.googleSheetsUrl || client.leadsSheetUrl) && (
+            <div>
+              <SectionTitle>Resumo da Planilha</SectionTitle>
+              {sheetLoading
+                ? <EmptyBlock icon="bx-loader-alt">Carregando dados da planilha...</EmptyBlock>
+                : !sheetData
+                  ? <EmptyBlock icon="bx-table">Não foi possível carregar os dados da planilha.</EmptyBlock>
+                  : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <MetricCard label="Total de registros" value={NUM(sheetData.totalRows)} accent />
+                        {(sheetData.numericColumns || []).slice(0, 4).map((col) => (
+                          <MetricCard
+                            key={col.id}
+                            label={col.header}
+                            value={col.type === 'currency' ? BRL(col.sum) : col.type === 'percent' ? PCT(col.sum / col.valueCount) : NUM(col.sum)}
+                          />
+                        ))}
+                      </div>
+                      {sheetData.statusSummary && (
+                        <div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.textSub, marginBottom: 6 }}>{sheetData.statusSummary.header}</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {(sheetData.statusSummary.counts || []).slice(0, 10).map((s) => (
+                              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid ' + C.border, borderRadius: 20, fontSize: '0.78rem' }}>
+                                <span style={{ color: C.textSub }}>{s.label}</span>
+                                <span style={{ fontWeight: 800, color: C.text }}>{NUM(s.count)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+              }
             </div>
           )}
         </div>
