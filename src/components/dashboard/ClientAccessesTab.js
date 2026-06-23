@@ -135,7 +135,8 @@ async function exportToPDF({ clients, accessesByClient, revealPasswords, forClie
         doc.setFillColor(20, 24, 30); doc.roundedRect(margin, y, contentW, 24, 2, 2, 'F')
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(226, 232, 240); doc.text(acc.platform_name, margin + 4, y + 5.5)
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(148, 163, 184); doc.text(CATEGORIES.find((c) => c.key === acc.category)?.label || '', margin + 4, y + 10)
-        const [r, gr, b] = statusDef.color.match(/\d+/g).map(Number)
+        const hexColor = statusDef.color.replace('#', '')
+        const [r, gr, b] = [0, 2, 4].map((i) => parseInt(hexColor.slice(i, i + 2), 16))
         doc.setFillColor(r, gr, b); doc.roundedRect(pageW - margin - 28, y + 2, 26, 6, 1, 1, 'F')
         doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(255, 255, 255); doc.text(statusDef.label, pageW - margin - 26, y + 5.8)
         let row = y + 14; const col2 = margin + contentW / 2
