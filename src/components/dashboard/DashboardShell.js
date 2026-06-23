@@ -20209,6 +20209,7 @@ export default function DashboardShell({
             customUntil={customUntil}
             handleApplyDashboardFilters={handleApplyDashboardFilters}
             DATE_PRESETS={DATE_PRESETS}
+            metaRequestHeaders={metaRequestHeaders}
           />
         )}
 
