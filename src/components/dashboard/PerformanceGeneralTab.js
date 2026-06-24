@@ -642,6 +642,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
   const [selectedAd, setSelectedAd] = useState(null)
   const [sheetData, setSheetData] = useState(null)
+  const [sheetError, setSheetError] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
   const [breakdownData, setBreakdownData] = useState(null)
   const [breakdownLoading, setBreakdownLoading] = useState(false)
@@ -654,6 +655,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     if (!url) return
     setSheetLoading(true)
     setSheetData(null)
+    setSheetError(null)
 
     // Convert dashboard dateRange preset to since/until (same logic as LeadsDashboard)
     const today = new Date()
@@ -684,8 +686,11 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     if (until) params.set('until', until)
     fetch('/api/google-sheets/leads-analytics?' + params.toString())
       .then(r => r.json())
-      .then(data => setSheetData(data?.overview ? data : null))
-      .catch(() => setSheetData(null))
+      .then(data => {
+        if (data?.overview) { setSheetData(data) }
+        else { setSheetData(null); setSheetError(data?.error || 'Não foi possível carregar a planilha.') }
+      })
+      .catch(err => { setSheetData(null); setSheetError(err?.message || 'Erro ao carregar planilha.') })
       .finally(() => setSheetLoading(false))
   }, [client.id, dateRange, customSince, customUntil])
 
@@ -1009,7 +1014,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               {sheetLoading
                 ? <EmptyBlock icon="bx-loader-alt">Carregando dados da planilha...</EmptyBlock>
                 : !sheetData
-                  ? <EmptyBlock icon="bx-table">Não foi possível carregar os dados da planilha.</EmptyBlock>
+                  ? <EmptyBlock icon="bx-table">{sheetError || 'Sem dados na planilha para o período selecionado.'}</EmptyBlock>
                   : (() => {
                     const ov = sheetData.overview || {}
                     const total = ov.total || 0
@@ -1247,13 +1252,13 @@ export default function PerformanceGeneralTab({
     return (clients || [])
       .filter((c) => {
         if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false
-        const hk = latestWeeklyHealthByClientId?.get(c.id)?.healthKey || 'empty'
+        const hk = latestWeeklyHealthByClientId?.get(c.id)?.healthStatus || 'empty'
         if (healthFilter !== 'all' && hk !== healthFilter) return false
         return true
       })
       .sort((a, b) => {
-        const hA = latestWeeklyHealthByClientId?.get(a.id)?.healthKey || 'empty'
-        const hB = latestWeeklyHealthByClientId?.get(b.id)?.healthKey || 'empty'
+        const hA = latestWeeklyHealthByClientId?.get(a.id)?.healthStatus || 'empty'
+        const hB = latestWeeklyHealthByClientId?.get(b.id)?.healthStatus || 'empty'
         return (HEALTH_META[hA]?.sortRank ?? 99) - (HEALTH_META[hB]?.sortRank ?? 99)
       })
   }, [clients, latestWeeklyHealthByClientId, healthFilter, search])
@@ -1261,7 +1266,7 @@ export default function PerformanceGeneralTab({
   const stats = useMemo(() => {
     let totalSpend = 0, totalResults = 0, totalBalance = 0, criticalCount = 0, attentionCount = 0, activeCount = 0
     for (const c of (clients || [])) {
-      const hk  = latestWeeklyHealthByClientId?.get(c.id)?.healthKey || 'empty'
+      const hk  = latestWeeklyHealthByClientId?.get(c.id)?.healthStatus || 'empty'
       if (hk === 'critical' || hk === 'integration') criticalCount++
       if (hk === 'attention') attentionCount++
       const camp = campaignMap[c.id]
