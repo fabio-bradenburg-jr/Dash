@@ -165,7 +165,7 @@ export function extractMetaCampaignMetrics(insightData) {
   const purchaseValue = getBestFloatActionValue(valueActions, META_PURCHASE_EVENTS)
   const costPerPurchase = purchases > 0 ? spend / purchases : 0
 
-  const leads = getBestActionValue(actions, META_LEAD_EVENTS)
+  const leads = sumActionValues(actions, META_LEAD_EVENTS)
   const costPerLead = leads > 0 ? spend / leads : 0
 
   const messages = getBestActionValue(actions, META_MESSAGE_EVENTS)

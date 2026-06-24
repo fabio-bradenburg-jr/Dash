@@ -1384,8 +1384,9 @@ export default function PerformanceGeneralTab({
           )}
           <button
             onClick={handleApplyDashboardFilters}
-            style={{ padding: '8px 20px', borderRadius: 9, border: 'none', background: C.accent, color: '#000', fontWeight: 800, fontSize: '0.79rem', cursor: 'pointer', boxShadow: LED.glow, whiteSpace: 'nowrap', transition: 'box-shadow 0.15s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = LED.glowHover }}
+            disabled={draftDateRange === 'custom' && (!draftCustomSince || !draftCustomUntil)}
+            style={{ padding: '8px 20px', borderRadius: 9, border: 'none', background: draftDateRange === 'custom' && (!draftCustomSince || !draftCustomUntil) ? 'rgba(38,194,129,0.35)' : C.accent, color: '#000', fontWeight: 800, fontSize: '0.79rem', cursor: draftDateRange === 'custom' && (!draftCustomSince || !draftCustomUntil) ? 'not-allowed' : 'pointer', boxShadow: LED.glow, whiteSpace: 'nowrap', transition: 'box-shadow 0.15s' }}
+            onMouseEnter={(e) => { if (!(draftDateRange === 'custom' && (!draftCustomSince || !draftCustomUntil))) e.currentTarget.style.boxShadow = LED.glowHover }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = LED.glow }}
           >
             Aplicar
