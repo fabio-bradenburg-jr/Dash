@@ -695,8 +695,6 @@ function InlineAdChart({ ad, dateRange, customSince, customUntil, metaRequestHea
 function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, customSince, customUntil, metaRequestHeaders, cprBenchmark, cprSettings, onCprBenchmarkSaved, onClose }) {
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
   const [expandedAdId, setExpandedAdId] = useState(null)
-  const [expandedStateLabel, setExpandedStateLabel] = useState(null)
-  const [expandedAgeLabel, setExpandedAgeLabel] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
@@ -953,10 +951,9 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
                         style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.15s', boxShadow: isOpen ? LED.glow : 'none' }}
                       >
                         <div
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
-                          onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = 'rgba(38,194,129,0.04)' }}
-                          onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-                          onClick={() => setExpandedAdId(isOpen ? null : (ad.adId || idx))}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', background: 'rgba(255,255,255,0.03)', transition: 'background 0.15s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.04)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
                         >
                           <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
                           {ad.imageUrl
@@ -972,7 +969,13 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
                               <Pill label="CTR" value={ctrStr(ad.clicks, ad.impressions)} />
                             </div>
                           </div>
-                          <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? C.accent : C.textMute, fontSize: 20, flexShrink: 0 }} />
+                          <button
+                            onClick={() => setExpandedAdId(isOpen ? null : (ad.adId || idx))}
+                            title={isOpen ? 'Fechar gráfico' : 'Ver gráfico do anúncio'}
+                            style={{ background: isOpen ? 'rgba(38,194,129,0.15)' : 'rgba(255,255,255,0.04)', border: '1px solid ' + (isOpen ? C.borderGlow : 'rgba(255,255,255,0.08)'), borderRadius: 8, color: isOpen ? C.accent : C.textMute, fontSize: 16, cursor: 'pointer', padding: '6px 8px', lineHeight: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                          >
+                            <i className={'bx bx-line-chart'} />
+                          </button>
                         </div>
                         {isOpen && (
                           <InlineAdChart
@@ -999,39 +1002,22 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               : (() => {
                   const states = (breakdownData?.states || []).filter(s => getResults(s) > 0).slice(0, 5)
                   if (!states.length) return <EmptyBlock icon="bx-map">Sem dados de localização no período selecionado.</EmptyBlock>
-                  const maxRes = Math.max(...states.map(s => getResults(s)), 1)
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {states.map((s, idx) => {
                         const res = getResults(s)
                         const cpr = res > 0 ? s.spend / res : 0
-                        const isOpen = expandedStateLabel === (s.label || idx)
                         return (
-                          <div key={s.label || idx} style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}>
-                            <div
-                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
-                              onClick={() => setExpandedStateLabel(isOpen ? null : (s.label || idx))}
-                            >
-                              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{s.label || s.region || 'Desconhecido'}</div>
-                                <div style={{ position: 'relative', height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
-                                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: (res / maxRes * 100).toFixed(1) + '%', background: C.accent, borderRadius: 2, boxShadow: '0 0 6px rgba(38,194,129,0.5)' }} />
-                                </div>
+                          <div key={s.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{s.label || s.region || 'Desconhecido'}</div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                                <Pill label="Result." value={NUM(res)} accent />
+                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <Pill label="Invest." value={BRL(s.spend)} />
                               </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: C.accent }}>{NUM(res)}</div>
-                                <div style={{ fontSize: '0.65rem', color: C.textMute }}>result.</div>
-                              </div>
-                              <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? C.accent : C.textMute, fontSize: 18, flexShrink: 0 }} />
                             </div>
-                            {isOpen && (
-                              <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                                <MetricCard label="Resultado" value={NUM(res)} accent />
-                                <MetricCard label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
-                                <MetricCard label="Investimento" value={BRL(s.spend)} />
-                              </div>
-                            )}
                           </div>
                         )
                       })}
@@ -1049,39 +1035,22 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               : (() => {
                   const ages = (breakdownData?.ages || []).filter(a => getResults(a) > 0).slice(0, 5)
                   if (!ages.length) return <EmptyBlock icon="bx-user-circle">Sem dados de faixa etária no período selecionado.</EmptyBlock>
-                  const maxRes = Math.max(...ages.map(a => getResults(a)), 1)
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {ages.map((a, idx) => {
                         const res = getResults(a)
                         const cpr = res > 0 ? a.spend / res : 0
-                        const isOpen = expandedAgeLabel === (a.label || idx)
                         return (
-                          <div key={a.label || idx} style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}>
-                            <div
-                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
-                              onClick={() => setExpandedAgeLabel(isOpen ? null : (a.label || idx))}
-                            >
-                              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{a.label || a.age || 'Desconhecida'}</div>
-                                <div style={{ position: 'relative', height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
-                                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: (res / maxRes * 100).toFixed(1) + '%', background: '#a78bfa', borderRadius: 2, boxShadow: '0 0 6px rgba(167,139,250,0.5)' }} />
-                                </div>
+                          <div key={a.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{a.label || a.age || 'Desconhecida'}</div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                                <Pill label="Result." value={NUM(res)} accent />
+                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <Pill label="Invest." value={BRL(a.spend)} />
                               </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#a78bfa' }}>{NUM(res)}</div>
-                                <div style={{ fontSize: '0.65rem', color: C.textMute }}>result.</div>
-                              </div>
-                              <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? '#a78bfa' : C.textMute, fontSize: 18, flexShrink: 0 }} />
                             </div>
-                            {isOpen && (
-                              <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                                <MetricCard label="Resultado" value={NUM(res)} accent />
-                                <MetricCard label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
-                                <MetricCard label="Investimento" value={BRL(a.spend)} />
-                              </div>
-                            )}
                           </div>
                         )
                       })}
