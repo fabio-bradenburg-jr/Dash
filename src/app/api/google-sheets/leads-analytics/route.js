@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { getAccessContext, isPrimaryAdminEmail, USER_ROLES } from '@/lib/server/access-control'
+import { PLATFORM_AUTH_COOKIE } from '@/lib/saas/auth'
+import { verifyLocalAccessToken } from '@/lib/server/platform-auth-fallback'
 
 // ─── Parsing Helpers ─────────────────────────────────────────────────────────
 
@@ -466,14 +469,35 @@ function analyzeLeads({ rows, cols, headers }) {
 
 export async function GET(request) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
-    if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-
     const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
-    if (!accessContext.canViewDashboard) {
+    let accessContext = null
+
+    // Try Supabase auth first
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!userError && user) {
+      accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    } else {
+      // Fallback: platform-auth JWT cookie
+      const token = (await cookies()).get(PLATFORM_AUTH_COOKIE)?.value
+      if (!token) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+      const payload = await verifyLocalAccessToken(token)
+      const userId = String(payload.sub || '').replace(/^supabase:/, '')
+      const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('id, email, role, ai_access_level, can_edit_integrations, workspace_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!profile?.workspace_id) return NextResponse.json({ error: 'Workspace não encontrado.' }, { status: 404 })
+      const isPrimaryAdmin = isPrimaryAdminEmail(profile.email)
+      const role = isPrimaryAdmin ? USER_ROLES.MASTER : profile.role || USER_ROLES.VIEWER
+      accessContext = {
+        profile, role,
+        canViewDashboard: isPrimaryAdmin || role === USER_ROLES.MASTER || role === USER_ROLES.OPERATOR,
+      }
+    }
+
+    if (!accessContext?.canViewDashboard) {
       return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
     }
 

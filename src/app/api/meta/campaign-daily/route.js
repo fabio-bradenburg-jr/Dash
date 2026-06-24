@@ -22,7 +22,7 @@ export async function GET(request) {
 
     const params = new URLSearchParams({
       access_token: token,
-      fields: 'spend,impressions,clicks,actions,date_start,date_stop',
+      fields: 'spend,impressions,clicks,actions,action_values,date_start,date_stop',
       time_increment: '1',
       limit: '90',
     })
@@ -37,10 +37,15 @@ export async function GET(request) {
     const raw = await fetchMetaJson(url, 'A Meta demorou para responder.', { maxPages: 2 })
     const rows = (raw?.data || []).map((row) => {
       const formatted = formatInsightsWithConversions(row)
-      const actions = row.actions || []
-      const purchase = actions.find((a) => a.action_type === 'purchase')
-      const lead = actions.find((a) => a.action_type === 'lead')
-      const results = parseFloat((purchase || lead || {}).value || 0)
+      const cm = formatted.custom_metrics || {}
+      // Pick the dominant result metric (same logic as campaigns-overview)
+      const results = Math.max(
+        cm.purchases || 0,
+        cm.leads || 0,
+        cm.messages || 0,
+        cm.thruplays || 0,
+        cm.landingPageViews || 0,
+      )
       const ctr = parseFloat(row.clicks || 0) > 0 && parseFloat(row.impressions || 0) > 0
         ? (parseFloat(row.clicks) / parseFloat(row.impressions)) * 100
         : 0
