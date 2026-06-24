@@ -65,12 +65,11 @@ export function resolveMetaDateSelection(datePreset, since, until) {
   }
 
   if (datePreset === 'this_month') {
-    // From the 1st of the current month (SP timezone) to yesterday
     const firstOfMonth = createUtcDateFromParts({ year: todayParts.year, month: todayParts.month, day: 1 })
     return {
       mode: 'time_range',
       since: formatUtcDate(firstOfMonth),
-      until: yesterday,
+      until: formatUtcDate(todayDate),
     }
   }
 
