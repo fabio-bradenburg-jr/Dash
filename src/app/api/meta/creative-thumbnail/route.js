@@ -11,13 +11,14 @@ async function readSavedCreative(clientKey, adId) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('meta_creative_cache')
-    .select('payload')
+    .select('payload, fetched_at')
     .eq('client_key', clientKey)
     .eq('ad_id', adId)
     .maybeSingle()
 
   if (error) throw error
-  return data?.payload || null
+  if (!data) return null
+  return { ...data.payload, _fetchedAt: data.fetched_at }
 }
 
 async function saveCreativeThumbnail(clientKey, adId, savedCreative, imageUrl) {
@@ -52,12 +53,12 @@ export async function GET(request) {
     let imageUrl = null
 
     const savedCreative = await readSavedCreative(clientKey, adId)
-    if (savedCreative?.imageUrl) {
-      // Try cached URL first; if expired, fall through to re-fetch
-      const probe = await fetch(savedCreative.imageUrl, { method: 'HEAD' }).catch(() => null)
-      if (probe?.ok) {
-        imageUrl = savedCreative.imageUrl
-      }
+    // Use cache if it's fresh (< 6 hours) — Facebook CDN URLs expire around that window
+    const cacheAgeMs = savedCreative?._fetchedAt
+      ? Date.now() - new Date(savedCreative._fetchedAt).getTime()
+      : Infinity
+    if (savedCreative?.imageUrl && cacheAgeMs < 6 * 60 * 60 * 1000) {
+      imageUrl = savedCreative.imageUrl
     }
 
     if (!imageUrl) {
@@ -80,18 +81,9 @@ export async function GET(request) {
       await saveCreativeThumbnail(clientKey, adId, savedCreative, imageUrl)
     }
 
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      return new NextResponse(null, { status: 404 })
-    }
-
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg'
-    const buffer = await imageResponse.arrayBuffer()
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
-      },
+    // Redirect browser directly to the Facebook CDN URL — avoids server-side binary proxy
+    return NextResponse.redirect(imageUrl, {
+      headers: { 'Cache-Control': 'public, max-age=3600' },
     })
   } catch (error) {
     console.error('Meta creative thumbnail error:', error)

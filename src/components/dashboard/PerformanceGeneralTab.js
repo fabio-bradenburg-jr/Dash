@@ -637,10 +637,66 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
   )
 }
 
+/* ── InlineAdChart ── */
+function InlineAdChart({ ad, dateRange, customSince, customUntil, metaRequestHeaders }) {
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState('')
+  const results = getResults(ad)
+  const cpr = cprStr(ad.spend, results)
+  const ctr = ctrStr(ad.clicks, ad.impressions)
+
+  useEffect(() => {
+    if (!ad.adId) { setLoading(false); return }
+    setLoading(true); setError('')
+    const params = new URLSearchParams({ entityId: ad.adId })
+    if (dateRange === 'custom' && customSince && customUntil) {
+      params.set('since', customSince); params.set('until', customUntil)
+    } else {
+      params.set('date_preset', dateRange || 'last_7d')
+    }
+    fetch('/api/meta/campaign-daily?' + params.toString(), { headers: metaRequestHeaders || {} })
+      .then(r => r.json())
+      .then(json => { if (json.error) throw new Error(json.error); setData(json.data || []) })
+      .catch(e => setError(e.message || 'Erro ao carregar dados.'))
+      .finally(() => setLoading(false))
+  }, [ad.adId, dateRange, customSince, customUntil])
+
+  return (
+    <div style={{ padding: '14px 16px 16px', background: 'rgba(0,0,0,0.15)', borderTop: '1px solid ' + C.border, borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {ad.imageUrl && (
+        <img src={ad.imageUrl} alt={ad.name || ''} style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, border: '1px solid ' + C.border }} />
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+        <MetricCard label="Investimento" value={BRL(ad.spend)} accent />
+        <MetricCard label="Resultado" value={NUM(results)} />
+        <MetricCard label="CPR" value={cpr} warn={results === 0} />
+        <MetricCard label="CTR" value={ctr} />
+      </div>
+      <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(190,201,191,0.1)', borderRadius: 12, padding: '14px 12px 10px' }}>
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMute }}>
+            <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22, color: C.accent, display: 'block', marginBottom: 6 }} />
+            <span style={{ fontSize: '0.75rem' }}>Carregando evolução diária...</span>
+          </div>
+        )}
+        {!loading && error && (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: '#ef4444', fontSize: '0.75rem' }}>
+            <i className="bx bx-error-circle" style={{ fontSize: 20, display: 'block', marginBottom: 4 }} />{error}
+          </div>
+        )}
+        {!loading && !error && <LineChart data={data} />}
+      </div>
+    </div>
+  )
+}
+
 /* ── ClientDetailModal ── */
 function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, customSince, customUntil, metaRequestHeaders, cprBenchmark, cprSettings, onCprBenchmarkSaved, onClose }) {
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
-  const [selectedAd, setSelectedAd] = useState(null)
+  const [expandedAdId, setExpandedAdId] = useState(null)
+  const [expandedStateLabel, setExpandedStateLabel] = useState(null)
+  const [expandedAgeLabel, setExpandedAgeLabel] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetError, setSheetError] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
@@ -890,34 +946,43 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {topAds.map((ad, idx) => {
                     const results = getResults(ad)
+                    const isOpen = expandedAdId === (ad.adId || idx)
                     return (
                       <div
                         key={ad.adId || idx}
-                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 12, transition: 'all 0.15s', cursor: 'pointer' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.05)'; e.currentTarget.style.borderColor = C.borderGlow; e.currentTarget.style.boxShadow = LED.glow }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}
-                        onClick={() => setSelectedAd(ad)}
+                        style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.15s', boxShadow: isOpen ? LED.glow : 'none' }}
                       >
-                        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                        {ad.imageUrl
-                          ? <img src={ad.imageUrl} alt={ad.name || ad.label || ''} style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-                          : <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMute, flexShrink: 0 }}><i className="bx bx-image-alt" /></div>
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{ad.name || ad.label || 'Sem título'}</div>
-                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <Pill label="Invest." value={BRL(ad.spend)} accent />
-                            <Pill label="Result." value={NUM(results)} />
-                            <Pill label="CPR" value={cprStr(ad.spend, results)} warn={results === 0} />
-                            <Pill label="CTR" value={ctrStr(ad.clicks, ad.impressions)} />
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
+                          onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = 'rgba(38,194,129,0.04)' }}
+                          onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                          onClick={() => setExpandedAdId(isOpen ? null : (ad.adId || idx))}
+                        >
+                          <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                          {ad.imageUrl
+                            ? <img src={ad.imageUrl} alt={ad.name || ad.label || ''} style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                            : <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMute, flexShrink: 0 }}><i className="bx bx-image-alt" /></div>
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{ad.name || ad.label || 'Sem título'}</div>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                              <Pill label="Invest." value={BRL(ad.spend)} accent />
+                              <Pill label="Result." value={NUM(results)} />
+                              <Pill label="CPR" value={cprStr(ad.spend, results)} warn={results === 0} />
+                              <Pill label="CTR" value={ctrStr(ad.clicks, ad.impressions)} />
+                            </div>
                           </div>
+                          <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? C.accent : C.textMute, fontSize: 20, flexShrink: 0 }} />
                         </div>
-                        <ChartIconBtn
-                          title="Ver gráfico do anúncio"
-                          active={false}
-                          onClick={(e) => { e.stopPropagation(); setSelectedAd({ ...ad, _openChart: true }) }}
-                        />
-                        <i className="bx bx-right-arrow-alt" style={{ color: C.textMute, fontSize: 17, flexShrink: 0 }} />
+                        {isOpen && (
+                          <InlineAdChart
+                            ad={ad}
+                            dateRange={dateRange}
+                            customSince={customSince}
+                            customUntil={customUntil}
+                            metaRequestHeaders={metaRequestHeaders}
+                          />
+                        )}
                       </div>
                     )
                   })}
@@ -934,22 +999,39 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               : (() => {
                   const states = (breakdownData?.states || []).filter(s => getResults(s) > 0).slice(0, 5)
                   if (!states.length) return <EmptyBlock icon="bx-map">Sem dados de localização no período selecionado.</EmptyBlock>
+                  const maxRes = Math.max(...states.map(s => getResults(s)), 1)
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {states.map((s, idx) => {
                         const res = getResults(s)
                         const cpr = res > 0 ? s.spend / res : 0
+                        const isOpen = expandedStateLabel === (s.label || idx)
                         return (
-                          <div key={s.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{s.label || s.region || 'Desconhecido'}</div>
-                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
-                                <Pill label="Result." value={NUM(res)} accent />
-                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
-                                <Pill label="Invest." value={BRL(s.spend)} />
+                          <div key={s.label || idx} style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}>
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
+                              onClick={() => setExpandedStateLabel(isOpen ? null : (s.label || idx))}
+                            >
+                              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{s.label || s.region || 'Desconhecido'}</div>
+                                <div style={{ position: 'relative', height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
+                                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: (res / maxRes * 100).toFixed(1) + '%', background: C.accent, borderRadius: 2, boxShadow: '0 0 6px rgba(38,194,129,0.5)' }} />
+                                </div>
                               </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: C.accent }}>{NUM(res)}</div>
+                                <div style={{ fontSize: '0.65rem', color: C.textMute }}>result.</div>
+                              </div>
+                              <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? C.accent : C.textMute, fontSize: 18, flexShrink: 0 }} />
                             </div>
+                            {isOpen && (
+                              <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                                <MetricCard label="Resultado" value={NUM(res)} accent />
+                                <MetricCard label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <MetricCard label="Investimento" value={BRL(s.spend)} />
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -967,22 +1049,39 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
               : (() => {
                   const ages = (breakdownData?.ages || []).filter(a => getResults(a) > 0).slice(0, 5)
                   if (!ages.length) return <EmptyBlock icon="bx-user-circle">Sem dados de faixa etária no período selecionado.</EmptyBlock>
+                  const maxRes = Math.max(...ages.map(a => getResults(a)), 1)
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {ages.map((a, idx) => {
                         const res = getResults(a)
                         const cpr = res > 0 ? a.spend / res : 0
+                        const isOpen = expandedAgeLabel === (a.label || idx)
                         return (
-                          <div key={a.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{a.label || a.age || 'Desconhecida'}</div>
-                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
-                                <Pill label="Result." value={NUM(res)} accent />
-                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
-                                <Pill label="Invest." value={BRL(a.spend)} />
+                          <div key={a.label || idx} style={{ border: '1px solid ' + (isOpen ? C.borderGlow : C.border), borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}>
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isOpen ? 'rgba(38,194,129,0.05)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', transition: 'background 0.15s' }}
+                              onClick={() => setExpandedAgeLabel(isOpen ? null : (a.label || idx))}
+                            >
+                              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{a.label || a.age || 'Desconhecida'}</div>
+                                <div style={{ position: 'relative', height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
+                                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: (res / maxRes * 100).toFixed(1) + '%', background: '#a78bfa', borderRadius: 2, boxShadow: '0 0 6px rgba(167,139,250,0.5)' }} />
+                                </div>
                               </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#a78bfa' }}>{NUM(res)}</div>
+                                <div style={{ fontSize: '0.65rem', color: C.textMute }}>result.</div>
+                              </div>
+                              <i className={'bx bx-chevron-' + (isOpen ? 'up' : 'down')} style={{ color: isOpen ? '#a78bfa' : C.textMute, fontSize: 18, flexShrink: 0 }} />
                             </div>
+                            {isOpen && (
+                              <div style={{ padding: '12px 16px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                                <MetricCard label="Resultado" value={NUM(res)} accent />
+                                <MetricCard label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <MetricCard label="Investimento" value={BRL(a.spend)} />
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -1077,16 +1176,6 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
         </div>
       </div>
 
-      {selectedAd && (
-        <AdDetailModal
-          ad={selectedAd}
-          campaignName={selectedAd._campaignName || null}
-          adsetName={selectedAd._adsetName || null}
-          dateRange={dateRange} customSince={customSince} customUntil={customUntil}
-          metaRequestHeaders={metaRequestHeaders}
-          onClose={() => setSelectedAd(null)}
-        />
-      )}
     </div>
   )
 }

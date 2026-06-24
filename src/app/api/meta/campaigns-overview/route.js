@@ -13,6 +13,14 @@ import { verifyLocalAccessToken } from '@/lib/server/platform-auth-fallback'
 
 const CAMPAIGN_OVERVIEW_FIELDS = 'ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,spend,impressions,clicks,actions,action_values,cost_per_action_type'
 
+function buildCreativeThumbnailUrl(adAccountId, adId) {
+  const params = new URLSearchParams({
+    ad_account_id: String(adAccountId || '').replace(/^act_/, ''),
+    ad_id: adId,
+  })
+  return `/api/meta/creative-thumbnail?${params.toString()}`
+}
+
 async function getDashboardAccessContext() {
   const supabase = await createClient()
   const {
@@ -188,7 +196,7 @@ function sortBySpend(items) {
   return items.sort((left, right) => Number(right.spend || 0) - Number(left.spend || 0))
 }
 
-function aggregateHierarchy(rows, objectiveMap) {
+function aggregateHierarchy(rows, objectiveMap, adAccountId) {
   const campaignsById = new Map()
   const totals = emptyMetrics()
 
@@ -242,6 +250,7 @@ function aggregateHierarchy(rows, objectiveMap) {
       impressions: row.impressions,
       clicks: row.clicks,
       results: getResultsForObjective(objective, row.custom_metrics),
+      imageUrl: row.adId ? buildCreativeThumbnailUrl(adAccountId, row.adId) : '',
     })
   })
 
@@ -330,7 +339,7 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
       if (a.id) adsetStatusMap.set(a.id, a.effective_status || '')
     })
 
-    const hierarchy = aggregateHierarchy(data?.data || [], objectiveMap)
+    const hierarchy = aggregateHierarchy(data?.data || [], objectiveMap, adAccountId)
     const campaigns = hierarchy.campaigns.map((c) => ({
       ...c,
       effectiveStatus: statusMap.get(c.campaignId) || '',
