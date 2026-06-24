@@ -478,11 +478,12 @@ export async function GET(request) {
 
     function applyDateFilter(rows, dateColIndex) {
       if ((!sinceDate && !untilDate) || dateColIndex === undefined) return rows
+      // When filtering by period, only keep rows with a parseable date in range
       return rows.filter(row => {
         const raw = row[dateColIndex]
-        if (!raw) return true  // keep rows without date
+        if (!raw) return false
         const dt = parseDate(raw)
-        if (!dt) return true
+        if (!dt) return false
         if (sinceDate && dt < sinceDate) return false
         if (untilDate && dt > untilDate) return false
         return true
