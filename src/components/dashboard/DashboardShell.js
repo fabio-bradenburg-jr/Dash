@@ -10449,7 +10449,6 @@ export default function DashboardShell({
         setAdsOverviewUpdatedAt(data.updatedAt || new Date().toISOString())
       } catch (error) {
         if (cancelled) return
-        setAdsOverviewRows([])
         setAdsOverviewUpdatedAt('')
         setAdsOverviewError(error.message || 'Não foi possível carregar os anúncios.')
       } finally {
@@ -10498,7 +10497,6 @@ export default function DashboardShell({
         setCampaignOverviewUpdatedAt(data.updatedAt || new Date().toISOString())
       } catch (error) {
         if (cancelled) return
-        setCampaignOverviewRows([])
         setCampaignOverviewUpdatedAt('')
         setCampaignOverviewError(error.message || 'Não foi possível carregar as campanhas.')
       } finally {
@@ -20194,6 +20192,7 @@ export default function DashboardShell({
             adsOverviewLoading={adsOverviewLoading}
             campaignOverviewRows={campaignOverviewRows}
             campaignOverviewLoading={campaignOverviewLoading}
+            campaignOverviewError={campaignOverviewError}
             adAccountBalanceRows={adAccountBalanceRows}
             adAccountBalanceLoading={adAccountBalanceLoading}
             WEEKLY_HEALTH_BY_KEY={WEEKLY_HEALTH_BY_KEY}

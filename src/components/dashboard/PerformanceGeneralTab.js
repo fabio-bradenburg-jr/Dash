@@ -41,8 +41,16 @@ const fmtDate = (d) => {
   const [y, m, day] = d.split('-')
   return `${day}/${m}`
 }
-const getResults = (item) =>
-  item?.results ?? item?.custom_metrics?.totalConversions ?? 0
+const getResults = (item) => {
+  if (item?.results !== undefined && item.results !== null) return item.results
+  const m = item?.custom_metrics
+  if (!m) return 0
+  const type = m.primaryConversionType || ''
+  if (type === 'Compras')    return m.purchases || 0
+  if (type === 'Leads')      return m.leads     || 0
+  if (type === 'Mensagens')  return m.messages  || 0
+  return Math.max(m.purchases || 0, m.leads || 0, m.messages || 0) || 0
+}
 const cprStr = (spend, results) => {
   if (typeof results === 'number' && results === 0) return 'Sem resultados'
   if (typeof spend === 'number' && typeof results === 'number' && results > 0) return BRL(spend / results)
@@ -1269,6 +1277,7 @@ export default function PerformanceGeneralTab({
   adsOverviewLoading,
   campaignOverviewRows,
   campaignOverviewLoading,
+  campaignOverviewError,
   adAccountBalanceRows,
   adAccountBalanceLoading,
   dateRange,
@@ -1439,6 +1448,14 @@ export default function PerformanceGeneralTab({
           {sortedClients.length} cliente{sortedClients.length !== 1 ? 's' : ''}
         </span>
       </div>
+
+      {/* Error banner */}
+      {campaignOverviewError && !campaignOverviewLoading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: '0.79rem' }}>
+          <i className="bx bx-error-circle" style={{ fontSize: 16, flexShrink: 0 }} />
+          <span>{campaignOverviewError}</span>
+        </div>
+      )}
 
       {/* Client grid */}
       {isLoading && (
