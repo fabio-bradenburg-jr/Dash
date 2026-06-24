@@ -271,7 +271,7 @@ function ChartModal({ title, entityId, metrics, dateRange, customSince, customUn
       .catch((e) => { if (!cancelled) setError(e.message || 'Erro ao carregar dados.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [entityId, dateRange, customSince, customUntil])
+  }, [entityId, dateRange, customSince, customUntil, metaRequestHeaders])
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -663,7 +663,7 @@ function InlineAdChart({ ad, dateRange, customSince, customUntil, metaRequestHea
       .then(json => { if (json.error) throw new Error(json.error); setData(json.data || []) })
       .catch(e => setError(e.message || 'Erro ao carregar dados.'))
       .finally(() => setLoading(false))
-  }, [ad.adId, dateRange, customSince, customUntil])
+  }, [ad.adId, dateRange, customSince, customUntil, metaRequestHeaders])
 
   return (
     <div style={{ padding: '14px 16px 16px', background: 'rgba(0,0,0,0.15)', borderTop: '1px solid ' + C.border, borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>

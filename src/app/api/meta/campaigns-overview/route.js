@@ -217,7 +217,9 @@ function aggregateHierarchy(rows, objectiveMap, adAccountId) {
       custom_metrics: formatted.custom_metrics || {},
     }
 
-    if (!row.campaignId || !row.adsetId || !row.adId || row.spend <= 0) return
+    if (!row.campaignId || !row.adsetId || !row.adId) return
+    const rowHasActivity = row.spend > 0 || row.impressions > 0 || getResultsForObjective(objective, row.custom_metrics) > 0
+    if (!rowHasActivity) return
 
     addMetrics(totals, row, objective)
 
@@ -311,7 +313,7 @@ async function fetchClientCampaignTree({ client, token, datePreset, since, until
     const [data, campaignsData, adsetsData] = await Promise.all([
       fetchMetaJson(url, 'A Meta demorou para responder ao carregar campanhas.', {
         cacheContext: { clientKey: adAccountId, resourceKind: 'campaigns_overview' },
-        maxPages: 3,
+        maxPages: 5,
       }),
       fetchMetaJson(
         `https://graph.facebook.com/v19.0/act_${adAccountId}/campaigns?fields=id,effective_status,objective&limit=500&access_token=${encodeURIComponent(token)}`,
