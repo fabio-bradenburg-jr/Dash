@@ -33,22 +33,44 @@ function formatUtcDate(date) {
 
 export function resolveMetaDateSelection(datePreset, since, until) {
   if (datePreset === 'custom' && since && until) {
+    return { mode: 'time_range', since, until }
+  }
+
+  const todayParts = getTimeZoneDateParts()
+  const todayDate  = createUtcDateFromParts(todayParts)
+  const yesterday  = formatUtcDate(shiftUtcDays(todayDate, -1))
+
+  if (datePreset === 'last_7d') {
     return {
       mode: 'time_range',
-      since,
-      until,
+      since: formatUtcDate(shiftUtcDays(todayDate, -7)),
+      until: yesterday,
+    }
+  }
+
+  if (datePreset === 'last_14d') {
+    return {
+      mode: 'time_range',
+      since: formatUtcDate(shiftUtcDays(todayDate, -14)),
+      until: yesterday,
     }
   }
 
   if (datePreset === 'last_30d') {
-    const todayInTimeZone = createUtcDateFromParts(getTimeZoneDateParts())
-    const resolvedSince = formatUtcDate(shiftUtcDays(todayInTimeZone, -30))
-    const resolvedUntil = formatUtcDate(shiftUtcDays(todayInTimeZone, -1))
-
     return {
       mode: 'time_range',
-      since: resolvedSince,
-      until: resolvedUntil,
+      since: formatUtcDate(shiftUtcDays(todayDate, -30)),
+      until: yesterday,
+    }
+  }
+
+  if (datePreset === 'this_month') {
+    // From the 1st of the current month (SP timezone) to yesterday
+    const firstOfMonth = createUtcDateFromParts({ year: todayParts.year, month: todayParts.month, day: 1 })
+    return {
+      mode: 'time_range',
+      since: formatUtcDate(firstOfMonth),
+      until: yesterday,
     }
   }
 
