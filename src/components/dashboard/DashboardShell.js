@@ -258,7 +258,7 @@ const WEEKLY_HEALTH_OPTIONS = [
   },
   {
     key: 'with_result',
-    label: 'Com resultado',
+    label: 'Excelente',
     score: 4,
     color: '#1d8fff',
     softColor: '#dbeafe',
@@ -15355,7 +15355,7 @@ export default function DashboardShell({
           <div><span>Crítico</span><strong>{formatNumber(weeklyPortfolioStats.criticalCount)}</strong></div>
           <div><span>Atenção</span><strong>{formatNumber(weeklyPortfolioStats.attentionCount)}</strong></div>
           <div><span>Saudável</span><strong>{formatNumber(weeklyPortfolioStats.healthyCount)}</strong></div>
-          <div><span>Com resultado</span><strong>{formatNumber(weeklyPortfolioStats.withResultCount)}</strong></div>
+          <div><span>Excelente</span><strong>{formatNumber(weeklyPortfolioStats.withResultCount)}</strong></div>
           <div><span>Churn</span><strong>{formatNumber(weeklyPortfolioStats.churnCount)}</strong></div>
         </div>
         <div className={'weekly-risk-badge weekly-goal-badge ' + (weeklySummary.withinRiskTarget ? 'healthy' : 'critical')}>
