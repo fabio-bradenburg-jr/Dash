@@ -643,6 +643,8 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   const [selectedAd, setSelectedAd] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
+  const [breakdownData, setBreakdownData] = useState(null)
+  const [breakdownLoading, setBreakdownLoading] = useState(false)
 
   useEffect(() => {
     const url = client.leadsSheetUrl || ''
@@ -682,6 +684,23 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
       .then(data => setSheetData(data?.overview ? data : null))
       .catch(() => setSheetData(null))
       .finally(() => setSheetLoading(false))
+  }, [client.id, dateRange, customSince, customUntil])
+
+  useEffect(() => {
+    const adAccountId = String(client.metaAdAccountId || '').replace(/^act_/, '')
+    if (!adAccountId) return
+    setBreakdownLoading(true)
+    setBreakdownData(null)
+    const params = new URLSearchParams({ ad_account_id: adAccountId, date_preset: dateRange || 'last_7d' })
+    if (dateRange === 'custom' && customSince && customUntil) {
+      params.set('since', customSince)
+      params.set('until', customUntil)
+    }
+    fetch('/api/meta/breakdowns?' + params.toString(), { headers: metaRequestHeaders || {} })
+      .then(r => r.json())
+      .then(data => setBreakdownData(data?.states !== undefined ? data : null))
+      .catch(() => setBreakdownData(null))
+      .finally(() => setBreakdownLoading(false))
   }, [client.id, dateRange, customSince, customUntil])
 
   const h           = HEALTH_META[healthKey] || HEALTH_META.empty
@@ -829,16 +848,70 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
             }
           </div>
 
-          {/* Top 5 estados */}
+          {/* Top 5 Estados */}
           <div>
             <SectionTitle>Top 5 Estados por Resultado</SectionTitle>
-            <EmptyBlock icon="bx-map">Sem dados de localização no período selecionado. Esta métrica requer segmentação geográfica via API.</EmptyBlock>
+            {breakdownLoading
+              ? <EmptyBlock icon="bx-loader-alt">Carregando dados geográficos...</EmptyBlock>
+              : (() => {
+                  const states = (breakdownData?.states || []).filter(s => getResults(s) > 0).slice(0, 5)
+                  if (!states.length) return <EmptyBlock icon="bx-map">Sem dados de localização no período selecionado.</EmptyBlock>
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {states.map((s, idx) => {
+                        const res = getResults(s)
+                        const cpr = res > 0 ? s.spend / res : 0
+                        return (
+                          <div key={s.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{s.label || s.region || 'Desconhecido'}</div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                                <Pill label="Result." value={NUM(res)} accent />
+                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <Pill label="Invest." value={BRL(s.spend)} />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()
+            }
           </div>
 
-          {/* Top idades */}
+          {/* Top Idades */}
           <div>
             <SectionTitle>Top Idades por Resultado</SectionTitle>
-            <EmptyBlock icon="bx-user-circle">Sem dados de faixa etária no período selecionado. Esta métrica requer segmentação demográfica via API.</EmptyBlock>
+            {breakdownLoading
+              ? <EmptyBlock icon="bx-loader-alt">Carregando dados demográficos...</EmptyBlock>
+              : (() => {
+                  const ages = (breakdownData?.ages || []).filter(a => getResults(a) > 0).slice(0, 5)
+                  if (!ages.length) return <EmptyBlock icon="bx-user-circle">Sem dados de faixa etária no período selecionado.</EmptyBlock>
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {ages.map((a, idx) => {
+                        const res = getResults(a)
+                        const cpr = res > 0 ? a.spend / res : 0
+                        return (
+                          <div key={a.label || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid ' + C.border, borderRadius: 10 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: C.accent, width: 22, flexShrink: 0, textAlign: 'center' }}>{'#' + (idx + 1)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#e5e7eb' }}>{a.label || a.age || 'Desconhecida'}</div>
+                              <div style={{ display: 'flex', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                                <Pill label="Result." value={NUM(res)} accent />
+                                <Pill label="CPR" value={cpr > 0 ? BRL(cpr) : '-'} />
+                                <Pill label="Invest." value={BRL(a.spend)} />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()
+            }
           </div>
 
           {/* Saldos */}
