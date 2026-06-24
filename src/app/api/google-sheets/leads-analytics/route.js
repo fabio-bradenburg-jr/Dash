@@ -218,17 +218,31 @@ function detectColumns(headers) {
 function parseDate(value) {
   const s = String(value || '').trim()
   if (!s) return null
-  // dd/mm/yyyy or dd-mm-yyyy
+
+  // dd/mm/yyyy or dd-mm-yyyy (optionally followed by time)
   const dmY = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/)
   if (dmY) {
     const [, d, m, y] = dmY
     const year = y.length === 2 ? 2000 + parseInt(y) : parseInt(y)
-    const dt = new Date(year, parseInt(m) - 1, parseInt(d))
-    return isNaN(dt) ? null : dt
+    const month = parseInt(m), day = parseInt(d)
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      const dt = new Date(year, month - 1, day)
+      return isNaN(dt.getTime()) ? null : dt
+    }
   }
-  // ISO or other JS-parseable
-  const dt = new Date(s)
-  return isNaN(dt) ? null : dt
+
+  // yyyy/mm/dd
+  const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/)
+  if (ymd) {
+    const [, y, m, d] = ymd
+    const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+    return isNaN(dt.getTime()) ? null : dt
+  }
+
+  // Meta timestamp: "2026-06-23 14:30:00+0000" — normalize space to T
+  const normalized = s.replace(/^(\d{4}-\d{2}-\d{2})\s/, '$1T')
+  const dt = new Date(normalized)
+  return isNaN(dt.getTime()) ? null : dt
 }
 
 function dateKey(dt) {
@@ -312,16 +326,17 @@ function analyzeLeads({ rows, cols, headers }) {
 
   let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
 
-  // Whether this sheet has a date column — if yes, only rows with a date are leads
+  // Whether this sheet has a date column — if yes, only rows with a non-empty date field are leads
   const hasDateCol = cols.date !== undefined
 
   for (const row of rows) {
     const rawDate = hasDateCol ? row[cols.date] : null
     const dt = rawDate ? parseDate(rawDate) : null
 
-    // A lead is a row that has a date value (when the sheet has a date column).
+    // A lead is a row that has a non-empty date value (when the sheet has a date column).
+    // Rows whose date doesn't parse are still counted — we don't discard leads over parse failures.
     // If no date column exists, every data row counts as a lead.
-    if (hasDateCol && !dt) continue
+    if (hasDateCol && !rawDate) continue
 
     const campaign = cols.campaign !== undefined ? (row[cols.campaign] || 'Sem campanha') : null
     const adset = cols.adset !== undefined ? (row[cols.adset] || 'Sem conjunto') : null
@@ -478,12 +493,13 @@ export async function GET(request) {
 
     function applyDateFilter(rows, dateColIndex) {
       if ((!sinceDate && !untilDate) || dateColIndex === undefined) return rows
-      // When filtering by period, only keep rows with a parseable date in range
+      // When filtering by period: exclude rows with no date value; keep rows with
+      // a date in range, or rows whose date can't be parsed (don't discard over parse failures).
       return rows.filter(row => {
         const raw = row[dateColIndex]
         if (!raw) return false
         const dt = parseDate(raw)
-        if (!dt) return false
+        if (!dt) return true   // date exists but didn't parse → keep (don't discard leads)
         if (sinceDate && dt < sinceDate) return false
         if (untilDate && dt > untilDate) return false
         return true
