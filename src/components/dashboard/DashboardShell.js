@@ -8534,7 +8534,7 @@ export default function DashboardShell({
       return
     }
 
-    if (activeTab === 'anuncios' || activeTab === 'campanhas') {
+    if (activeTab === 'anuncios' || activeTab === 'campanhas' || activeTab === 'geral') {
       setDateRange(draftDateRange)
       setCustomSince(draftCustomSince)
       setCustomUntil(draftCustomUntil)
