@@ -312,7 +312,17 @@ function analyzeLeads({ rows, cols, headers }) {
 
   let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
 
+  // Whether this sheet has a date column — if yes, only rows with a date are leads
+  const hasDateCol = cols.date !== undefined
+
   for (const row of rows) {
+    const rawDate = hasDateCol ? row[cols.date] : null
+    const dt = rawDate ? parseDate(rawDate) : null
+
+    // A lead is a row that has a date value (when the sheet has a date column).
+    // If no date column exists, every data row counts as a lead.
+    if (hasDateCol && !dt) continue
+
     const campaign = cols.campaign !== undefined ? (row[cols.campaign] || 'Sem campanha') : null
     const adset = cols.adset !== undefined ? (row[cols.adset] || 'Sem conjunto') : null
     const ad = cols.ad !== undefined ? (row[cols.ad] || 'Sem anúncio') : null
@@ -321,7 +331,6 @@ function analyzeLeads({ rows, cols, headers }) {
     const rawQual = cols.qualification !== undefined ? (row[cols.qualification] || '') : ''
     const rawStatus = cols.status !== undefined ? (row[cols.status] || '') : ''
     const rawClassifier = rawQual || rawStatus  // what we classify on
-    const rawDate = cols.date !== undefined ? row[cols.date] : null
 
     const statusClass = classifyStatus(rawClassifier)
 
@@ -337,23 +346,22 @@ function analyzeLeads({ rows, cols, headers }) {
 
     if (campaign) {
       if (!campaignMap.has(campaign)) campaignMap.set(campaign, emptyBucket(campaign))
-      addToBucket(campaignMap.get(campaign), statusClass, rawStatus)
+      addToBucket(campaignMap.get(campaign), statusClass, rawClassifier)
     }
     if (adset) {
       const key = adset
       if (!adsetMap.has(key)) adsetMap.set(key, emptyBucket(adset))
-      addToBucket(adsetMap.get(key), statusClass, rawStatus)
+      addToBucket(adsetMap.get(key), statusClass, rawClassifier)
     }
     if (ad) {
       if (!adMap.has(ad)) adMap.set(ad, emptyBucket(ad))
-      addToBucket(adMap.get(ad), statusClass, rawStatus)
+      addToBucket(adMap.get(ad), statusClass, rawClassifier)
     }
     if (source) {
       if (!sourceMap.has(source)) sourceMap.set(source, emptyBucket(source))
-      addToBucket(sourceMap.get(source), statusClass, rawStatus)
+      addToBucket(sourceMap.get(source), statusClass, rawClassifier)
     }
 
-    const dt = rawDate ? parseDate(rawDate) : null
     if (dt) {
       const k = dateKey(dt)
       if (!dateMap.has(k)) dateMap.set(k, { date: k, total: 0, qualified: 0, converted: 0, lost: 0 })
