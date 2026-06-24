@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 
 /* ── Health meta ── */
 const HEALTH_META = {
@@ -249,8 +249,9 @@ function ChartModal({ title, entityId, metrics, dateRange, customSince, customUn
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState('')
 
-  useMemo(() => {
+  useEffect(() => {
     if (!entityId) { setLoading(false); return }
+    let cancelled = false
     setLoading(true)
     setError('')
     const params = new URLSearchParams({ entityId })
@@ -263,11 +264,13 @@ function ChartModal({ title, entityId, metrics, dateRange, customSince, customUn
     fetch('/api/meta/campaign-daily?' + params.toString(), { headers: metaRequestHeaders || {} })
       .then((r) => r.json())
       .then((json) => {
+        if (cancelled) return
         if (json.error) throw new Error(json.error)
         setData(json.data || [])
       })
-      .catch((e) => setError(e.message || 'Erro ao carregar dados.'))
-      .finally(() => setLoading(false))
+      .catch((e) => { if (!cancelled) setError(e.message || 'Erro ao carregar dados.') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [entityId, dateRange, customSince, customUntil])
 
   return (
@@ -718,6 +721,11 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     let since = '', until = ''
     if (dateRange === 'custom' && customSince && customUntil) {
       since = customSince; until = customUntil
+    } else if (dateRange === 'today') {
+      since = fmtDate(today); until = fmtDate(today)
+    } else if (dateRange === 'yesterday') {
+      const y = new Date(today); y.setDate(y.getDate() - 1)
+      since = fmtDate(y); until = fmtDate(y)
     } else if (dateRange === 'last_7d') {
       const s = new Date(today); s.setDate(s.getDate() - 6)
       since = fmtDate(s); until = fmtDate(today)
@@ -727,12 +735,15 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     } else if (dateRange === 'last_30d') {
       const s = new Date(today); s.setDate(s.getDate() - 29)
       since = fmtDate(s); until = fmtDate(today)
+    } else if (dateRange === 'this_month') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1)
+      since = fmtDate(first); until = fmtDate(today)
     } else if (dateRange === 'last_month') {
       const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       const last  = new Date(today.getFullYear(), today.getMonth(), 0)
       since = fmtDate(first); until = fmtDate(last)
     }
-    // 'all' or unknown → no date filter (since/until stay empty)
+    // 'maximum' or unknown → no date filter (since/until stay empty)
 
     const params = new URLSearchParams({ url, gid: 'all' })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
@@ -773,8 +784,8 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   const totalSpend   = campaignRow?.totals?.spend ?? adsRowAds.reduce((s, a) => s + (a.spend || 0), 0)
   const totalResults = campaignRow?.totals?.results ?? adsRowAds.reduce((s, a) => s + (getResults(a) || 0), 0)
   const totalBalance = balanceAccs.reduce((s, a) => s + (a.balance || 0), 0)
-  const totalImpr    = adsRowAds.reduce((s, a) => s + (a.impressions || 0), 0)
-  const totalClicks  = adsRowAds.reduce((s, a) => s + (a.clicks || 0), 0)
+  const totalImpr    = campaignRow?.totals?.impressions ?? adsRowAds.reduce((s, a) => s + (a.impressions || 0), 0)
+  const totalClicks  = campaignRow?.totals?.clicks ?? adsRowAds.reduce((s, a) => s + (a.clicks || 0), 0)
 
   const topAds = useMemo(() => {
     const allAds = []
@@ -814,11 +825,10 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     if (!value || value <= 0) { setEditingMeta(false); return }
     setSavingMeta(true)
     try {
-      const existing = cprBenchmark ? [{ client_id: String(client.id), benchmark_cpr: value }] : [{ client_id: String(client.id), benchmark_cpr: value }]
       await fetch('/api/cpr-benchmarks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benchmarks: existing }),
+        body: JSON.stringify({ benchmarks: [{ client_id: String(client.id), benchmark_cpr: value }] }),
       })
       onCprBenchmarkSaved?.(client.id, value)
       setEditingMeta(false)
@@ -1309,7 +1319,7 @@ export default function PerformanceGeneralTab({
   const sortedClients = useMemo(() => {
     return (clients || [])
       .filter((c) => {
-        if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false
+        if (search && !(c.name || '').toLowerCase().includes(search.toLowerCase())) return false
         const hk = latestWeeklyHealthByClientId?.get(c.id)?.healthStatus || 'empty'
         if (healthFilter !== 'all' && hk !== healthFilter) return false
         return true
