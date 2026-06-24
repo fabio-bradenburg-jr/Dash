@@ -649,14 +649,40 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     if (!url) return
     setSheetLoading(true)
     setSheetData(null)
+
+    // Convert dashboard dateRange preset to since/until (same logic as LeadsDashboard)
+    const today = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    let since = '', until = ''
+    if (dateRange === 'custom' && customSince && customUntil) {
+      since = customSince; until = customUntil
+    } else if (dateRange === 'last_7d') {
+      const s = new Date(today); s.setDate(s.getDate() - 6)
+      since = fmtDate(s); until = fmtDate(today)
+    } else if (dateRange === 'last_14d') {
+      const s = new Date(today); s.setDate(s.getDate() - 13)
+      since = fmtDate(s); until = fmtDate(today)
+    } else if (dateRange === 'last_30d') {
+      const s = new Date(today); s.setDate(s.getDate() - 29)
+      since = fmtDate(s); until = fmtDate(today)
+    } else if (dateRange === 'last_month') {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const last  = new Date(today.getFullYear(), today.getMonth(), 0)
+      since = fmtDate(first); until = fmtDate(last)
+    }
+    // 'all' or unknown → no date filter (since/until stay empty)
+
     const params = new URLSearchParams({ url })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
+    if (since) params.set('since', since)
+    if (until) params.set('until', until)
     fetch('/api/google-sheets/leads-analytics?' + params.toString())
       .then(r => r.json())
       .then(data => setSheetData(data?.overview ? data : null))
       .catch(() => setSheetData(null))
       .finally(() => setSheetLoading(false))
-  }, [client.id])
+  }, [client.id, dateRange, customSince, customUntil])
 
   const h           = HEALTH_META[healthKey] || HEALTH_META.empty
   const campaigns   = campaignRow?.campaigns || []
