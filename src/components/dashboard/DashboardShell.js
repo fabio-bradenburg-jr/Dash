@@ -20193,6 +20193,7 @@ export default function DashboardShell({
             campaignOverviewRows={campaignOverviewRows}
             campaignOverviewLoading={campaignOverviewLoading}
             campaignOverviewError={campaignOverviewError}
+            campaignOverviewUpdatedAt={campaignOverviewUpdatedAt}
             adAccountBalanceRows={adAccountBalanceRows}
             adAccountBalanceLoading={adAccountBalanceLoading}
             WEEKLY_HEALTH_BY_KEY={WEEKLY_HEALTH_BY_KEY}
@@ -20207,6 +20208,7 @@ export default function DashboardShell({
             customSince={customSince}
             customUntil={customUntil}
             handleApplyDashboardFilters={handleApplyDashboardFilters}
+            onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((n) => n + 1)}
             DATE_PRESETS={DATE_PRESETS}
             metaRequestHeaders={metaRequestHeaders}
             cprBenchmarks={cprBenchmarks}

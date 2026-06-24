@@ -41,6 +41,28 @@ const fmtDate = (d) => {
   const [y, m, day] = d.split('-')
   return `${day}/${m}`
 }
+const OBJECTIVE_LABEL_MAP = {
+  OUTCOME_LEADS:          'Leads',
+  LEAD_GENERATION:        'Leads',
+  OUTCOME_SALES:          'Compras',
+  CONVERSIONS:            'Compras',
+  PRODUCT_CATALOG_SALES:  'Compras',
+  MESSAGES:               'Conversas',
+  OUTCOME_ENGAGEMENT:     'Engajamento',
+  POST_ENGAGEMENT:        'Engajamento',
+  PAGE_LIKES:             'Curtidas',
+  EVENT_RESPONSES:        'Respostas',
+  OUTCOME_TRAFFIC:        'Cliques no link',
+  LINK_CLICKS:            'Cliques no link',
+  TRAFFIC:                'Cliques no link',
+  OUTCOME_AWARENESS:      'Alcance',
+  REACH:                  'Alcance',
+  BRAND_AWARENESS:        'Alcance',
+  VIDEO_VIEWS:            'ThruPlay',
+  OUTCOME_VIDEO_VIEWS:    'ThruPlay',
+}
+const getResultLabel = (objective) => OBJECTIVE_LABEL_MAP[(objective || '').toUpperCase()] || 'Resultados'
+
 const getResults = (item) => {
   if (item?.results !== undefined && item.results !== null) return item.results
   const m = item?.custom_metrics
@@ -389,11 +411,12 @@ function EmptyBlock({ icon, children }) {
 }
 
 /* ── AdDetailModal ── */
-function AdDetailModal({ ad, campaignName, adsetName, dateRange, customSince, customUntil, metaRequestHeaders, onClose }) {
+function AdDetailModal({ ad, campaignName, adsetName, objective, dateRange, customSince, customUntil, metaRequestHeaders, onClose }) {
   const [chart, setChart] = useState(false)
   const results = getResults(ad)
   const cpr = cprStr(ad.spend, results)
   const ctr = ctrStr(ad.clicks, ad.impressions)
+  const resultLabel = getResultLabel(objective)
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)' }} />
@@ -416,7 +439,7 @@ function AdDetailModal({ ad, campaignName, adsetName, dateRange, customSince, cu
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           <MetricCard label="Investimento" value={BRL(ad.spend)} accent />
-          <MetricCard label="Resultado" value={NUM(results)} />
+          <MetricCard label={resultLabel} value={NUM(results)} />
           <MetricCard label="Custo por resultado" value={cpr} warn={results === 0} />
           <MetricCard label="CTR" value={ctr} />
           <MetricCard label="Impressões" value={NUM(ad.impressions)} />
@@ -444,7 +467,7 @@ function AdDetailModal({ ad, campaignName, adsetName, dateRange, customSince, cu
             metaRequestHeaders={metaRequestHeaders}
             metrics={[
               { label: 'Investimento', value: BRL(ad.spend), accent: true },
-              { label: 'Resultado',    value: NUM(results) },
+              { label: resultLabel,    value: NUM(results) },
               { label: 'Custo/result', value: cpr },
               { label: 'CTR',          value: ctr },
             ]}
@@ -457,12 +480,13 @@ function AdDetailModal({ ad, campaignName, adsetName, dateRange, customSince, cu
 }
 
 /* ── AdRow ── */
-function AdRow({ ad, campaignName, adsetName, dateRange, customSince, customUntil, metaRequestHeaders }) {
+function AdRow({ ad, campaignName, adsetName, objective, dateRange, customSince, customUntil, metaRequestHeaders }) {
   const [detail, setDetail]   = useState(false)
   const [chart, setChart]     = useState(false)
   const results = getResults(ad)
   const cpr = cprStr(ad.spend, results)
   const ctr = ctrStr(ad.clicks, ad.impressions)
+  const resultLabel = getResultLabel(objective)
   return (
     <div>
       <div
@@ -479,7 +503,7 @@ function AdRow({ ad, campaignName, adsetName, dateRange, customSince, customUnti
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#d1d5db', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{ad.name || ad.label || 'Anúncio'}</div>
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
             <Pill label="Invest." value={BRL(ad.spend)} accent />
-            <Pill label="Result." value={NUM(results)} />
+            <Pill label={resultLabel} value={NUM(results)} />
             <Pill label="CPR" value={cpr} warn={results === 0} />
             <Pill label="CTR" value={ctr} />
           </div>
@@ -489,7 +513,7 @@ function AdRow({ ad, campaignName, adsetName, dateRange, customSince, customUnti
       </div>
       {detail && (
         <AdDetailModal
-          ad={ad} campaignName={campaignName} adsetName={adsetName}
+          ad={ad} campaignName={campaignName} adsetName={adsetName} objective={objective}
           dateRange={dateRange} customSince={customSince} customUntil={customUntil}
           metaRequestHeaders={metaRequestHeaders}
           onClose={() => setDetail(false)}
@@ -503,7 +527,7 @@ function AdRow({ ad, campaignName, adsetName, dateRange, customSince, customUnti
           metaRequestHeaders={metaRequestHeaders}
           metrics={[
             { label: 'Investimento', value: BRL(ad.spend), accent: true },
-            { label: 'Resultado',    value: NUM(results) },
+            { label: resultLabel,    value: NUM(results) },
             { label: 'Custo/result', value: cpr },
             { label: 'CTR',          value: ctr },
           ]}
@@ -515,13 +539,14 @@ function AdRow({ ad, campaignName, adsetName, dateRange, customSince, customUnti
 }
 
 /* ── AdsetRow ── */
-function AdsetRow({ adset, campaignName, dateRange, customSince, customUntil, metaRequestHeaders }) {
+function AdsetRow({ adset, campaignName, objective, dateRange, customSince, customUntil, metaRequestHeaders }) {
   const [expanded, setExpanded] = useState(false)
   const [chart, setChart]       = useState(false)
   const [hov, setHov]           = useState(false)
   const isActive = (adset.effectiveStatus || '').toUpperCase() === 'ACTIVE'
   const cpr = cprStr(adset.spend, adset.results)
   const ctr = ctrStr(adset.clicks, adset.impressions)
+  const resultLabel = getResultLabel(objective)
   return (
     <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, overflow: 'hidden', transition: 'border-color 0.15s', borderColor: hov ? 'rgba(38,194,129,0.2)' : 'rgba(255,255,255,0.06)' }}>
       <div
@@ -541,7 +566,7 @@ function AdsetRow({ adset, campaignName, dateRange, customSince, customUntil, me
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Pill label="Invest." value={BRL(adset.spend)} accent />
-            <Pill label="Result." value={NUM(adset.results)} />
+            <Pill label={resultLabel} value={NUM(adset.results)} />
             <Pill label="CPR" value={cpr} warn={adset.results === 0} />
             <Pill label="CTR" value={ctr} />
           </div>
@@ -552,7 +577,7 @@ function AdsetRow({ adset, campaignName, dateRange, customSince, customUntil, me
         <div style={{ padding: '6px 11px 10px 26px', background: 'rgba(0,0,0,0.1)', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', flexDirection: 'column', gap: 5 }}>
           <div style={{ fontSize: '0.59rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Anúncios ({(adset.ads || []).length})</div>
           {(adset.ads || []).map((ad) => (
-            <AdRow key={ad.adId} ad={ad} campaignName={campaignName} adsetName={adset.name} dateRange={dateRange} customSince={customSince} customUntil={customUntil} metaRequestHeaders={metaRequestHeaders} />
+            <AdRow key={ad.adId} ad={ad} campaignName={campaignName} adsetName={adset.name} objective={objective} dateRange={dateRange} customSince={customSince} customUntil={customUntil} metaRequestHeaders={metaRequestHeaders} />
           ))}
         </div>
       )}
@@ -569,7 +594,7 @@ function AdsetRow({ adset, campaignName, dateRange, customSince, customUntil, me
           metaRequestHeaders={metaRequestHeaders}
           metrics={[
             { label: 'Investimento', value: BRL(adset.spend), accent: true },
-            { label: 'Resultado',    value: NUM(adset.results) },
+            { label: resultLabel,    value: NUM(adset.results) },
             { label: 'Custo/result', value: cpr },
             { label: 'CTR',          value: ctr },
           ]}
@@ -588,6 +613,7 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
   const isActive = (campaign.effectiveStatus || campaign.status || '').toUpperCase() === 'ACTIVE'
   const cpr = cprStr(campaign.spend, campaign.results)
   const ctr = ctrStr(campaign.clicks, campaign.impressions)
+  const resultLabel = getResultLabel(campaign.objective)
   return (
     <div style={{ border: '1px solid ' + (hov ? C.borderGlow : C.border), borderRadius: 12, overflow: 'hidden', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hov ? LED.glow : 'none' }}>
       <div
@@ -607,7 +633,7 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Pill label="Invest." value={BRL(campaign.spend)} accent />
-            <Pill label="Resultados" value={NUM(campaign.results)} />
+            <Pill label={resultLabel} value={NUM(campaign.results)} />
             <Pill label="CPR" value={cpr} warn={campaign.results === 0} />
             <Pill label="Impr." value={NUM(campaign.impressions)} />
             <Pill label="Cliques" value={NUM(campaign.clicks)} />
@@ -620,7 +646,7 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
         <div style={{ padding: '8px 14px 12px 28px', background: 'rgba(0,0,0,0.12)', borderTop: '1px solid ' + C.border, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: '0.61rem', color: C.textMute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Conjuntos de anúncios ({(campaign.adsets || []).length})</div>
           {(campaign.adsets || []).map((adset) => (
-            <AdsetRow key={adset.adsetId} adset={adset} campaignName={campaign.name} dateRange={dateRange} customSince={customSince} customUntil={customUntil} metaRequestHeaders={metaRequestHeaders} />
+            <AdsetRow key={adset.adsetId} adset={adset} campaignName={campaign.name} objective={campaign.objective} dateRange={dateRange} customSince={customSince} customUntil={customUntil} metaRequestHeaders={metaRequestHeaders} />
           ))}
         </div>
       )}
@@ -637,7 +663,7 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
           metaRequestHeaders={metaRequestHeaders}
           metrics={[
             { label: 'Investimento', value: BRL(campaign.spend), accent: true },
-            { label: 'Resultados',   value: NUM(campaign.results) },
+            { label: resultLabel,    value: NUM(campaign.results) },
             { label: 'Custo/result', value: cpr },
             { label: 'CTR',          value: ctr },
           ]}
@@ -1278,6 +1304,7 @@ export default function PerformanceGeneralTab({
   campaignOverviewRows,
   campaignOverviewLoading,
   campaignOverviewError,
+  campaignOverviewUpdatedAt,
   adAccountBalanceRows,
   adAccountBalanceLoading,
   dateRange,
@@ -1290,6 +1317,7 @@ export default function PerformanceGeneralTab({
   draftCustomUntil,
   setDraftCustomUntil,
   handleApplyDashboardFilters,
+  onRefreshCampaigns,
   DATE_PRESETS,
   metaRequestHeaders,
   cprBenchmarks,
@@ -1359,8 +1387,17 @@ export default function PerformanceGeneralTab({
     return { totalSpend, totalResults, totalBalance, criticalCount, attentionCount, activeCount }
   }, [clients, latestWeeklyHealthByClientId, campaignMap, adsMap, balanceMap])
 
-  const isLoading   = adsOverviewLoading || campaignOverviewLoading || adAccountBalanceLoading
-  const presetLabel = DATE_PRESETS?.find((p) => p.value === dateRange)?.label || dateRange
+  const isCampaignLoading = campaignOverviewLoading
+  const isLoading         = adsOverviewLoading || campaignOverviewLoading || adAccountBalanceLoading
+  const hasAnyData        = campaignOverviewRows?.length > 0 || adsOverviewRows?.length > 0
+  const presetLabel       = DATE_PRESETS?.find((p) => p.value === dateRange)?.label || dateRange
+
+  const fmtUpdatedAt = (iso) => {
+    if (!iso) return ''
+    try {
+      return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    } catch { return '' }
+  }
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 26 }}>
@@ -1400,6 +1437,17 @@ export default function PerformanceGeneralTab({
           >
             Aplicar
           </button>
+          {onRefreshCampaigns && (
+            <button
+              onClick={onRefreshCampaigns}
+              disabled={isCampaignLoading}
+              title="Recarregar dados das campanhas"
+              style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid ' + C.border, background: 'rgba(255,255,255,0.05)', color: isCampaignLoading ? C.textMute : C.textSub, fontSize: '0.79rem', cursor: isCampaignLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <i className={'bx ' + (isCampaignLoading ? 'bx-loader-alt bx-spin' : 'bx-refresh')} style={{ fontSize: 15 }} />
+              {isCampaignLoading ? 'Atualizando' : 'Atualizar'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1457,20 +1505,32 @@ export default function PerformanceGeneralTab({
         </div>
       )}
 
-      {/* Client grid */}
-      {isLoading && (
+      {/* Updated-at + loading indicator */}
+      {(campaignOverviewUpdatedAt || isCampaignLoading) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.69rem', color: C.textMute }}>
+          {isCampaignLoading
+            ? <><i className="bx bx-loader-alt bx-spin" style={{ color: C.accent, fontSize: 13 }} /> Atualizando campanhas...</>
+            : campaignOverviewUpdatedAt
+              ? <><i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 13 }} /> Atualizado em {fmtUpdatedAt(campaignOverviewUpdatedAt)}</>
+              : null
+          }
+        </div>
+      )}
+
+      {/* Client grid — shows stale data while loading */}
+      {isLoading && !hasAnyData && (
         <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
           <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 34, color: C.accent, marginBottom: 12, display: 'block' }} />
           <div style={{ fontSize: '0.83rem' }}>Carregando dados de performance...</div>
         </div>
       )}
-      {!isLoading && sortedClients.length === 0 && (
+      {(!isLoading || hasAnyData) && sortedClients.length === 0 && (
         <div style={{ textAlign: 'center', padding: '54px 0', color: C.textMute }}>
           <i className="bx bx-search-alt" style={{ fontSize: 38, marginBottom: 10, display: 'block' }} />
           <div style={{ fontSize: '0.88rem' }}>Nenhum cliente encontrado com os filtros selecionados.</div>
         </div>
       )}
-      {!isLoading && sortedClients.length > 0 && (
+      {(!isLoading || hasAnyData) && sortedClients.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
           {sortedClients.map((client) => (
             <ClientCard
