@@ -675,7 +675,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     }
     // 'all' or unknown → no date filter (since/until stay empty)
 
-    const params = new URLSearchParams({ url })
+    const params = new URLSearchParams({ url, gid: 'all' })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
     if (since) params.set('since', since)
     if (until) params.set('until', until)
