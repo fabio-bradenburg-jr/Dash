@@ -20210,6 +20210,9 @@ export default function DashboardShell({
             handleApplyDashboardFilters={handleApplyDashboardFilters}
             DATE_PRESETS={DATE_PRESETS}
             metaRequestHeaders={metaRequestHeaders}
+            cprBenchmarks={cprBenchmarks}
+            cprSettings={cprSettings}
+            onCprBenchmarkSaved={(clientId, value) => setCprBenchmarks(prev => ({ ...prev, [clientId]: value }))}
           />
         )}
 

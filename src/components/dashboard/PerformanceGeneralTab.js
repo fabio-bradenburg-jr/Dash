@@ -638,13 +638,16 @@ function CampaignRow({ campaign, dateRange, customSince, customUntil, metaReques
 }
 
 /* ── ClientDetailModal ── */
-function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, customSince, customUntil, metaRequestHeaders, onClose }) {
+function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, customSince, customUntil, metaRequestHeaders, cprBenchmark, cprSettings, onCprBenchmarkSaved, onClose }) {
   const { healthKey, adsRow, campaignRow, balanceRow } = clientData
   const [selectedAd, setSelectedAd] = useState(null)
   const [sheetData, setSheetData] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
   const [breakdownData, setBreakdownData] = useState(null)
   const [breakdownLoading, setBreakdownLoading] = useState(false)
+  const [editingMeta, setEditingMeta] = useState(false)
+  const [draftMeta, setDraftMeta] = useState('')
+  const [savingMeta, setSavingMeta] = useState(false)
 
   useEffect(() => {
     const url = client.leadsSheetUrl || ''
@@ -734,6 +737,35 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
     }).slice(0, 5)
   }, [campaigns, adsRowAds])
 
+  // CPR meta indicator
+  const actualCpr = totalResults > 0 ? totalSpend / totalResults : null
+  const greenPct  = cprSettings?.green_threshold  ?? 15
+  const yellowPct = cprSettings?.yellow_threshold ?? 35
+  const getCprStatus = () => {
+    if (!cprBenchmark || cprBenchmark <= 0 || !actualCpr) return null
+    const pct = ((actualCpr - cprBenchmark) / cprBenchmark) * 100
+    if (pct <= greenPct)  return { color: '#22c55e', label: 'Abaixo da meta', icon: 'bx-trending-down' }
+    if (pct <= yellowPct) return { color: '#f59e0b', label: 'Próximo da meta', icon: 'bx-trending-up' }
+    return                       { color: '#ef4444', label: 'Acima da meta',   icon: 'bx-trending-up' }
+  }
+  const cprStatus = getCprStatus()
+
+  const handleSaveMeta = async () => {
+    const value = parseFloat(String(draftMeta).replace(',', '.'))
+    if (!value || value <= 0) { setEditingMeta(false); return }
+    setSavingMeta(true)
+    try {
+      const existing = cprBenchmark ? [{ client_id: String(client.id), benchmark_cpr: value }] : [{ client_id: String(client.id), benchmark_cpr: value }]
+      await fetch('/api/cpr-benchmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benchmarks: existing }),
+      })
+      onCprBenchmarkSaved?.(client.id, value)
+      setEditingMeta(false)
+    } finally { setSavingMeta(false) }
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }} onClick={onClose}>
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)' }} />
@@ -759,12 +791,53 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
                 <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '2px 10px', border: '1px solid rgba(255,255,255,0.1)' }}>{dateRangeLabel}</span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center', flexShrink: 0 }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = C.text }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
-            ><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
+            {/* CPR Meta indicator + edit */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {editingMeta
+                ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(38,194,129,0.3)', borderRadius: 10, padding: '5px 10px' }}>
+                    <span style={{ fontSize: '0.72rem', color: C.textSub }}>R$</span>
+                    <input
+                      autoFocus
+                      value={draftMeta}
+                      onChange={(e) => setDraftMeta(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveMeta(); if (e.key === 'Escape') setEditingMeta(false) }}
+                      placeholder="0,00"
+                      style={{ width: 70, background: 'transparent', border: 'none', outline: 'none', color: C.text, fontSize: '0.82rem', fontWeight: 700 }}
+                    />
+                    <button onClick={handleSaveMeta} disabled={savingMeta} style={{ background: C.accent, border: 'none', borderRadius: 6, padding: '3px 8px', color: '#000', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+                      {savingMeta ? '...' : 'OK'}
+                    </button>
+                    <button onClick={() => setEditingMeta(false)} style={{ background: 'transparent', border: 'none', color: C.textSub, cursor: 'pointer', fontSize: 16, padding: 0 }}>
+                      <i className="bx bx-x" />
+                    </button>
+                  </div>
+                ) : cprStatus ? (
+                  <button
+                    onClick={() => { setDraftMeta(String(cprBenchmark)); setEditingMeta(true) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, background: cprStatus.color + '15', border: '1px solid ' + cprStatus.color + '40', borderRadius: 10, padding: '5px 12px', cursor: 'pointer' }}
+                  >
+                    <i className={'bx ' + cprStatus.icon} style={{ color: cprStatus.color, fontSize: 14 }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: cprStatus.color }}>{cprStatus.label}</span>
+                    <span style={{ fontSize: '0.68rem', color: C.textSub }}>Meta: {BRL(cprBenchmark)}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { setDraftMeta(''); setEditingMeta(true) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '5px 12px', cursor: 'pointer', color: C.textSub }}
+                  >
+                    <i className="bx bx-target-lock" style={{ fontSize: 14 }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>Definir meta de CPR</span>
+                  </button>
+                )
+              }
+              <button
+                onClick={onClose}
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = C.text }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+              ><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
+            </div>
           </div>
         </div>
 
@@ -1137,6 +1210,9 @@ export default function PerformanceGeneralTab({
   handleApplyDashboardFilters,
   DATE_PRESETS,
   metaRequestHeaders,
+  cprBenchmarks,
+  cprSettings,
+  onCprBenchmarkSaved,
 }) {
   const [healthFilter, setHealthFilter] = useState('all')
   const [search, setSearch]             = useState('')
@@ -1325,6 +1401,9 @@ export default function PerformanceGeneralTab({
           customSince={customSince}
           customUntil={customUntil}
           metaRequestHeaders={metaRequestHeaders}
+          cprBenchmark={cprBenchmarks?.[activeModal.id]}
+          cprSettings={cprSettings}
+          onCprBenchmarkSaved={onCprBenchmarkSaved}
           onClose={() => setActiveModal(null)}
         />
       )}
