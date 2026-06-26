@@ -25647,6 +25647,8 @@ export default function DashboardShell({
         .dashboard-container .sidebar :global(.nav-item i) {
           color: rgba(241, 241, 241, 0.4);
           font-size: 20px;
+          margin-right: 10px;
+          flex-shrink: 0;
         }
 
         .dashboard-container .sidebar :global(.nav-item:hover) {
@@ -25687,6 +25689,7 @@ export default function DashboardShell({
 
         .dashboard-container .sidebar :global(.nav-sub-item i) {
           font-size: 15px;
+          margin-right: 10px;
         }
 
         .dashboard-container .sidebar :global(.nav-sub-item.active) {
