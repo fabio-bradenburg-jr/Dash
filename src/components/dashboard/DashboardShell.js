@@ -25639,7 +25639,7 @@ export default function DashboardShell({
           font-weight: 500;
           letter-spacing: 0;
           background: transparent;
-          gap: 22px;
+          gap: 14px;
         }
 
         .dashboard-container .sidebar :global(.nav-item i) {
