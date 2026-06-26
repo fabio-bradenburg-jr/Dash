@@ -7,7 +7,6 @@ import AssistantPage from '@/app/assistant/page'
 import SettingsPage from '@/app/settings/page'
 import ClientNotesPanel from '@/components/dashboard/ClientNotesPanel'
 import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
-import PerformanceGeneralTab from '@/components/dashboard/PerformanceGeneralTab'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
@@ -258,7 +257,7 @@ const WEEKLY_HEALTH_OPTIONS = [
   },
   {
     key: 'with_result',
-    label: 'Excelente',
+    label: 'Com resultado',
     score: 4,
     color: '#1d8fff',
     softColor: '#dbeafe',
@@ -3574,7 +3573,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['geral', 'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -8534,7 +8533,7 @@ export default function DashboardShell({
       return
     }
 
-    if (activeTab === 'anuncios' || activeTab === 'campanhas' || activeTab === 'geral') {
+    if (activeTab === 'anuncios' || activeTab === 'campanhas') {
       setDateRange(draftDateRange)
       setCustomSince(draftCustomSince)
       setCustomUntil(draftCustomUntil)
@@ -10416,7 +10415,7 @@ export default function DashboardShell({
   }, [hasLoadedPreferences, activeTab, clients, metaRequestHeaders, adAccountBalanceRefreshNonce])
 
   useEffect(() => {
-    if (!hasLoadedPreferences || (activeTab !== 'anuncios' && activeTab !== 'geral')) return
+    if (!hasLoadedPreferences || activeTab !== 'anuncios') return
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
 
     let cancelled = false
@@ -10449,6 +10448,7 @@ export default function DashboardShell({
         setAdsOverviewUpdatedAt(data.updatedAt || new Date().toISOString())
       } catch (error) {
         if (cancelled) return
+        setAdsOverviewRows([])
         setAdsOverviewUpdatedAt('')
         setAdsOverviewError(error.message || 'Não foi possível carregar os anúncios.')
       } finally {
@@ -10464,7 +10464,7 @@ export default function DashboardShell({
   }, [hasLoadedPreferences, activeTab, dateRange, customSince, customUntil, metaRequestHeaders, adsOverviewRefreshNonce])
 
   useEffect(() => {
-    if (!hasLoadedPreferences || (activeTab !== 'campanhas' && activeTab !== 'geral')) return
+    if (!hasLoadedPreferences || activeTab !== 'campanhas') return
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
 
     let cancelled = false
@@ -10497,6 +10497,7 @@ export default function DashboardShell({
         setCampaignOverviewUpdatedAt(data.updatedAt || new Date().toISOString())
       } catch (error) {
         if (cancelled) return
+        setCampaignOverviewRows([])
         setCampaignOverviewUpdatedAt('')
         setCampaignOverviewError(error.message || 'Não foi possível carregar as campanhas.')
       } finally {
@@ -11338,8 +11339,6 @@ export default function DashboardShell({
     metaRequestHeaders,
     activeTab,
   ])
-
-  const editModalFieldStyle = { width: '100%', padding: '8px 12px', borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }
 
   const handleSaveIntegrations = async (event) => {
     event.preventDefault()
@@ -15353,7 +15352,7 @@ export default function DashboardShell({
           <div><span>Crítico</span><strong>{formatNumber(weeklyPortfolioStats.criticalCount)}</strong></div>
           <div><span>Atenção</span><strong>{formatNumber(weeklyPortfolioStats.attentionCount)}</strong></div>
           <div><span>Saudável</span><strong>{formatNumber(weeklyPortfolioStats.healthyCount)}</strong></div>
-          <div><span>Excelente</span><strong>{formatNumber(weeklyPortfolioStats.withResultCount)}</strong></div>
+          <div><span>Com resultado</span><strong>{formatNumber(weeklyPortfolioStats.withResultCount)}</strong></div>
           <div><span>Churn</span><strong>{formatNumber(weeklyPortfolioStats.churnCount)}</strong></div>
         </div>
         <div className={'weekly-risk-badge weekly-goal-badge ' + (weeklySummary.withinRiskTarget ? 'healthy' : 'critical')}>
@@ -16954,7 +16953,7 @@ export default function DashboardShell({
               <span className="nav-label">Central de Tarefas</span>
             </button>
           )}
-          {(isMaster || hasNavAccess('geral') || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
             <>
               <button
                 type="button"
@@ -16969,12 +16968,6 @@ export default function DashboardShell({
               </button>
               {isAdsMenuOpen && (
                 <div className="nav-sub-group">
-                  {(isMaster || hasNavAccess('geral')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'geral' ? 'active' : ''}`} onClick={() => setActiveTab('geral')}>
-                      <i className="bx bx-grid-alt"></i>
-                      <span className="nav-label">Geral</span>
-                    </button>
-                  )}
                   {(isMaster || hasNavAccess('apresentacao')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
                       <i className="bx bxs-dashboard"></i>
@@ -20184,39 +20177,6 @@ export default function DashboardShell({
 
         {activeTab === 'monday' && renderMondayOperationalPanel()}
 
-        {activeTab === 'geral' && (isMaster || hasNavAccess('geral')) && (
-          <PerformanceGeneralTab
-            clients={clients}
-            latestWeeklyHealthByClientId={latestWeeklyHealthByClientId}
-            adsOverviewRows={adsOverviewRows}
-            adsOverviewLoading={adsOverviewLoading}
-            campaignOverviewRows={campaignOverviewRows}
-            campaignOverviewLoading={campaignOverviewLoading}
-            campaignOverviewError={campaignOverviewError}
-            campaignOverviewUpdatedAt={campaignOverviewUpdatedAt}
-            adAccountBalanceRows={adAccountBalanceRows}
-            adAccountBalanceLoading={adAccountBalanceLoading}
-            WEEKLY_HEALTH_BY_KEY={WEEKLY_HEALTH_BY_KEY}
-            CLIENT_HEALTH_SORT_RANK={CLIENT_HEALTH_SORT_RANK}
-            dateRange={dateRange}
-            draftDateRange={draftDateRange}
-            setDraftDateRange={setDraftDateRange}
-            draftCustomSince={draftCustomSince}
-            setDraftCustomSince={setDraftCustomSince}
-            draftCustomUntil={draftCustomUntil}
-            setDraftCustomUntil={setDraftCustomUntil}
-            customSince={customSince}
-            customUntil={customUntil}
-            handleApplyDashboardFilters={handleApplyDashboardFilters}
-            onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((n) => n + 1)}
-            DATE_PRESETS={DATE_PRESETS}
-            metaRequestHeaders={metaRequestHeaders}
-            cprBenchmarks={cprBenchmarks}
-            cprSettings={cprSettings}
-            onCprBenchmarkSaved={(clientId, value) => setCprBenchmarks(prev => ({ ...prev, [clientId]: value }))}
-          />
-        )}
-
         {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <section className="campaign-overview-page ads-overview-page">
             <div className="ads-overview-hero campaign-overview-hero glass-panel">
@@ -21361,9 +21321,11 @@ export default function DashboardShell({
             .filter((client) => {
               const query = clientSearch.trim().toLowerCase()
               const matchesSearch = !query || [client.name, client.cnpj, client.metaAdAccountId, client.agendorAccountId]
-                .filter(Boolean).some((v) => String(v).toLowerCase().includes(query))
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(query))
               const st = String(client.status || '').trim().toLowerCase()
-              const matchesStatus = clientStatusFilter === 'all' ? true
+              const matchesStatus = clientStatusFilter === 'all'
+                ? true
                 : clientStatusFilter === 'ativo' ? (st === 'ativo' || st === '')
                 : clientStatusFilter === 'pausado' ? st === 'pausado'
                 : clientStatusFilter === 'churn' ? st === 'churn'
@@ -21388,14 +21350,15 @@ export default function DashboardShell({
                     <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Gerencie os clientes cadastrados, acompanhe status e acesse rapidamente as integrações.</p>
                   </div>
                   <button type="button" className="btn btn-primary" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }} onClick={openCreateClientModal}>
-                    <i className="bx bx-user-plus"></i>Novo cliente
+                    <i className="bx bx-user-plus"></i>
+                    Novo cliente
                   </button>
                 </div>
 
                 {/* Stat cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
                   {[
-                    { icon: 'bx-group', label: 'Total', value: nonArchivedClients.length, color: '#94a3b8' },
+                    { icon: 'bx-group', label: 'Total de clientes', value: nonArchivedClients.length, color: '#94a3b8' },
                     { icon: 'bx-check-circle', label: 'Ativos', value: ativosCount, color: '#22c55e' },
                     { icon: 'bx-pause-circle', label: 'Pausados', value: pausadosCount, color: '#f59e0b' },
                     { icon: 'bx-x-circle', label: 'Churn', value: churnCount, color: '#ef4444' },
@@ -21445,6 +21408,7 @@ export default function DashboardShell({
 
               {/* ── Client list ── */}
               <div style={{ padding: '0 0 8px' }}>
+                {/* Table header */}
                 {displayClients.length > 0 && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 160px 120px 130px', gap: 12, padding: '12px 24px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     {['Cliente', 'Status', 'Saúde', 'Integrações', 'Ações'].map(h => (
@@ -21478,6 +21442,7 @@ export default function DashboardShell({
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
+                      {/* Name cell */}
                       <button
                         type="button"
                         onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
@@ -21494,6 +21459,7 @@ export default function DashboardShell({
                         </span>
                       </button>
 
+                      {/* Status cell */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <span style={{ fontSize: '0.65rem', opacity: 0.35, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</span>
@@ -21521,7 +21487,11 @@ export default function DashboardShell({
                         )}
                       </div>
 
-                      <span title={isChurnClient ? 'Cliente marcado como Churn' : latestHealth ? `Último semanal: ${healthDetail}` : 'Sem registro semanal'} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {/* Health cell */}
+                      <span
+                        title={isChurnClient ? 'Cliente marcado como Churn' : latestHealth ? `Último semanal: ${healthDetail}` : 'Sem registro semanal'}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                      >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: latestHealth ? (latestHealth.color + '18') : 'rgba(255,255,255,0.05)', color: latestHealth ? latestHealth.color : 'rgba(255,255,255,0.3)', border: `1px solid ${latestHealth ? latestHealth.color + '35' : 'rgba(255,255,255,0.08)'}`, width: 'fit-content' }}>
                           <i className={`bx ${isChurnClient ? 'bx-x-circle' : latestHealth ? 'bx-heart' : 'bx-time'}`} style={{ fontSize: 12 }}></i>
                           {latestHealth?.label || 'Sem registro'}
@@ -21529,26 +21499,32 @@ export default function DashboardShell({
                         <small style={{ fontSize: '0.7rem', opacity: 0.35, paddingLeft: 2 }}>{healthDetail}</small>
                       </span>
 
+                      {/* Integrations cell */}
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} aria-label="Integrações do cliente">
                         {[
                           { active: hasMeta, icon: 'bx bxl-meta', title: hasMeta ? 'Meta conectada' : 'Meta não conectada', color: '#0668E1' },
                           { active: hasAgendor, icon: 'bx bx-git-branch', title: hasAgendor ? 'Agendor cadastrado' : 'Agendor não cadastrado', color: '#f97316' },
-                          { active: hasLeadsSheet, icon: 'bx bx-table', title: hasLeadsSheet ? 'Planilha cadastrada' : 'Sem planilha', color: '#22c55e' },
+                          { active: hasLeadsSheet, icon: 'bx bx-table', title: hasLeadsSheet ? 'Planilha de leads cadastrada' : 'Sem planilha de leads', color: '#22c55e' },
                         ].map((integ, idx) => (
-                          <span key={idx} title={integ.title} style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: integ.active ? integ.color + '18' : 'rgba(255,255,255,0.04)', color: integ.active ? integ.color : 'rgba(255,255,255,0.2)', border: `1px solid ${integ.active ? integ.color + '35' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
+                          <span
+                            key={idx}
+                            title={integ.title}
+                            style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: integ.active ? integ.color + '18' : 'rgba(255,255,255,0.04)', color: integ.active ? integ.color : 'rgba(255,255,255,0.2)', border: `1px solid ${integ.active ? integ.color + '35' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}
+                          >
                             <i className={integ.icon}></i>
                           </span>
                         ))}
                       </div>
 
+                      {/* Actions cell */}
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button
                           type="button"
                           className="btn btn-secondary"
-                          style={{ fontSize: '0.78rem', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 4 }}
+                          style={{ fontSize: '0.78rem', padding: '5px 12px' }}
                           onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
                         >
-                          <i className="bx bx-edit"></i>Editar
+                          <i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar
                         </button>
                         {canEditClientRecord(client.id) && (
                           <button
@@ -21566,6 +21542,7 @@ export default function DashboardShell({
                   )
                 })}
 
+                {/* Empty state */}
                 {displayClients.length === 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '56px 24px', textAlign: 'center' }}>
                     <i className="bx bx-buildings" style={{ fontSize: '2.5rem', opacity: 0.2 }}></i>
@@ -21587,6 +21564,7 @@ export default function DashboardShell({
                   </div>
                 )}
 
+                {/* Archived clients */}
                 {clients.some(c => c.isArchived) && (() => {
                   const archivedList = clients.filter(c => c.isArchived && (() => {
                     const query = clientSearch.trim().toLowerCase()
@@ -21603,7 +21581,10 @@ export default function DashboardShell({
                       </summary>
                       <div style={{ padding: '0 0 8px' }}>
                         {archivedList.map(client => (
-                          <div key={client.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', opacity: 0.55 }}>
+                          <div
+                            key={client.id}
+                            style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', opacity: 0.55 }}
+                          >
                             <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                                 {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ fontSize: 15, opacity: 0.4 }}></i>}
@@ -21655,220 +21636,227 @@ export default function DashboardShell({
                 </div>
               </div>
 
-              <form className="client-editor-card" onSubmit={handleSaveIntegrations} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-                {/* ── Bloco: Identificação ── */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: currentTheme.main + '18', color: currentTheme.main, border: `1px solid ${currentTheme.main}33`, flexShrink: 0 }}>
-                      <i className="bx bx-id-card"></i>
-                    </span>
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Identificação</strong>
-                      <span style={{ fontSize: '0.75rem', opacity: 0.45 }}>Dados mínimos para identificar a conta dentro do app.</span>
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                      {[
-                        { label: 'Nome do cliente', required: true, children: <input type="text" value={activeClient.name} onChange={(e) => handleClientFieldChange('name', e.target.value)} placeholder="Nome do cliente" disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
-                        { label: 'CNPJ', children: <input type="text" value={activeClient.cnpj || ''} onChange={(e) => handleClientFieldChange('cnpj', e.target.value)} placeholder="00.000.000/0000-00" disabled={!canEditActiveClient} style={editModalFieldStyle} /> },
-                        { label: 'Gestor de Resultado', children: (
-                          <select value={activeClient.resultManagerUserId || ''} onChange={(e) => handleClientFieldChange('resultManagerUserId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
-                            <option value="">Sem gestor selecionado</option>
-                            {operationAssignableUsers.map((u) => <option key={`crm-${u.id}`} value={u.id}>{u.full_name || u.email || 'Usuário'}</option>)}
-                          </select>
-                        )},
-                      ].map(({ label, required, children }) => (
-                        <label key={label} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>{label}{required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}</span>
-                          {children}
-                        </label>
-                      ))}
-                    </div>
-
-                    {/* Logo */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                        {activeClient.logoUrl ? <img src={activeClient.logoUrl} alt={`Logo ${activeClient.name}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="bx bx-image-add" style={{ fontSize: 22, opacity: 0.35 }}></i>}
+              <form className="client-editor-card" onSubmit={handleSaveIntegrations}>
+                <div className="form-grid">
+                  <div className="integration-block client-identity-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: currentTheme.main, borderColor: currentTheme.main + '33' }}>
+                        <i className="bx bx-id-card"></i>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <strong style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: 2 }}>Logo do cliente</strong>
-                        <p style={{ margin: '0 0 8px', fontSize: '0.75rem', opacity: 0.4 }}>Aparece no topo do dashboard e personaliza a apresentação com a marca do cliente.</p>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <label className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px', cursor: canEditActiveClient ? 'pointer' : 'not-allowed' }}>
-                            <input type="file" accept="image/*" onChange={handleClientLogoUpload} disabled={!canEditActiveClient} style={{ display: 'none' }} />
+                      <div>
+                        <h3>Cliente</h3>
+                        <p>Dados mínimos para identificar a conta dentro do app.</p>
+                      </div>
+                    </div>
+                    <div className="client-form-grid client-form-grid-3">
+                      <div className="input-group">
+                        <label>Nome do cliente</label>
+                        <input type="text" value={activeClient.name} onChange={(event) => handleClientFieldChange('name', event.target.value)} placeholder="Nome do cliente" disabled={!canEditActiveClient} />
+                      </div>
+                      <div className="input-group">
+                        <label>CNPJ</label>
+                        <input type="text" value={activeClient.cnpj || ''} onChange={(event) => handleClientFieldChange('cnpj', event.target.value)} placeholder="00.000.000/0000-00" disabled={!canEditActiveClient} />
+                      </div>
+                      <div className="input-group">
+                        <label>Gestor de Resultado</label>
+                        <select className="client-select-input" value={activeClient.resultManagerUserId || ''} onChange={(event) => handleClientFieldChange('resultManagerUserId', event.target.value)} disabled={!canEditActiveClient}>
+                          <option value="">Sem gestor selecionado</option>
+                          {operationAssignableUsers.map((managedUser) => (
+                            <option key={`client-result-manager-${managedUser.id}`} value={managedUser.id}>
+                              {managedUser.full_name || managedUser.email || 'Usuário'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="client-logo-uploader">
+                      <div className="client-logo-preview">
+                        {activeClient.logoUrl ? <img src={activeClient.logoUrl} alt={`Logo ${activeClient.name}`} /> : <i className="bx bx-image-add"></i>}
+                      </div>
+                      <div className="client-logo-copy">
+                        <label>Logo do cliente</label>
+                        <p>Essa imagem aparece no topo do dashboard e ajuda a deixar a apresentação com a marca do cliente.</p>
+                        <div className="client-logo-actions">
+                          <label className="btn btn-secondary client-logo-upload-button">
+                            <input type="file" accept="image/*" onChange={handleClientLogoUpload} disabled={!canEditActiveClient} />
                             {activeClient.logoUrl ? 'Trocar logo' : 'Subir logo'}
                           </label>
                           {activeClient.logoUrl && (
-                            <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem', padding: '5px 12px' }} onClick={() => handleClientFieldChange('logoUrl', '')} disabled={!canEditActiveClient}>
+                            <button type="button" className="btn btn-secondary" onClick={() => handleClientFieldChange('logoUrl', '')} disabled={!canEditActiveClient}>
                               Remover
                             </button>
                           )}
                         </div>
                       </div>
-                      {/* Dashboard color */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Cor do dashboard</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '6px 10px' }}>
-                          <input type="color" value={activeClientDashboardHex} onChange={(e) => handleClientDashboardHexChange('dashboardColor', e.target.value)} disabled={!canEditActiveClient} aria-label="Cor do dashboard do cliente" style={{ width: 28, height: 28, border: 'none', background: 'none', cursor: canEditActiveClient ? 'pointer' : 'default', padding: 0, borderRadius: 6 }} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.7 }}>{activeClientDashboardHex.toUpperCase()}</span>
-                        </div>
+                    </div>
+
+                    <div className="client-dashboard-color-picker">
+                      <div>
+                        <label>Cor do dashboard</label>
+                        <p>Personalize a cor principal usada no dashboard deste cliente.</p>
+                      </div>
+                      <div className="client-dashboard-color-control">
+                        <input
+                          type="color"
+                          value={activeClientDashboardHex}
+                          onChange={(event) => handleClientDashboardHexChange('dashboardColor', event.target.value)}
+                          disabled={!canEditActiveClient}
+                          aria-label="Cor do dashboard do cliente"
+                        />
+                        <span>{activeClientDashboardHex.toUpperCase()}</span>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* ── Bloco: Meta Ads ── */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#0668E118', color: '#0668E1', border: '1px solid #0668E133', flexShrink: 0 }}>
-                      <i className="bx bxl-meta"></i>
-                    </span>
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Meta Ads</strong>
-                      <span style={{ fontSize: '0.75rem', opacity: 0.45 }}>Selecione uma das contas de anúncio disponíveis na credencial global.</span>
+                  <div className="integration-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: '#0668E1', borderColor: '#0668E133' }}>
+                        <i className="bx bxl-meta"></i>
+                      </div>
+                      <div>
+                        <h3>Meta Ads</h3>
+                        <p>Selecione uma das contas de anúncio disponíveis na credencial global.</p>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ padding: '16px 18px' }}>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta de anúncio</span>
-                      <select value={activeClient.metaAdAccountId || ''} onChange={(e) => handleClientFieldChange('metaAdAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
+                    <div className="input-group">
+                      <label>Conta de anúncio</label>
+                      <select className="client-select-input" value={activeClient.metaAdAccountId || ''} onChange={(event) => handleClientFieldChange('metaAdAccountId', event.target.value)} disabled={!canEditActiveClient}>
                         <option value="">{hasMetaManualToken || hasMetaOauthConnection ? 'Selecione uma conta' : 'Conecte a Meta em Configurações'}</option>
                         <option value="__ghost__">👻 Conta fantasma (sem integração)</option>
-                        {adAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
+                        {adAccounts.map((account) => (
+                          <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>
+                        ))}
                       </select>
-                    </label>
-                  </div>
-                </div>
-
-                {/* ── Bloco: Google Ads ── */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#10b98118', color: '#10b981', border: '1px solid #10b98133', flexShrink: 0 }}>
-                      <i className="bx bxl-google"></i>
-                    </span>
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Google Ads</strong>
-                      <span style={{ fontSize: '0.75rem', opacity: 0.45 }}>Selecione uma das contas Google Ads disponíveis na conexão global.</span>
                     </div>
                   </div>
-                  <div style={{ padding: '16px 18px' }}>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Conta Google Ads</span>
-                      <select value={activeClient.googleAdsAccountId || ''} onChange={(e) => handleClientFieldChange('googleAdsAccountId', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle}>
-                        <option value="">{googleAdsConnection.connected ? 'Selecione uma conta' : 'Conecte o Google Ads em Configurações'}</option>
-                        {googleAdsAccounts.map((account) => <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>)}
-                      </select>
-                    </label>
-                  </div>
-                </div>
 
-                {/* ── Bloco: Planilha de Leads ── */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#22c55e18', color: '#22c55e', border: '1px solid #22c55e33', flexShrink: 0 }}>
-                      <i className="bx bx-table"></i>
-                    </span>
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Planilha de Leads</strong>
-                      <span style={{ fontSize: '0.75rem', opacity: 0.45 }}>Cole o link de compartilhamento do Google Sheets para exibir dentro do app.</span>
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 18px' }}>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Link da planilha</span>
-                      <input type="url" placeholder="https://docs.google.com/spreadsheets/d/..." value={activeClient.leadsSheetUrl || ''} onChange={(e) => handleClientFieldChange('leadsSheetUrl', e.target.value)} disabled={!canEditActiveClient} style={editModalFieldStyle} />
-                    </label>
-                  </div>
-                </div>
-
-                {/* ── Bloco: CRM toggle ── */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 18px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: canEditActiveClient ? 'pointer' : 'default' }}>
-                    <input type="checkbox" checked={activeClientUsesManualCrm} onChange={(e) => handleToggleManualCrmForActiveClient(e.target.checked)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
-                    <span style={{ width: 40, height: 22, borderRadius: 11, background: activeClientUsesManualCrm ? '#26c281' : 'rgba(255,255,255,0.12)', position: 'relative', flexShrink: 0, transition: 'background 0.2s', border: activeClientUsesManualCrm ? '1px solid #26c28155' : '1px solid rgba(255,255,255,0.15)' }} aria-hidden="true">
-                      <span style={{ position: 'absolute', top: 2, left: activeClientUsesManualCrm ? 20 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}></span>
-                    </span>
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Preencher CRM manualmente</strong>
-                      <small style={{ fontSize: '0.75rem', opacity: 0.45 }}>Ative para digitar oportunidades, qualificados, vendas e valor vendido diretamente nos cards do dashboard.</small>
-                    </div>
-                  </label>
-                </div>
-
-                {/* ── Bloco: Agendor ── */}
-                {!activeClientUsesManualCrm && (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: '#f9731618', color: '#f97316', border: '1px solid #f9731633', flexShrink: 0 }}>
-                        <i className="bx bx-git-branch"></i>
-                      </span>
+                  <div className="integration-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: '#10b981', borderColor: '#10b98133' }}>
+                        <i className="bx bxl-google"></i>
+                      </div>
                       <div>
-                        <strong style={{ fontSize: '0.88rem', fontWeight: 700, display: 'block' }}>Agendor</strong>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.45 }}>Token/API e identificação do funil ou pipeline do cliente.</span>
+                        <h3>Google Ads</h3>
+                        <p>Selecione uma das contas Google Ads disponíveis na conexão global.</p>
                       </div>
                     </div>
-                    <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'flex-end' }}>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45 }}>Token / API Agendor</span>
-                          <input type="password" value={activeIntegrations.agendorToken || ''} onChange={(e) => handleIntegrationChange('agendorToken', e.target.value, 'integrations')} placeholder="Cole o token do Agendor" disabled={!canEditActiveClient} style={editModalFieldStyle} />
-                        </label>
-                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '8px 14px', height: 38 }} onClick={handleLoadAgendorPipelines} disabled={!canEditActiveClient || isAgendorPipelinesLoading || !String(activeIntegrations.agendorToken || '').trim()}>
+                    <div className="input-group">
+                      <label>Conta Google Ads</label>
+                      <select className="client-select-input" value={activeClient.googleAdsAccountId || ''} onChange={(event) => handleClientFieldChange('googleAdsAccountId', event.target.value)} disabled={!canEditActiveClient}>
+                        <option value="">{googleAdsConnection.connected ? 'Selecione uma conta' : 'Conecte o Google Ads em Configurações'}</option>
+                        {googleAdsAccounts.map((account) => (
+                          <option key={account.id} value={account.id}>{account.name ? account.name + ' (' + account.id + ')' : account.id}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="integration-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: '#22c55e', borderColor: '#22c55e33' }}>
+                        <i className="bx bx-table"></i>
+                      </div>
+                      <div>
+                        <h3>Planilha de Leads</h3>
+                        <p>Cole o link de compartilhamento do Google Sheets para exibir dentro do app.</p>
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label>Link da planilha</label>
+                      <input type="url" className="client-text-input" placeholder="https://docs.google.com/spreadsheets/d/..." value={activeClient.leadsSheetUrl || ''} onChange={(event) => handleClientFieldChange('leadsSheetUrl', event.target.value)} disabled={!canEditActiveClient} />
+                    </div>
+                  </div>
+
+                  <div className="integration-block manual-crm-toggle-block">
+                    <label className={'manual-crm-toggle ' + (activeClientUsesManualCrm ? 'active' : '')}>
+                      <input type="checkbox" checked={activeClientUsesManualCrm} onChange={(event) => handleToggleManualCrmForActiveClient(event.target.checked)} disabled={!canEditActiveClient} />
+                      <span className="manual-crm-switch" aria-hidden="true"></span>
+                      <span>
+                        <strong>Preencher CRM manualmente</strong>
+                        <small>Ative para digitar oportunidades, qualificados, vendas e valor vendido diretamente nos cards do dashboard.</small>
+                      </span>
+                    </label>
+                  </div>
+
+                  {!activeClientUsesManualCrm && <div className="integration-block agendor-integration-block">
+                    <div className="integration-heading">
+                      <div className="integration-icon" style={{ color: '#f97316', borderColor: '#f9731633' }}>
+                        <i className="bx bx-git-branch"></i>
+                      </div>
+                      <div>
+                        <h3>Agendor</h3>
+                        <p>Token/API e identificação do funil ou pipeline do cliente.</p>
+                      </div>
+                    </div>
+                    <div className="client-form-grid client-form-grid-2 agendor-token-grid">
+                      <div className="input-group">
+                        <label>Token/API Agendor</label>
+                        <input type="password" value={activeIntegrations.agendorToken || ''} onChange={(event) => handleIntegrationChange('agendorToken', event.target.value, 'integrations')} placeholder="Cole o token do Agendor" disabled={!canEditActiveClient} />
+                      </div>
+                      <div className="input-group agendor-load-action">
+                        <label>&nbsp;</label>
+                        <button type="button" className="btn btn-secondary" onClick={handleLoadAgendorPipelines} disabled={!canEditActiveClient || isAgendorPipelinesLoading || !String(activeIntegrations.agendorToken || '').trim()}>
                           {isAgendorPipelinesLoading ? 'Lendo...' : 'Ler pipelines'}
                         </button>
                       </div>
-
-                      {agendorPipelinesError && (
-                        <div style={{ padding: '10px 14px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.8rem' }}>{agendorPipelinesError}</div>
-                      )}
-
-                      {[
-                        { label: 'Pipelines para puxar para o dash', hint: 'Escolha um ou mais funis do Agendor. O dashboard usará apenas os pipelines selecionados.', options: agendorPipelineOptions, selected: selectedAgendorPipelineIds, onToggle: handleAgendorPipelineToggle, getKey: p => p.id, getLabel: p => p.label || p.name || p.id, empty: 'Cole o token e clique em "Ler pipelines" para selecionar os funis disponíveis.' },
-                        { label: 'Etapas consideradas qualificadas', hint: 'Marque quais etapas contam como qualificado nas taxas comerciais.', options: visibleAgendorStageOptions, selected: selectedAgendorStageNames, onToggle: handleAgendorQualifiedStageToggle, getKey: s => s.id || s.label, getLabel: s => s.label || s.name, empty: 'Depois de selecionar os pipelines, marque as etapas qualificadas.' },
-                      ].map(({ label, hint, options, selected, onToggle, getKey, getLabel, empty }) => (
-                        <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45, display: 'block', marginBottom: 2 }}>{label}</span>
-                            <span style={{ fontSize: '0.72rem', opacity: 0.35 }}>{hint}</span>
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {options.length ? options.map((item) => {
-                              const key = getKey(item)
-                              const itemLabel = getLabel(item)
-                              const isActive = Array.isArray(selected) && (selected.includes(key) || selected.includes(itemLabel))
-                              return (
-                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, cursor: canEditActiveClient ? 'pointer' : 'default', background: isActive ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)', color: isActive ? '#f97316' : 'rgba(255,255,255,0.5)', border: `1px solid ${isActive ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
-                                  <input type="checkbox" checked={isActive} onChange={() => onToggle(item.id !== undefined ? item.id : item)} disabled={!canEditActiveClient} style={{ display: 'none' }} />
-                                  {itemLabel}
-                                </label>
-                              )
-                            }) : (
-                              <span style={{ fontSize: '0.78rem', opacity: 0.3, fontStyle: 'italic' }}>{empty}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                )}
 
-                {/* ── Ações ── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingTop: 4 }}>
-                  <div>
-                    {canEditActiveClient && (
-                      <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem', color: '#f87171' }} onClick={() => handleRemoveClient(activeClient.id)}>
-                        <i className="bx bx-trash" style={{ marginRight: 4 }}></i>Remover cliente
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.82rem' }} onClick={() => setIsEditClientModalOpen(false)}>Fechar</button>
-                    <button type="submit" className="btn btn-primary" style={{ fontSize: '0.82rem' }} disabled={isSavingIntegrations || !canEditActiveClient}>
-                      {isSavingIntegrations ? 'Salvando...' : 'Salvar alterações'}
-                    </button>
-                  </div>
+                    {agendorPipelinesError && <div className="form-alert agendor-inline-alert">{agendorPipelinesError}</div>}
+
+                    <div className="agendor-selection-block">
+                      <div className="agendor-selection-head">
+                        <label>Pipelines para puxar para o dash</label>
+                        <span>Escolha um ou mais funis do Agendor. O dashboard usará apenas os pipelines selecionados.</span>
+                      </div>
+                      <div className="stage-selector agendor-chip-list">
+                        {agendorPipelineOptions.length ? (
+                          agendorPipelineOptions.map((pipeline) => (
+                            <label key={pipeline.id} className={'stage-chip ' + (selectedAgendorPipelineIds.includes(pipeline.id) ? 'active' : '')}>
+                              <input type="checkbox" checked={selectedAgendorPipelineIds.includes(pipeline.id)} onChange={() => handleAgendorPipelineToggle(pipeline.id)} disabled={!canEditActiveClient} />
+                              <span>{pipeline.label || pipeline.name || pipeline.id}</span>
+                            </label>
+                          ))
+                        ) : selectedAgendorPipelineLabels.length ? (
+                          selectedAgendorPipelineLabels.map((pipeline) => <span key={pipeline} className="stage-chip active"><span>{pipeline}</span></span>)
+                        ) : (
+                          <div className="stage-empty">Cole o token e clique em “Ler pipelines” para selecionar os funis disponíveis.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="agendor-selection-block">
+                      <div className="agendor-selection-head">
+                        <label>Etapas consideradas qualificadas</label>
+                        <span>Marque quais etapas dos pipelines selecionados contam como qualificado nas taxas comerciais.</span>
+                      </div>
+                      <div className="stage-selector agendor-chip-list">
+                        {visibleAgendorStageOptions.length ? (
+                          visibleAgendorStageOptions.map((stage) => {
+                            const stageName = String(stage.name || stage.label || '').trim()
+                            const checked = selectedAgendorStageNames.includes(stageName)
+                            return (
+                              <label key={stage.id || stage.label} className={'stage-chip ' + (checked ? 'active' : '')}>
+                                <input type="checkbox" checked={checked} onChange={() => handleAgendorQualifiedStageToggle(stage)} disabled={!canEditActiveClient} />
+                                <span>{stage.label || stage.name}</span>
+                              </label>
+                            )
+                          })
+                        ) : selectedAgendorStageNames.length ? (
+                          selectedAgendorStageNames.map((stage) => <span key={stage} className="stage-chip active"><span>{stage}</span></span>)
+                        ) : (
+                          <div className="stage-empty">Depois de selecionar os pipelines, marque as etapas que devem contar como qualificadas.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>}
+
+                </div>
+
+                <div className="client-create-actions">
+                  {canEditActiveClient && <button type="button" className="btn btn-secondary" onClick={() => handleRemoveClient(activeClient.id)}>Remover cliente</button>}
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsEditClientModalOpen(false)}>Fechar</button>
+                  <button type="submit" className="btn btn-primary" disabled={isSavingIntegrations || !canEditActiveClient}>{isSavingIntegrations ? 'Salvando...' : 'Salvar'}</button>
                 </div>
               </form>
             </div>
@@ -22166,7 +22154,10 @@ export default function DashboardShell({
                   { id: 'identity', label: '1. Identificação' },
                   { id: 'integrations', label: '2. Integrações' },
                 ].map((step) => (
-                  <span key={step.id} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: createClientStep === step.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: createClientStep === step.id ? '#26c281' : 'rgba(255,255,255,0.3)', border: `1px solid ${createClientStep === step.id ? 'rgba(38,194,129,0.35)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}>
+                  <span
+                    key={step.id}
+                    style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: createClientStep === step.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: createClientStep === step.id ? '#26c281' : 'rgba(255,255,255,0.3)', border: `1px solid ${createClientStep === step.id ? 'rgba(38,194,129,0.35)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}
+                  >
                     {step.label}
                   </span>
                 ))}
@@ -25573,10 +25564,6 @@ export default function DashboardShell({
           overflow: hidden;
         }
 
-        .dashboard-container[data-active-tab='geral'] .main-content {
-          padding: 0 !important;
-        }
-
         .dashboard-container[data-active-tab='assistant'] .main-content {
           padding: 0 !important;
           overflow: hidden;
@@ -25643,16 +25630,12 @@ export default function DashboardShell({
           font-weight: 500;
           letter-spacing: 0;
           background: transparent;
-          display: flex;
-          align-items: center;
-          gap: 14px;
+          gap: 22px;
         }
 
         .dashboard-container .sidebar :global(.nav-item i) {
           color: rgba(241, 241, 241, 0.4);
           font-size: 20px;
-          margin-right: 10px;
-          flex-shrink: 0;
         }
 
         .dashboard-container .sidebar :global(.nav-item:hover) {
@@ -25693,7 +25676,6 @@ export default function DashboardShell({
 
         .dashboard-container .sidebar :global(.nav-sub-item i) {
           font-size: 15px;
-          margin-right: 10px;
         }
 
         .dashboard-container .sidebar :global(.nav-sub-item.active) {
@@ -25751,11 +25733,6 @@ export default function DashboardShell({
           padding: 0 12px !important;
           justify-content: flex-start !important;
           overflow: visible !important;
-          gap: 12px !important;
-        }
-
-        .dashboard-container .sidebar:hover .nav-item i {
-          margin-right: 0 !important;
         }
 
         .dashboard-container .sidebar:hover .nav-label,

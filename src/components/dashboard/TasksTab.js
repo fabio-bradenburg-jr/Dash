@@ -7,6 +7,7 @@ import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnMan
 import AutomationsTab from '@/components/dashboard/AutomationsTab'
 import NewTaskModal from '@/components/dashboard/NewTaskModal'
 import ArchivedTasksPanel from '@/components/dashboard/ArchivedTasksPanel'
+import CustomFieldsManager from '@/components/dashboard/CustomFieldsManager'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -80,6 +81,279 @@ function offsetDayStr(offset) {
   return d.toISOString().split('T')[0]
 }
 
+// ---- Assignee Multi-Picker ----
+function AssigneePicker({ assigneeIds = [], workspaceUsers = [], onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  const selected = workspaceUsers.filter(u => assigneeIds.includes(u.id))
+
+  function toggle(uid) {
+    const next = assigneeIds.includes(uid) ? assigneeIds.filter(id => id !== uid) : [...assigneeIds, uid]
+    onChange(next)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div
+        onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '5px 10px', minHeight: 34 }}
+      >
+        {selected.length === 0 ? (
+          <span style={{ fontSize: '0.83rem', color: '#475569' }}>Sem responsável</span>
+        ) : (
+          <div style={{ display: 'flex', gap: -4, flexWrap: 'wrap', gap: 4 }}>
+            {selected.map(u => <Avatar key={u.id} name={u.full_name || u.email} size={22} />)}
+          </div>
+        )}
+        <i className="bx bx-chevron-down" style={{ marginLeft: 'auto', color: '#64748b', fontSize: 14 }} />
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 200, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', maxHeight: 240, overflowY: 'auto' }}>
+          {workspaceUsers.length === 0 && <div style={{ padding: '10px 14px', fontSize: '0.82rem', color: '#475569' }}>Sem usuários</div>}
+          {workspaceUsers.map(u => {
+            const checked = assigneeIds.includes(u.id)
+            return (
+              <div
+                key={u.id}
+                onClick={() => toggle(u.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', cursor: 'pointer', background: checked ? 'rgba(38,194,129,0.08)' : 'transparent', transition: 'background 0.1s' }}
+                onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}
+              >
+                <Avatar name={u.full_name || u.email} size={24} />
+                <span style={{ flex: 1, fontSize: '0.83rem', color: '#e2e8f0' }}>{u.full_name || u.email}</span>
+                {checked && <i className="bx bx-check" style={{ color: '#26c281', fontSize: 16 }} />}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- Custom Field Value Editor ----
+function CustomFieldValue({ field, value, onChange }) {
+  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+  const options = field.config?.options || []
+
+  switch (field.field_type) {
+    case 'text':
+    case 'url':
+    case 'email':
+    case 'phone':
+      return <input style={inputStyle} value={value || ''} onChange={e => onChange(e.target.value || null)} placeholder={field.name} />
+    case 'textarea':
+      return <textarea style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} value={value || ''} onChange={e => onChange(e.target.value || null)} rows={2} placeholder={field.name} />
+    case 'number':
+    case 'currency':
+      return <input type="number" style={inputStyle} value={value ?? ''} onChange={e => onChange(e.target.value !== '' ? Number(e.target.value) : null)} placeholder="0" />
+    case 'date':
+      return <input type="date" style={{ ...inputStyle, colorScheme: 'dark' }} value={value || ''} onChange={e => onChange(e.target.value || null)} />
+    case 'checkbox':
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} style={{ accentColor: '#26c281', width: 16, height: 16 }} />
+          <span style={{ fontSize: '0.83rem', color: value ? '#26c281' : '#64748b' }}>{value ? 'Sim' : 'Não'}</span>
+        </div>
+      )
+    case 'select':
+      return (
+        <select style={inputStyle} value={value || ''} onChange={e => onChange(e.target.value || null)}>
+          <option value="">—</option>
+          {options.map((o, i) => <option key={i} value={o.label}>{o.label}</option>)}
+        </select>
+      )
+    case 'multiselect': {
+      const selected = Array.isArray(value) ? value : []
+      return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {options.map((o, i) => {
+            const on = selected.includes(o.label)
+            return (
+              <button key={i} type="button" onClick={() => onChange(on ? selected.filter(v => v !== o.label) : [...selected, o.label])}
+                style={{ padding: '3px 10px', borderRadius: 12, border: '1px solid', borderColor: on ? '#26c281' : 'rgba(255,255,255,0.12)', background: on ? 'rgba(38,194,129,0.15)' : 'transparent', color: on ? '#26c281' : '#64748b', cursor: 'pointer', fontSize: '0.78rem', fontWeight: on ? 700 : 400 }}>
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      )
+    }
+    case 'priority': {
+      const PRIORITIES = [{ v:'urgent',l:'Urgente',c:'#ef4444'},{v:'high',l:'Alta',c:'#f97316'},{v:'medium',l:'Média',c:'#eab308'},{v:'low',l:'Baixa',c:'#3b82f6'},{v:'none',l:'Sem prioridade',c:'#64748b'}]
+      return (
+        <select style={inputStyle} value={value || 'none'} onChange={e => onChange(e.target.value)}>
+          {PRIORITIES.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
+        </select>
+      )
+    }
+    default:
+      return <input style={inputStyle} value={value || ''} onChange={e => onChange(e.target.value || null)} />
+  }
+}
+
+// ---- Task Settings Panel ----
+function TaskSettingsPanel({ onClose, onStatusChange, isMaster }) {
+  const [tab, setTab] = useState('status')
+
+  const tabs = [
+    { key: 'status', label: 'Status', icon: 'bx-circle' },
+    { key: 'fields', label: 'Campos', icon: 'bx-list-plus' },
+    { key: 'prefs', label: 'Preferências', icon: 'bx-slider' },
+    ...(isMaster ? [{ key: 'columns', label: 'Colunas', icon: 'bx-columns' }] : []),
+  ]
+
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 2000 }} onClick={onClose} />
+      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 520, maxWidth: '95vw', background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 2001, display: 'flex', flexDirection: 'column', boxShadow: '-12px 0 48px rgba(0,0,0,0.6)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="bx bx-cog" style={{ color: '#26c281' }} /> Configurações de Tarefas
+          </span>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}><i className="bx bx-x" /></button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '0 16px' }}>
+          {tabs.map(t => (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'none', border: 'none', borderBottom: tab === t.key ? '2px solid #26c281' : '2px solid transparent', color: tab === t.key ? '#26c281' : '#64748b', cursor: 'pointer', fontSize: '0.83rem', fontWeight: tab === t.key ? 700 : 500, marginBottom: -1 }}>
+              <i className={`bx ${t.icon}`} style={{ fontSize: 15 }} />{t.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+          {tab === 'status' && (
+            <StatusTemplatesManager onClose={() => { onStatusChange(); onClose() }} />
+          )}
+          {tab === 'fields' && <CustomFieldsManager />}
+          {tab === 'columns' && (
+            <div>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: 0 }}>
+                As colunas do quadro Kanban correspondem aos <strong>status</strong> configurados na aba Status. Para criar, renomear ou reordenar colunas, edite os status na aba ao lado.
+              </p>
+              <button type="button" onClick={() => setTab('status')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#26c281', padding: '8px 16px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                <i className="bx bx-circle" /> Ir para Status
+              </button>
+            </div>
+          )}
+          {tab === 'prefs' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Preferências de visualização são salvas automaticamente ao usar os controles da barra de ferramentas (filtros, modo de visualização, tarefas fechadas).</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ---- Inline Field Editor (for task row quick edits) ----
+function InlineStatusPicker({ task, statuses, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const status = statuses.find(s => s.id === task.status_id)
+  useEffect(() => {
+    if (!open) return
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div onClick={e => { e.stopPropagation(); setOpen(v => !v) }} style={{ cursor: 'pointer' }}>
+        {status ? (
+          <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 10, background: status.color + '33', color: status.color, fontWeight: 600, whiteSpace: 'nowrap' }}>{status.label}</span>
+        ) : (
+          <span style={{ fontSize: '0.72rem', color: '#334155' }}>—</span>
+        )}
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 300, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+          <div onClick={e => { e.stopPropagation(); onChange(null); setOpen(false) }} style={{ padding: '7px 12px', cursor: 'pointer', fontSize: '0.82rem', color: '#475569' }}>Sem status</div>
+          {statuses.map(s => (
+            <div key={s.id} onClick={e => { e.stopPropagation(); onChange(s.id); setOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer', fontSize: '0.82rem', color: '#e2e8f0', background: task.status_id === s.id ? 'rgba(255,255,255,0.05)' : 'transparent' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0 }} />{s.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InlinePriorityPicker({ task, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div onClick={e => { e.stopPropagation(); setOpen(v => !v) }} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'center' }}>
+        <PriorityFlag priority={task.priority} size={14} />
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 300, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+          {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+            <div key={k} onClick={e => { e.stopPropagation(); onChange(k); setOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer', fontSize: '0.82rem', color: v.color, background: task.priority === k ? 'rgba(255,255,255,0.05)' : 'transparent' }}>
+              <i className={`bx bx${k === 'none' ? '' : 's'}-flag`} style={{ fontSize: 14, color: v.color }} />{v.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InlineAssigneePicker({ task, workspaceUsers, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const assignee = workspaceUsers?.find(u => u.id === task.assignee_id)
+  useEffect(() => {
+    if (!open) return
+    function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div onClick={e => { e.stopPropagation(); setOpen(v => !v) }} style={{ cursor: 'pointer' }}>
+        <Avatar name={assignee?.full_name || assignee?.email} size={24} />
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 300, minWidth: 180, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+          <div onClick={e => { e.stopPropagation(); onChange(null); setOpen(false) }} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.82rem', color: '#475569' }}>Sem responsável</div>
+          {(workspaceUsers || []).map(u => (
+            <div key={u.id} onClick={e => { e.stopPropagation(); onChange(u.id); setOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer', background: task.assignee_id === u.id ? 'rgba(38,194,129,0.08)' : 'transparent' }}>
+              <Avatar name={u.full_name || u.email} size={22} />
+              <span style={{ fontSize: '0.82rem', color: '#e2e8f0' }}>{u.full_name || u.email}</span>
+              {task.assignee_id === u.id && <i className="bx bx-check" style={{ color: '#26c281', fontSize: 14, marginLeft: 'auto' }} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---- Task Row ----
 function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuickUpdate }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -99,15 +373,17 @@ function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuick
 
   return (
     <div
-      style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '0 8px', height: 40, gap: 8, cursor: 'pointer', transition: 'background 0.1s' }}
+      style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '0 8px', height: 44, gap: 8, transition: 'background 0.1s' }}
       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
-      <div style={{ width: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <StatusDot color={status?.color} size={10} />
+      {/* Status inline picker */}
+      <div style={{ width: 100, flexShrink: 0 }}>
+        <InlineStatusPicker task={task} statuses={statuses} onChange={val => onQuickUpdate(task.id, { status_id: val })} />
       </div>
+      {/* Title */}
       <div
-        style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', color: '#e2e8f0' }}
         onClick={() => onOpenPanel(task)}
       >
         {task.title}
@@ -117,18 +393,23 @@ function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuick
           </span>
         )}
       </div>
-      <div style={{ width: 120, flexShrink: 0, fontSize: '0.78rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {/* Client */}
+      <div style={{ width: 110, flexShrink: 0, fontSize: '0.78rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {client?.name || <span style={{ color: '#334155' }}>—</span>}
       </div>
+      {/* Assignee inline picker */}
       <div style={{ width: 36, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <Avatar name={assignee?.full_name || assignee?.email} size={24} />
+        <InlineAssigneePicker task={task} workspaceUsers={workspaceUsers} onChange={val => onQuickUpdate(task.id, { assignee_id: val })} />
       </div>
+      {/* Due date */}
       <div style={{ width: 90, flexShrink: 0, fontSize: '0.78rem', color: overdue ? '#ef4444' : (dueDateStr ? '#94a3b8' : '#334155'), textAlign: 'center' }}>
         {dueDateStr || '—'}
       </div>
+      {/* Priority inline picker */}
       <div style={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <PriorityFlag priority={task.priority} size={14} />
+        <InlinePriorityPicker task={task} onChange={val => onQuickUpdate(task.id, { priority: val })} />
       </div>
+      {/* Menu */}
       <div style={{ width: 28, display: 'flex', justifyContent: 'center', flexShrink: 0, position: 'relative' }} ref={menuRef}>
         <button
           type="button"
@@ -138,12 +419,12 @@ function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuick
           <i className="bx bx-dots-horizontal-rounded"></i>
         </button>
         {menuOpen && (
-          <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 100, minWidth: 140, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'absolute', right: 0, top: '100%', background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, zIndex: 100, minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
             <button type="button" onClick={() => { setMenuOpen(false); onOpenPanel(task) }} style={{ display: 'block', width: '100%', padding: '8px 14px', background: 'none', border: 'none', color: '#e2e8f0', cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem' }}>
-              <i className="bx bx-pencil" style={{ marginRight: 8 }}></i>Editar
+              <i className="bx bx-expand-alt" style={{ marginRight: 8 }}></i>Abrir detalhes
             </button>
             <button type="button" onClick={() => { setMenuOpen(false); onQuickUpdate(task.id, { is_archived: true }) }} style={{ display: 'block', width: '100%', padding: '8px 14px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem' }}>
-              <i className="bx bx-trash" style={{ marginRight: 8 }}></i>Arquivar
+              <i className="bx bx-archive" style={{ marginRight: 8 }}></i>Arquivar
             </button>
           </div>
         )}
@@ -492,11 +773,13 @@ function StatusGroup({ status, tasks, statuses, clients, workspaceUsers, onOpenP
 }
 
 // ---- Side Panel ----
-function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster }) {
+function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields }) {
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
   const [subtasks, setSubtasks] = useState([])
   const [comments, setComments] = useState([])
+  const [assigneeIds, setAssigneeIds] = useState([])
+  const [fieldValues, setFieldValues] = useState([])
   const [loading, setLoading] = useState(true)
   const [editTitle, setEditTitle] = useState(false)
   const [titleVal, setTitleVal] = useState('')
@@ -528,6 +811,8 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
         setChecklist(json.checklist || [])
         setSubtasks(json.subtasks || [])
         setComments(json.comments || [])
+        setAssigneeIds(json.assignees || (json.task.assignee_id ? [json.task.assignee_id] : []))
+        setFieldValues(json.fieldValues || [])
       }
     } finally {
       setLoading(false)
@@ -543,6 +828,46 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
       const json = await res.json()
       if (json.task) { setTask(json.task); onUpdated(json.task) }
     } finally { setSaving(false) }
+  }
+
+  async function updateAssignees(ids) {
+    setAssigneeIds(ids)
+    // Keep assignee_id as first for backwards compat
+    const primaryId = ids[0] || null
+    setSaving(true)
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee_id: primaryId, assignee_ids: ids }),
+      })
+      onUpdated({ ...task, assignee_id: primaryId })
+    } finally { setSaving(false) }
+  }
+
+  async function updateCustomField(fieldId, value) {
+    setFieldValues(prev => {
+      const existing = prev.find(v => v.field_id === fieldId)
+      if (existing) return prev.map(v => v.field_id === fieldId ? { ...v, _value: value } : v)
+      return [...prev, { field_id: fieldId, _value: value }]
+    })
+    await fetch('/api/tasks/custom-fields/values', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId, field_id: fieldId, value }),
+    })
+  }
+
+  function getFieldValue(fieldId, fieldType) {
+    const row = fieldValues.find(v => v.field_id === fieldId)
+    if (!row) return null
+    if (row._value !== undefined) return row._value
+    if (['text','textarea','url','email','phone','select','user'].includes(fieldType)) return row.value_text
+    if (['number','currency'].includes(fieldType)) return row.value_number
+    if (fieldType === 'date') return row.value_date
+    if (fieldType === 'checkbox') return row.value_bool
+    if (fieldType === 'multiselect') return row.value_json
+    return row.value_text
   }
 
   async function saveTitle() {
@@ -647,11 +972,12 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Responsável</div>
-            <select value={task.assignee_id || ''} onChange={e => updateField('assignee_id', e.target.value || null)} style={selectStyle}>
-              <option value="">Nenhum</option>
-              {(workspaceUsers || []).map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-            </select>
+            <div style={labelStyle}>Responsável{assigneeIds.length > 1 ? ` (${assigneeIds.length})` : ''}</div>
+            <AssigneePicker
+              assigneeIds={assigneeIds}
+              workspaceUsers={workspaceUsers || []}
+              onChange={updateAssignees}
+            />
           </div>
 
           <div style={fieldWrap}>
@@ -682,6 +1008,28 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
               style={{ ...selectStyle, resize: 'vertical', fontFamily: 'inherit' }}
             />
           </div>
+
+          {/* Custom Fields */}
+          {(customFields || []).length > 0 && (
+            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ ...labelStyle, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className="bx bx-list-plus" style={{ fontSize: 12 }} /> Campos Personalizados
+              </div>
+              {(customFields || []).map(field => (
+                <div key={field.id} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: '0.72rem', color: field.color || '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <i className={`bx ${field.icon || 'bx-list-plus'}`} style={{ fontSize: 11 }} />{field.name}
+                    {field.is_required && <span style={{ color: '#ef4444' }}>*</span>}
+                  </div>
+                  <CustomFieldValue
+                    field={field}
+                    value={getFieldValue(field.id, field.field_type)}
+                    onChange={val => updateCustomField(field.id, val)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={fieldWrap}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1288,6 +1636,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false)
   const [showStatusManager, setShowStatusManager] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showAutomations, setShowAutomations] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [showClosedTasks, setShowClosedTasks] = useState(false)
@@ -1469,10 +1818,10 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
         <button
           type="button"
-          onClick={() => setShowStatusManager(true)}
+          onClick={() => setShowSettings(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
         >
-          <i className="bx bx-cog"></i> Status
+          <i className="bx bx-cog"></i> Configurações
         </button>
 
         {/* Toggle fechadas */}
@@ -1581,6 +1930,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onClose={() => setSelectedTaskId(null)}
             onUpdated={handlePanelUpdate}
             isMaster={isMaster}
+            customFields={customFields}
           />
         </>
       )}
@@ -1588,6 +1938,14 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {showStatusManager && (
         <StatusTemplatesManager
           onClose={() => { setShowStatusManager(false); loadStatuses() }}
+        />
+      )}
+
+      {showSettings && (
+        <TaskSettingsPanel
+          onClose={() => setShowSettings(false)}
+          onStatusChange={() => loadStatuses()}
+          isMaster={isMaster}
         />
       )}
 
