@@ -25639,6 +25639,8 @@ export default function DashboardShell({
           font-weight: 500;
           letter-spacing: 0;
           background: transparent;
+          display: flex;
+          align-items: center;
           gap: 14px;
         }
 
