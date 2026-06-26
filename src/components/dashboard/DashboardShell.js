@@ -25620,6 +25620,8 @@ export default function DashboardShell({
         }
 
         .dashboard-container .sidebar :global(.nav-item) {
+          display: flex;
+          align-items: center;
           min-height: 44px;
           height: 44px;
           padding: 0 10px;
@@ -25630,7 +25632,7 @@ export default function DashboardShell({
           font-weight: 500;
           letter-spacing: 0;
           background: transparent;
-          gap: 22px;
+          gap: 12px;
         }
 
         .dashboard-container .sidebar :global(.nav-item i) {
@@ -25733,6 +25735,7 @@ export default function DashboardShell({
           padding: 0 12px !important;
           justify-content: flex-start !important;
           overflow: visible !important;
+          gap: 12px !important;
         }
 
         .dashboard-container .sidebar:hover .nav-label,
