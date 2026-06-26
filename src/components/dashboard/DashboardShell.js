@@ -25747,6 +25747,11 @@ export default function DashboardShell({
           padding: 0 12px !important;
           justify-content: flex-start !important;
           overflow: visible !important;
+          gap: 12px !important;
+        }
+
+        .dashboard-container .sidebar:hover .nav-item i {
+          margin-right: 0 !important;
         }
 
         .dashboard-container .sidebar:hover .nav-label,
