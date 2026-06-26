@@ -25573,6 +25573,10 @@ export default function DashboardShell({
           overflow: hidden;
         }
 
+        .dashboard-container[data-active-tab='geral'] .main-content {
+          padding: 0 !important;
+        }
+
         .dashboard-container[data-active-tab='assistant'] .main-content {
           padding: 0 !important;
           overflow: hidden;
