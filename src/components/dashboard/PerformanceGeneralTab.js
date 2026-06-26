@@ -1400,7 +1400,7 @@ export default function PerformanceGeneralTab({
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 26 }}>
+    <div style={{ width: '100%', padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 26, boxSizing: 'border-box' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
