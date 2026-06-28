@@ -7,15 +7,15 @@ const RESULT_TYPES = ['Leads', 'Conversas', 'Compras', 'Cliques', 'Agendamentos'
 
 // ---- Formatters ----
 function fmtCurrency(n) {
-  if (n == null || n === '' || isNaN(n)) return '—'
+  if (n == null || n === '' || isNaN(Number(n))) return '—'
   return Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 function fmtN(n) {
-  if (n == null || n === '' || isNaN(n) || Number(n) === 0) return '—'
+  if (n == null || n === '' || isNaN(Number(n)) || Number(n) === 0) return '—'
   return Number(n).toLocaleString('pt-BR')
 }
 function fmtPct(n) {
-  if (n == null || n === '' || isNaN(n)) return '—'
+  if (n == null || n === '' || isNaN(Number(n))) return '—'
   return Number(n).toFixed(2).replace('.', ',') + '%'
 }
 function fmtDate(d) {
@@ -27,6 +27,10 @@ function fmtDatetime(iso) {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
+function fmtRate(num, den) {
+  if (!den || den === 0) return '—'
+  return ((num / den) * 100).toFixed(1).replace('.', ',') + '%'
+}
 
 function computeCampaign(c) {
   const inv = Number(c.investment) || 0
@@ -37,7 +41,7 @@ function computeCampaign(c) {
   return {
     cpr: res > 0 ? inv / res : null,
     ctr: imp > 0 && clk > 0 ? (clk / imp) * 100 : (c.ctr ? Number(c.ctr) : null),
-    frequency: imp > 0 && reach > 0 ? imp / reach : null,
+    frequency: imp > 0 && reach > 0 ? imp / reach : (c.frequency ? Number(c.frequency) : null),
   }
 }
 
@@ -55,6 +59,9 @@ function computeTotals(campaigns) {
     clicks: clk,
     cpr: res > 0 ? inv / res : null,
     ctr: imp > 0 && clk > 0 ? (clk / imp) * 100 : null,
+    cpm: imp > 0 ? (inv / imp) * 1000 : null,
+    cpc: clk > 0 ? inv / clk : null,
+    frequency: imp > 0 && reach > 0 ? imp / reach : null,
   }
 }
 
@@ -72,7 +79,7 @@ function newCampaign() {
   }
 }
 
-// ---- Styles ----
+// ---- Form input styles (dark theme for the form panel) ----
 const S = {
   input: {
     background: 'rgba(255,255,255,0.05)',
@@ -96,155 +103,191 @@ const S = {
   },
 }
 
-// ---- KPI Card ----
-function KpiCard({ label, value, color = '#26c281', icon }) {
+// ---- Report Preview — light theme matching PDF export ----
+function SectionBanner({ title }) {
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderTop: `3px solid ${color}`,
-      borderRadius: 12,
-      padding: '16px 20px',
-    }}>
-      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-        {icon && <i className={`bx ${icon}`} style={{ fontSize: 12 }} />}{label}
-      </div>
-      <div style={{ fontSize: '1.45rem', fontWeight: 700, color: '#f1f5f9', lineHeight: 1 }}>{value}</div>
+    <div style={{ background: '#26c281', borderRadius: 8, padding: '10px 18px', marginBottom: 16 }}>
+      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</span>
     </div>
   )
 }
 
-// ---- Report Preview ----
+function LightCard({ label, value, detail }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', minWidth: 0 }}>
+      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#26c281', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#111827', lineHeight: 1.1 }}>{value}</div>
+      {detail && <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: 5, lineHeight: 1.4 }}>{detail}</div>}
+    </div>
+  )
+}
+
 function ReportPreview({ report, campaigns }) {
   const totals = computeTotals(campaigns)
   const period = report.start_date && report.end_date
     ? `${fmtDate(report.start_date)} a ${fmtDate(report.end_date)}`
-    : report.start_date ? `A partir de ${fmtDate(report.start_date)}` : ''
+    : report.start_date ? `A partir de ${fmtDate(report.start_date)}` : 'Período não informado'
 
-  const kpis = [
-    { label: 'Investimento Total', value: fmtCurrency(totals.investment), color: '#26c281', icon: 'bx-dollar' },
-    { label: 'Resultado Total', value: fmtN(totals.results) !== '—' ? fmtN(totals.results) : '0', color: '#3b82f6', icon: 'bx-target-lock' },
-    { label: 'Custo por Resultado', value: totals.cpr ? fmtCurrency(totals.cpr) : '—', color: '#f59e0b', icon: 'bx-trending-down' },
-    totals.reach > 0 && { label: 'Alcance Total', value: fmtN(totals.reach), color: '#8b5cf6', icon: 'bx-show' },
-    totals.impressions > 0 && { label: 'Impressões', value: fmtN(totals.impressions), color: '#ec4899', icon: 'bx-eye' },
-    totals.clicks > 0 && { label: 'Cliques', value: fmtN(totals.clicks), color: '#14b8a6', icon: 'bx-pointer' },
-    totals.ctr && { label: 'CTR Médio', value: fmtPct(totals.ctr), color: '#f97316', icon: 'bx-mouse-alt' },
-    (Number(report.total_revenue) > 0) && { label: 'Faturamento', value: fmtCurrency(report.total_revenue), color: '#22c55e', icon: 'bx-money' },
-    (Number(report.vendas) > 0) && { label: 'Vendas', value: fmtN(report.vendas), color: '#22c55e', icon: 'bx-shopping-bag' },
-  ].filter(Boolean)
+  const opp = Number(report.opportunity_count) || 0
+  const qual = Number(report.qualified_opportunity_count) || 0
+  const won = Number(report.won_opportunity_count) || 0
+  const revenue = Number(report.won_revenue) || 0
+  const ticketMedio = won > 0 && revenue > 0 ? revenue / won : 0
+  const roasComercial = totals.investment > 0 && revenue > 0 ? revenue / totals.investment : 0
+  const hasCrm = opp > 0 || qual > 0 || won > 0 || revenue > 0
+
+  // Determine result label from first campaign
+  const resultLabel = campaigns[0]?.result_type || 'Resultado'
 
   return (
-    <div>
+    <div style={{ background: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100%' }}>
       {/* Header */}
-      <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <span style={{ fontSize: '0.7rem', background: 'rgba(38,194,129,0.15)', color: '#26c281', border: '1px solid rgba(38,194,129,0.3)', padding: '3px 10px', borderRadius: 20, fontWeight: 700, letterSpacing: '0.06em' }}>
-            📄 RELATÓRIO MANUAL
+      <div style={{ background: '#fff', padding: '28px 32px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800, color: '#111827' }}>Relatório do cliente</h1>
+          <p style={{ margin: '5px 0 0', fontSize: '0.88rem', color: '#6b7280' }}>
+            {report.client_name || '—'} • {period}
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', borderRadius: 10, padding: '10px 14px', flexShrink: 0 }}>
+          <i className="bx bx-leaf" style={{ fontSize: 22, color: '#fff' }} />
+        </div>
+      </div>
+
+      <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* Context */}
+        <div>
+          <SectionBanner title={`Contexto do período · ${period}`} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <LightCard label="Cliente" value={report.client_name || '—'} detail="Relatório manual" />
+            <LightCard label="Período" value={period} detail="Leitura inserida manualmente." />
+            <LightCard label="Resultado de referência" value={resultLabel} detail="Todas as campanhas" />
+          </div>
+        </div>
+
+        {/* Meta Ads KPIs */}
+        <div>
+          <SectionBanner title="Campanhas de mídia paga" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+            <LightCard label="Investimento" value={fmtCurrency(totals.investment)} detail="" />
+            {totals.impressions > 0 && <LightCard label="Impressões" value={fmtN(totals.impressions)} detail="" />}
+            {totals.cpm && <LightCard label="CPM" value={fmtCurrency(totals.cpm)} detail="" />}
+            {totals.reach > 0 && <LightCard label="Alcance" value={fmtN(totals.reach)} detail="" />}
+            {totals.frequency && <LightCard label="Frequência" value={Number(totals.frequency).toFixed(2).replace('.', ',')} detail="" />}
+            {totals.clicks > 0 && <LightCard label="Cliques no Link" value={fmtN(totals.clicks)} detail="" />}
+            {totals.cpc && <LightCard label="CPC" value={fmtCurrency(totals.cpc)} detail="" />}
+            {totals.ctr && <LightCard label="CTR" value={fmtPct(totals.ctr)} detail="" />}
+            {totals.results > 0 && <LightCard label={`${resultLabel} · ${resultLabel}`} value={fmtN(totals.results)} detail={`Conversões em ${resultLabel.toLowerCase()} atribuídas no período`} />}
+            {totals.cpr && <LightCard label={`${resultLabel} · Custo por ${resultLabel}`} value={fmtCurrency(totals.cpr)} detail={`Conversões em ${resultLabel.toLowerCase()} atribuídas no período`} />}
+          </div>
+        </div>
+
+        {/* Campaigns table */}
+        {campaigns.length > 0 && (
+          <div>
+            <SectionBanner title="Campanhas" />
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: '#26c281' }}>
+                    {['Campanha', 'Plataforma', 'Investimento', 'Alcance', 'Cliques', resultLabel, `CPR`].map(h => (
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#fff', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map((c, i) => {
+                    const cc = computeCampaign(c)
+                    return (
+                      <tr key={c._id || c.id || i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 600 }}>{c.campaign_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>
+                          <span style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 600 }}>{c.platform}</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: '#111827', fontWeight: 700 }}>{fmtCurrency(c.investment)}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{c.reach ? fmtN(c.reach) : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{c.clicks ? fmtN(c.clicks) : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151', fontWeight: 600 }}>{fmtN(c.result)}</td>
+                        <td style={{ padding: '10px 14px', color: '#374151' }}>{cc.cpr ? fmtCurrency(cc.cpr) : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* CRM Manual */}
+        {hasCrm && (
+          <div>
+            <SectionBanner title="CRM Manual" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, alignItems: 'start' }}>
+              {/* Funnel */}
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 20 }}>
+                {/* Oportunidades */}
+                <div style={{ background: '#26c281', borderRadius: 8, padding: '12px 20px', textAlign: 'center', marginBottom: 0 }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Oportunidades</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff' }}>{opp > 0 ? fmtN(opp) : '0'}</div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 1, height: 16, background: '#d1d5db' }} />
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Taxa de Qualificação</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>{opp > 0 ? fmtRate(qual, opp) : '—'}</div>
+                  </div>
+                  <div style={{ width: 1, height: 16, background: '#d1d5db' }} />
+                </div>
+                {/* Qualificados */}
+                <div style={{ background: '#26c281', borderRadius: 8, padding: '12px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Qualificados</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff' }}>{qual > 0 ? fmtN(qual) : '0'}</div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 1, height: 16, background: '#d1d5db' }} />
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 20, padding: '4px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Taxa de Venda</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>{qual > 0 ? fmtRate(won, qual) : '—'}</div>
+                  </div>
+                  <div style={{ width: 1, height: 16, background: '#d1d5db' }} />
+                </div>
+                {/* Vendas */}
+                <div style={{ background: '#26c281', borderRadius: 8, padding: '12px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Vendas</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff' }}>{won > 0 ? fmtN(won) : '0'}</div>
+                </div>
+              </div>
+
+              {/* Side metrics */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <LightCard label="Faturamento" value={fmtCurrency(revenue)} detail="Valor vendido no período." />
+                {ticketMedio > 0 && <LightCard label="Ticket Médio" value={fmtCurrency(ticketMedio)} detail="Faturamento ÷ Vendas" />}
+                <LightCard label="ROAS Comercial" value={roasComercial > 0 ? `${roasComercial.toFixed(2).replace('.', ',')}x` : '0,00x'} detail="Valor vendido dividido pelo investimento do período." />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Observations */}
+        {report.observacoes && (
+          <div>
+            <SectionBanner title="Observações" />
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px', fontSize: '0.88rem', color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              {report.observacoes}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#26c281', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+            Relatório Manual
+            {report.created_by_name ? ` · Criado por ${report.created_by_name}` : ''}
+            {report.created_at ? ` · ${fmtDatetime(report.created_at)}` : ''}
           </span>
         </div>
-        <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700, color: '#f1f5f9' }}>{report.title}</h2>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: 4 }}>
-          {report.client_name}{period && ` · ${period}`}
-        </div>
-      </div>
-
-      {/* KPI grid */}
-      <div style={{ padding: '20px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14 }}>
-        {kpis.map(k => <KpiCard key={k.label} {...k} />)}
-      </div>
-
-      {/* Campaigns table */}
-      {campaigns.length > 0 && (
-        <div style={{ padding: '0 28px 20px' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Campanhas
-          </div>
-          <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(255,255,255,0.07)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  {['Campanha', 'Plataforma', 'Investimento', 'Resultado', 'CPR', 'Alcance', 'Impressões', 'Cliques', 'CTR', 'Frequência'].map(h => (
-                    <th key={h} style={{ padding: '9px 12px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((c, i) => {
-                  const cc = computeCampaign(c)
-                  return (
-                    <tr key={c._id || c.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '10px 12px', color: '#e2e8f0', fontWeight: 500, whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.campaign_name || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                        <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 8, fontSize: '0.75rem' }}>{c.platform}</span>
-                      </td>
-                      <td style={{ padding: '10px 12px', color: '#26c281', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmtCurrency(c.investment)}</td>
-                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                        <span style={{ color: '#e2e8f0' }}>{fmtN(c.result)}</span>
-                        <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: 5 }}>{c.result_type}</span>
-                      </td>
-                      <td style={{ padding: '10px 12px', color: '#f59e0b', whiteSpace: 'nowrap' }}>{cc.cpr ? fmtCurrency(cc.cpr) : '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{c.reach ? fmtN(c.reach) : '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{c.impressions ? fmtN(c.impressions) : '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{c.clicks ? fmtN(c.clicks) : '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{cc.ctr ? fmtPct(cc.ctr) : '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#94a3b8' }}>{cc.frequency ? cc.frequency.toFixed(2).replace('.', ',') : '—'}</td>
-                    </tr>
-                  )
-                })}
-                <tr style={{ borderTop: '2px solid rgba(255,255,255,0.1)', background: 'rgba(38,194,129,0.04)' }}>
-                  <td style={{ padding: '10px 12px', color: '#f1f5f9', fontWeight: 700 }} colSpan={2}>Total</td>
-                  <td style={{ padding: '10px 12px', color: '#26c281', fontWeight: 700 }}>{fmtCurrency(totals.investment)}</td>
-                  <td style={{ padding: '10px 12px', color: '#f1f5f9', fontWeight: 700 }}>{totals.results > 0 ? fmtN(totals.results) : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: '#f59e0b', fontWeight: 700 }}>{totals.cpr ? fmtCurrency(totals.cpr) : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: '#94a3b8', fontWeight: 700 }}>{totals.reach > 0 ? fmtN(totals.reach) : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: '#94a3b8', fontWeight: 700 }}>{totals.impressions > 0 ? fmtN(totals.impressions) : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: '#94a3b8', fontWeight: 700 }}>{totals.clicks > 0 ? fmtN(totals.clicks) : '—'}</td>
-                  <td style={{ padding: '10px 12px', color: '#94a3b8', fontWeight: 700 }}>{totals.ctr ? fmtPct(totals.ctr) : '—'}</td>
-                  <td />
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Sales section */}
-      {(Number(report.vendas) > 0 || Number(report.total_revenue) > 0) && (
-        <div style={{ padding: '0 28px 20px' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Vendas</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
-            {Number(report.vendas) > 0 && <KpiCard label="Vendas" value={fmtN(report.vendas)} color="#22c55e" icon="bx-shopping-bag" />}
-            {Number(report.total_revenue) > 0 && <KpiCard label="Faturamento" value={fmtCurrency(report.total_revenue)} color="#22c55e" icon="bx-money" />}
-            {Number(report.vendas) > 0 && Number(report.total_revenue) > 0 && (
-              <KpiCard
-                label="Ticket Médio"
-                value={fmtCurrency(Number(report.ticket_medio) || Number(report.total_revenue) / Number(report.vendas))}
-                color="#22c55e"
-                icon="bx-receipt"
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Observations */}
-      {report.observacoes && (
-        <div style={{ padding: '0 28px 24px' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Observações</div>
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '14px 16px', fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-            {report.observacoes}
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ padding: '14px 28px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#26c281', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.72rem', color: '#475569' }}>
-          Assessoria LP · Relatório Manual
-          {report.created_by_name ? ` · Criado por ${report.created_by_name}` : ''}
-          {report.created_at ? ` · ${fmtDatetime(report.created_at)}` : ''}
-        </span>
       </div>
     </div>
   )
@@ -270,7 +313,6 @@ function CampaignRow({ campaign, onChange, onRemove, index, isOnly }) {
         )}
       </div>
 
-      {/* Row 1: name + platform */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 10, marginBottom: 10 }}>
         <div>
           <label style={S.label}>Nome da Campanha *</label>
@@ -284,7 +326,6 @@ function CampaignRow({ campaign, onChange, onRemove, index, isOnly }) {
         </div>
       </div>
 
-      {/* Row 2: investment + result + result_type */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 160px', gap: 10, marginBottom: 10 }}>
         <div>
           <label style={S.label}>Investimento (R$) *</label>
@@ -302,7 +343,6 @@ function CampaignRow({ campaign, onChange, onRemove, index, isOnly }) {
         </div>
       </div>
 
-      {/* Row 3: reach + impressions + clicks */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
         <div>
           <label style={S.label}>Alcance</label>
@@ -318,18 +358,11 @@ function CampaignRow({ campaign, onChange, onRemove, index, isOnly }) {
         </div>
       </div>
 
-      {/* Auto-computed metrics */}
       {(cc.cpr !== null || cc.ctr !== null || cc.frequency !== null) && (
         <div style={{ display: 'flex', gap: 16, padding: '10px 12px', background: 'rgba(38,194,129,0.05)', borderRadius: 7, fontSize: '0.8rem' }}>
-          {cc.cpr !== null && (
-            <span style={{ color: '#64748b' }}>CPR: <strong style={{ color: '#f59e0b' }}>{fmtCurrency(cc.cpr)}</strong></span>
-          )}
-          {cc.ctr !== null && (
-            <span style={{ color: '#64748b' }}>CTR: <strong style={{ color: '#94a3b8' }}>{fmtPct(cc.ctr)}</strong></span>
-          )}
-          {cc.frequency !== null && (
-            <span style={{ color: '#64748b' }}>Frequência: <strong style={{ color: '#94a3b8' }}>{cc.frequency.toFixed(2).replace('.', ',')}</strong></span>
-          )}
+          {cc.cpr !== null && <span style={{ color: '#64748b' }}>CPR: <strong style={{ color: '#f59e0b' }}>{fmtCurrency(cc.cpr)}</strong></span>}
+          {cc.ctr !== null && <span style={{ color: '#64748b' }}>CTR: <strong style={{ color: '#94a3b8' }}>{fmtPct(cc.ctr)}</strong></span>}
+          {cc.frequency !== null && <span style={{ color: '#64748b' }}>Freq.: <strong style={{ color: '#94a3b8' }}>{cc.frequency.toFixed(2).replace('.', ',')}</strong></span>}
         </div>
       )}
     </div>
@@ -354,9 +387,10 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
     return [newCampaign()]
   })
   const [salesData, setSalesData] = useState({
-    vendas: initial?.vendas || '',
-    total_revenue: initial?.total_revenue || '',
-    ticket_medio: initial?.ticket_medio || '',
+    opportunity_count: initial?.opportunity_count || '',
+    qualified_opportunity_count: initial?.qualified_opportunity_count || '',
+    won_opportunity_count: initial?.won_opportunity_count || '',
+    won_revenue: initial?.won_revenue || '',
     observacoes: initial?.observacoes || '',
   })
 
@@ -367,25 +401,14 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
     setInfo(prev => ({ ...prev, client_id: id, client_name: client?.name || '' }))
   }
 
-  function addCampaign() {
-    setCampaigns(prev => [...prev, newCampaign()])
-  }
-
-  function updateCampaign(idx, updated) {
-    setCampaigns(prev => prev.map((c, i) => i === idx ? updated : c))
-  }
-
-  function removeCampaign(idx) {
-    setCampaigns(prev => prev.filter((_, i) => i !== idx))
-  }
-
   function handleSubmit() {
     onSave({
       ...info,
       campaigns,
-      vendas: salesData.vendas ? Number(salesData.vendas) : 0,
-      total_revenue: salesData.total_revenue ? Number(salesData.total_revenue) : 0,
-      ticket_medio: salesData.ticket_medio ? Number(salesData.ticket_medio) : 0,
+      opportunity_count: salesData.opportunity_count ? Number(salesData.opportunity_count) : 0,
+      qualified_opportunity_count: salesData.qualified_opportunity_count ? Number(salesData.qualified_opportunity_count) : 0,
+      won_opportunity_count: salesData.won_opportunity_count ? Number(salesData.won_opportunity_count) : 0,
+      won_revenue: salesData.won_revenue ? Number(salesData.won_revenue) : 0,
       observacoes: salesData.observacoes || null,
     })
   }
@@ -396,8 +419,12 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
   const STEPS = [
     { n: 1, label: 'Informações' },
     { n: 2, label: 'Campanhas' },
-    { n: 3, label: 'Vendas & Obs.' },
+    { n: 3, label: 'CRM & Obs.' },
   ]
+
+  const wonOpp = Number(salesData.won_opportunity_count) || 0
+  const wonRev = Number(salesData.won_revenue) || 0
+  const ticketPreview = wonOpp > 0 && wonRev > 0 ? wonRev / wonOpp : 0
 
   return (
     <>
@@ -438,7 +465,7 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
 
-          {/* Step 1: Info */}
+          {/* Step 1 */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -465,7 +492,7 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
             </div>
           )}
 
-          {/* Step 2: Campaigns */}
+          {/* Step 2 */}
           {step === 2 && (
             <div>
               {campaigns.map((c, i) => (
@@ -474,16 +501,15 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
                   campaign={c}
                   index={i}
                   isOnly={campaigns.length === 1}
-                  onChange={updated => updateCampaign(i, updated)}
-                  onRemove={() => removeCampaign(i)}
+                  onChange={updated => setCampaigns(prev => prev.map((x, j) => j === i ? updated : x))}
+                  onRemove={() => setCampaigns(prev => prev.filter((_, j) => j !== i))}
                 />
               ))}
-              <button type="button" onClick={addCampaign}
+              <button type="button" onClick={() => setCampaigns(prev => [...prev, newCampaign()])}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center', padding: '10px', border: '1px dashed rgba(255,255,255,0.15)', background: 'transparent', color: '#94a3b8', borderRadius: 9, cursor: 'pointer', fontSize: '0.83rem', marginTop: 4 }}>
                 <i className="bx bx-plus" /> Adicionar Campanha
               </button>
 
-              {/* Totals preview */}
               {campaigns.some(c => Number(c.investment) > 0) && (
                 <div style={{ marginTop: 18, padding: '14px 16px', background: 'rgba(38,194,129,0.06)', border: '1px solid rgba(38,194,129,0.2)', borderRadius: 10 }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#26c281', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Totais</div>
@@ -498,27 +524,40 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
             </div>
           )}
 
-          {/* Step 3: Sales & Notes */}
+          {/* Step 3: CRM & Notes */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <p style={{ margin: 0, fontSize: '0.83rem', color: '#64748b' }}>Preencha os dados de vendas se houver. Todos os campos são opcionais.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={S.label}>Nº de Vendas</label>
-                  <input type="number" style={S.input} value={salesData.vendas} onChange={e => setSalesData(p => ({ ...p, vendas: e.target.value }))} placeholder="0" min={0} />
+              <p style={{ margin: 0, fontSize: '0.83rem', color: '#64748b' }}>Preencha os dados de CRM e vendas. Todos os campos são opcionais.</p>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: 16 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#26c281', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Dados do CRM</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={S.label}>Oportunidades</label>
+                    <input type="number" style={S.input} value={salesData.opportunity_count} onChange={e => setSalesData(p => ({ ...p, opportunity_count: e.target.value }))} placeholder="0" min={0} />
+                  </div>
+                  <div>
+                    <label style={S.label}>Qualificados</label>
+                    <input type="number" style={S.input} value={salesData.qualified_opportunity_count} onChange={e => setSalesData(p => ({ ...p, qualified_opportunity_count: e.target.value }))} placeholder="0" min={0} />
+                  </div>
                 </div>
-                <div>
-                  <label style={S.label}>Faturamento (R$)</label>
-                  <input type="number" style={S.input} value={salesData.total_revenue} onChange={e => setSalesData(p => ({ ...p, total_revenue: e.target.value }))} placeholder="0,00" min={0} step="0.01" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={S.label}>Vendas</label>
+                    <input type="number" style={S.input} value={salesData.won_opportunity_count} onChange={e => setSalesData(p => ({ ...p, won_opportunity_count: e.target.value }))} placeholder="0" min={0} />
+                  </div>
+                  <div>
+                    <label style={S.label}>Valor Vendido (R$)</label>
+                    <input type="number" style={S.input} value={salesData.won_revenue} onChange={e => setSalesData(p => ({ ...p, won_revenue: e.target.value }))} placeholder="0,00" min={0} step="0.01" />
+                  </div>
                 </div>
-                <div>
-                  <label style={S.label}>Ticket Médio (R$)</label>
-                  <input type="number" style={S.input}
-                    value={salesData.ticket_medio || (salesData.vendas && salesData.total_revenue ? (Number(salesData.total_revenue) / Number(salesData.vendas)).toFixed(2) : '')}
-                    onChange={e => setSalesData(p => ({ ...p, ticket_medio: e.target.value }))}
-                    placeholder="Auto" min={0} step="0.01" />
-                </div>
+                {ticketPreview > 0 && (
+                  <div style={{ marginTop: 10, fontSize: '0.8rem', color: '#64748b' }}>
+                    Ticket Médio calculado: <strong style={{ color: '#26c281' }}>{fmtCurrency(ticketPreview)}</strong>
+                  </div>
+                )}
               </div>
+
               <div>
                 <label style={S.label}>Observações</label>
                 <textarea
@@ -530,36 +569,23 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
                 />
               </div>
 
-              {/* Preview summary */}
-              <div style={{ marginTop: 8, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+              {/* Summary */}
+              <div style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Resumo do Relatório</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.83rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Cliente</span>
-                    <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{info.client_name || '—'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Período</span>
-                    <span style={{ color: '#e2e8f0' }}>{info.start_date && info.end_date ? `${fmtDate(info.start_date)} a ${fmtDate(info.end_date)}` : '—'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Campanhas</span>
-                    <span style={{ color: '#e2e8f0' }}>{campaigns.length}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Investimento Total</span>
-                    <span style={{ color: '#26c281', fontWeight: 700 }}>{fmtCurrency(totals.investment)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Resultado Total</span>
-                    <span style={{ color: '#e2e8f0', fontWeight: 700 }}>{totals.results > 0 ? fmtN(totals.results) : '—'}</span>
-                  </div>
-                  {totals.cpr && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>CPR Médio</span>
-                      <span style={{ color: '#f59e0b', fontWeight: 700 }}>{fmtCurrency(totals.cpr)}</span>
+                  {[
+                    ['Cliente', info.client_name || '—', '#e2e8f0'],
+                    ['Período', info.start_date && info.end_date ? `${fmtDate(info.start_date)} a ${fmtDate(info.end_date)}` : '—', '#e2e8f0'],
+                    ['Campanhas', campaigns.length, '#e2e8f0'],
+                    ['Investimento Total', fmtCurrency(totals.investment), '#26c281'],
+                    ['Resultado Total', totals.results > 0 ? fmtN(totals.results) : '—', '#e2e8f0'],
+                    totals.cpr ? ['CPR Médio', fmtCurrency(totals.cpr), '#f59e0b'] : null,
+                  ].filter(Boolean).map(([label, val, color]) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>{label}</span>
+                      <span style={{ color, fontWeight: 600 }}>{val}</span>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
@@ -573,16 +599,12 @@ function ReportFormModal({ initial, clients, onSave, onCancel, saving }) {
             {step > 1 ? <><i className="bx bx-chevron-left" /> Voltar</> : 'Cancelar'}
           </button>
           {step < 3 ? (
-            <button type="button"
-              onClick={() => setStep(s => s + 1)}
-              disabled={step === 1 && !step1Valid}
+            <button type="button" onClick={() => setStep(s => s + 1)} disabled={step === 1 && !step1Valid}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: '#26c281', border: 'none', color: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: '0.83rem', fontWeight: 700, opacity: (step === 1 && !step1Valid) ? 0.5 : 1 }}>
               Próximo <i className="bx bx-chevron-right" />
             </button>
           ) : (
-            <button type="button"
-              onClick={handleSubmit}
-              disabled={saving || !step1Valid}
+            <button type="button" onClick={handleSubmit} disabled={saving || !step1Valid}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: '#26c281', border: 'none', color: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: '0.83rem', fontWeight: 700, opacity: saving ? 0.6 : 1 }}>
               <i className={`bx ${saving ? 'bx-loader-alt bx-spin' : 'bx-save'}`} />
               {saving ? 'Salvando...' : (initial?.id ? 'Salvar Alterações' : 'Criar Relatório')}
@@ -602,40 +624,82 @@ function PreviewPanel({ report, onClose, onEdit }) {
   async function handleExportPDF() {
     setExporting(true)
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      const [{ default: html2canvas }, jsPdfModule] = await Promise.all([
         import('html2canvas'),
         import('jspdf'),
       ])
+      const JsPDF = jsPdfModule.default || jsPdfModule.jsPDF
       const el = document.getElementById('manual-report-preview-content')
       if (!el) return
 
+      const rect = el.getBoundingClientRect()
+      const exportWidth = Math.ceil(Math.max(el.scrollWidth, rect.width, 960))
+      const exportHeight = Math.ceil(Math.max(el.scrollHeight, rect.height))
+      const preferredScale = Math.min(1.5, Math.max(1, window.devicePixelRatio || 1))
+      const maxCanvasPixels = 28000000
+      const safeScale = Math.sqrt(maxCanvasPixels / Math.max(exportWidth * exportHeight, 1))
+      const captureScale = Math.max(0.72, Math.min(preferredScale, safeScale))
+
       const canvas = await html2canvas(el, {
-        scale: 2,
+        backgroundColor: '#f8fafc',
+        scale: captureScale,
         useCORS: true,
-        backgroundColor: '#050506',
+        allowTaint: false,
         logging: false,
+        width: exportWidth,
+        height: exportHeight,
+        windowWidth: exportWidth,
+        windowHeight: exportHeight,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.setAttribute('data-pdf-exporting', 'true')
+          const style = clonedDoc.createElement('style')
+          style.textContent = `
+            html, body, [id="manual-report-preview-content"], [id="manual-report-preview-content"] * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            html, body { overflow: visible !important; background: #f8fafc !important; }
+            [data-no-pdf], button { display: none !important; }
+            [id="manual-report-preview-content"] {
+              width: ${exportWidth}px !important;
+              max-width: none !important;
+              overflow: visible !important;
+            }
+          `
+          clonedDoc.head.appendChild(style)
+          clonedDoc.querySelectorAll('button, [data-no-pdf]').forEach(n => n.remove())
+        },
       })
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.92)
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pageW = pdf.internal.pageSize.getWidth()
-      const pageH = pdf.internal.pageSize.getHeight()
-      const imgH = (canvas.height * pageW) / canvas.width
+      const pdf = new JsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 0
+      const usableWidth = pageWidth - margin * 2
+      const usableHeight = pageHeight - margin * 2
+      const imgAspect = canvas.height / canvas.width
+      const imgHeight = usableWidth * imgAspect
 
+      const imgData = canvas.toDataURL('image/jpeg', 0.93)
       let position = 0
-      let remaining = imgH
       let page = 0
+      let remaining = imgHeight
 
       while (remaining > 0) {
         if (page > 0) pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, -position, pageW, imgH)
-        position += pageH
-        remaining -= pageH
+        pdf.addImage(imgData, 'JPEG', margin, margin - position, usableWidth, imgHeight)
+        position += usableHeight
+        remaining -= usableHeight
         page++
       }
 
-      const filename = `${(report.client_name || 'relatorio').replace(/[^a-zA-Z0-9]/g, '-')}-manual.pdf`
-      pdf.save(filename)
+      const slug = (report.client_name || report.title || 'relatorio').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+      pdf.save(`${slug}-manual.pdf`)
+    } catch (err) {
+      console.error('Erro ao exportar PDF:', err)
     } finally {
       setExporting(false)
     }
@@ -646,20 +710,20 @@ function PreviewPanel({ report, onClose, onEdit }) {
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 3000 }} onClick={onClose} />
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0,
-        width: 820, maxWidth: '96vw',
-        background: 'var(--bg-dark, #050506)',
-        borderLeft: '1px solid rgba(255,255,255,0.08)',
+        width: 860, maxWidth: '96vw',
+        background: '#f8fafc',
+        borderLeft: '1px solid #e5e7eb',
         zIndex: 3001, display: 'flex', flexDirection: 'column',
-        boxShadow: '-16px 0 60px rgba(0,0,0,0.7)',
+        boxShadow: '-16px 0 60px rgba(0,0,0,0.5)',
       }}>
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0, background: '#fff' }} data-no-pdf="true">
+          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
             <i className="bx bx-show" style={{ color: '#26c281' }} /> Visualizar Relatório
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={onEdit}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#94a3b8', borderRadius: 7, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151', borderRadius: 7, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
               <i className="bx bx-pencil" /> Editar
             </button>
             <button type="button" onClick={handleExportPDF} disabled={exporting}
@@ -667,7 +731,7 @@ function PreviewPanel({ report, onClose, onEdit }) {
               <i className={`bx ${exporting ? 'bx-loader-alt bx-spin' : 'bx-download'}`} />
               {exporting ? 'Exportando...' : 'Exportar PDF'}
             </button>
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 22, display: 'flex', alignItems: 'center' }}>
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 22, display: 'flex', alignItems: 'center' }}>
               <i className="bx bx-x" />
             </button>
           </div>
@@ -760,11 +824,7 @@ export default function ManualReportTab({ clients = [] }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {clients.length > 0 && (
-            <select
-              value={clientFilter}
-              onChange={e => setClientFilter(e.target.value)}
-              style={{ ...S.input, width: 200 }}
-            >
+            <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} style={{ ...S.input, width: 200 }}>
               <option value="">Todos os clientes</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -776,8 +836,7 @@ export default function ManualReportTab({ clients = [] }) {
             </button>
           )}
         </div>
-        <button type="button"
-          onClick={() => { setEditReport(null); setShowForm(true) }}
+        <button type="button" onClick={() => { setEditReport(null); setShowForm(true) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#26c281', border: 'none', color: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}>
           <i className="bx bx-plus" /> Novo Relatório Manual
         </button>
@@ -794,8 +853,7 @@ export default function ManualReportTab({ clients = [] }) {
           <i className="bx bx-file" style={{ fontSize: 40, display: 'block', marginBottom: 10, color: '#334155' }} />
           <p style={{ margin: 0, fontWeight: 600, color: '#64748b' }}>Nenhum relatório manual criado</p>
           <p style={{ margin: '6px 0 0', fontSize: '0.83rem' }}>Crie relatórios com dados inseridos manualmente para clientes sem integração automática.</p>
-          <button type="button"
-            onClick={() => { setEditReport(null); setShowForm(true) }}
+          <button type="button" onClick={() => { setEditReport(null); setShowForm(true) }}
             style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', background: '#26c281', border: 'none', color: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}>
             <i className="bx bx-plus" /> Criar primeiro relatório
           </button>
@@ -811,7 +869,6 @@ export default function ManualReportTab({ clients = [] }) {
 
             return (
               <div key={report.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Card header */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
@@ -826,7 +883,6 @@ export default function ManualReportTab({ clients = [] }) {
                   </div>
                 </div>
 
-                {/* Metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                   {[
                     { label: 'Invest.', value: fmtCurrency(totals.investment), color: '#26c281' },
@@ -840,22 +896,19 @@ export default function ManualReportTab({ clients = [] }) {
                   ))}
                 </div>
 
-                {/* Meta info */}
                 <div style={{ fontSize: '0.72rem', color: '#475569', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span><i className="bx bx-sitemap" style={{ marginRight: 3, fontSize: 11 }} />{camps.length} campanha{camps.length !== 1 ? 's' : ''}</span>
                   {report.created_by_name && <span><i className="bx bx-user" style={{ marginRight: 3, fontSize: 11 }} />{report.created_by_name}</span>}
                   <span style={{ marginLeft: 'auto' }}>{fmtDatetime(report.created_at)}</span>
                 </div>
 
-                {/* Actions */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => setPreviewReport(report)}
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.25)', color: '#26c281', borderRadius: 7, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
                     <i className="bx bx-show" /> Ver Relatório
                   </button>
                   <button type="button" onClick={() => openEdit(report)}
-                    style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 7, cursor: 'pointer', fontSize: 15 }}
-                    title="Editar">
+                    style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 7, cursor: 'pointer', fontSize: 15 }} title="Editar">
                     <i className="bx bx-pencil" />
                   </button>
                   {confirmDelete?.id === report.id ? (
@@ -871,8 +924,7 @@ export default function ManualReportTab({ clients = [] }) {
                     </div>
                   ) : (
                     <button type="button" onClick={() => setConfirmDelete(report)}
-                      style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#64748b', borderRadius: 7, cursor: 'pointer', fontSize: 15 }}
-                      title="Excluir">
+                      style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#64748b', borderRadius: 7, cursor: 'pointer', fontSize: 15 }} title="Excluir">
                       <i className="bx bx-trash" />
                     </button>
                   )}
@@ -883,7 +935,6 @@ export default function ManualReportTab({ clients = [] }) {
         </div>
       )}
 
-      {/* Form modal */}
       {showForm && (
         <ReportFormModal
           initial={editReport}
@@ -894,7 +945,6 @@ export default function ManualReportTab({ clients = [] }) {
         />
       )}
 
-      {/* Preview panel */}
       {previewReport && (
         <PreviewPanel
           report={previewReport}

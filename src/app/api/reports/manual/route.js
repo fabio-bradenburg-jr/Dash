@@ -77,7 +77,7 @@ export async function POST(request) {
     if (ctx.error) return ctx.error
 
     const body = await request.json()
-    const { title, client_id, client_name, start_date, end_date, campaigns, vendas, total_revenue, ticket_medio, observacoes } = body
+    const { title, client_id, client_name, start_date, end_date, campaigns, opportunity_count, qualified_opportunity_count, won_opportunity_count, won_revenue, observacoes } = body
 
     if (!title?.trim()) return NextResponse.json({ error: 'Título obrigatório.' }, { status: 400 })
 
@@ -93,9 +93,10 @@ export async function POST(request) {
         start_date: start_date || null,
         end_date: end_date || null,
         ...totals,
-        total_revenue: Number(total_revenue) || 0,
-        vendas: Number(vendas) || 0,
-        ticket_medio: Number(ticket_medio) || 0,
+        opportunity_count: Number(opportunity_count) || 0,
+        qualified_opportunity_count: Number(qualified_opportunity_count) || 0,
+        won_opportunity_count: Number(won_opportunity_count) || 0,
+        won_revenue: Number(won_revenue) || 0,
         observacoes: observacoes || null,
         created_by: ctx.user.id,
         created_by_name: ctx.accessContext.profile?.full_name || ctx.accessContext.profile?.email || '',

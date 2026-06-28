@@ -68,7 +68,7 @@ export async function PUT(request, { params }) {
     if (ctx.error) return ctx.error
     const { id } = await params
     const body = await request.json()
-    const { title, client_id, client_name, start_date, end_date, campaigns, vendas, total_revenue, ticket_medio, observacoes } = body
+    const { title, client_id, client_name, start_date, end_date, campaigns, opportunity_count, qualified_opportunity_count, won_opportunity_count, won_revenue, observacoes } = body
 
     const totals = computeTotals(campaigns)
 
@@ -81,9 +81,10 @@ export async function PUT(request, { params }) {
         start_date: start_date || null,
         end_date: end_date || null,
         ...totals,
-        total_revenue: Number(total_revenue) || 0,
-        vendas: Number(vendas) || 0,
-        ticket_medio: Number(ticket_medio) || 0,
+        opportunity_count: Number(opportunity_count) || 0,
+        qualified_opportunity_count: Number(qualified_opportunity_count) || 0,
+        won_opportunity_count: Number(won_opportunity_count) || 0,
+        won_revenue: Number(won_revenue) || 0,
         observacoes: observacoes || null,
         updated_at: new Date().toISOString(),
       })
