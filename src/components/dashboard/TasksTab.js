@@ -559,6 +559,125 @@ function SpaceCard({ space, onClick }) {
 }
 
 // ---- New Space Modal ----
+const WEEKLY_TEMPLATE_TASKS = [
+  { title: 'Reunião de alinhamento semanal', due_offset: 0 },
+  { title: 'Revisar métricas da semana anterior', due_offset: 0 },
+  { title: 'Atualizar relatório de resultados', due_offset: 1 },
+  { title: 'Acompanhar campanhas ativas', due_offset: 2 },
+  { title: 'Reunião de feedback com cliente', due_offset: 3 },
+  { title: 'Otimizações e ajustes de campanha', due_offset: 4 },
+  { title: 'Fechamento semanal e próximos passos', due_offset: 6 },
+]
+
+function TemplateSemanalModal({ onClose, onCreate, workspaceUsers, statuses }) {
+  const [spaceName, setSpaceName] = useState('Espaço Semanal')
+  const [assigneeId, setAssigneeId] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!spaceName.trim()) return
+    setSaving(true)
+    try {
+      const spaceRes = await fetch('/api/tasks/spaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: spaceName.trim(), color: '#3b82f6', icon: 'bx-calendar-week', is_private: false }),
+      })
+      const spaceJson = await spaceRes.json()
+      if (!spaceJson.space) throw new Error('Erro ao criar espaço')
+      const space = spaceJson.space
+
+      const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
+      const today = new Date()
+
+      for (const tmpl of WEEKLY_TEMPLATE_TASKS) {
+        const due = new Date(today)
+        due.setDate(due.getDate() + tmpl.due_offset)
+        const dueStr = due.toISOString().split('T')[0]
+        await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: tmpl.title,
+            space_id: space.id,
+            status_id: initialStatus?.id || null,
+            assignee_id: assigneeId || null,
+            due_date: dueStr,
+          }),
+        })
+      }
+      onCreate(space)
+      onClose()
+    } finally { setSaving(false) }
+  }
+
+  const inputStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '7px 10px', fontSize: '0.85rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+  const labelStyle = { fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5, display: 'block' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--bg-dark, #050506)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 460, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9' }}>
+              <i className="bx bx-calendar-week" style={{ marginRight: 8, color: '#3b82f6' }}></i>
+              Espaço Semanal
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Cria um espaço com tarefas pré-definidas para a semana</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>
+            <i className="bx bx-x"></i>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Nome do espaço</label>
+            <input
+              value={spaceName}
+              onChange={e => setSpaceName(e.target.value)}
+              placeholder="Ex: Semana 01 - Janeiro"
+              style={inputStyle}
+              autoFocus
+            />
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>Responsável</label>
+            <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} style={inputStyle}>
+              <option value="">Sem responsável</option>
+              {(workspaceUsers || []).map(u => (
+                <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: 22, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '12px 14px' }}>
+            <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Tarefas do modelo</div>
+            {WEEKLY_TEMPLATE_TASKS.map((t, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: i < WEEKLY_TEMPLATE_TASKS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <i className="bx bx-check-circle" style={{ color: '#3b82f6', fontSize: 14 }}></i>
+                <span style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>{t.title}</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#475569' }}>+{t.due_offset}d</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: '#3b82f6', color: '#fff', cursor: saving ? 'wait' : 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+              {saving ? 'Criando...' : 'Criar Espaço'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function NewSpaceModal({ onClose, onCreate }) {
   const [form, setForm] = useState({ name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false })
   const [saving, setSaving] = useState(false)
@@ -1165,7 +1284,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 }
 
 // ---- Home View ----
-function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick }) {
+function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick, onGrTasksClick }) {
   const today = todayStr()
   const tomorrow = offsetDayStr(1)
   const day2 = offsetDayStr(2)
@@ -1217,7 +1336,44 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
           {spaces.map(space => (
             <SpaceCard key={space.id} space={space} onClick={() => onSpaceClick(space)} />
           ))}
+          {onGrTasksClick && (
+            <GrSpaceCard onClick={onGrTasksClick} />
+          )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function GrSpaceCard({ onClick }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderRadius: 14,
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderTop: '4px solid #8b5cf6',
+        background: hovered ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.04)',
+        cursor: 'pointer',
+        padding: '14px 16px',
+        transition: 'background 0.15s, box-shadow 0.15s',
+        boxShadow: hovered ? '0 0 18px #8b5cf630' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <i className="bx bx-target-lock" style={{ fontSize: 20, color: '#8b5cf6' }}></i>
+        <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f1f5f9', flex: 1 }}>G.R. Tarefas</span>
+        <span style={{ fontSize: '0.68rem', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', borderRadius: 8, padding: '2px 7px', flexShrink: 0 }}>GR</span>
+      </div>
+      <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Tarefas do Gestor de Resultado</div>
+      <div style={{ fontSize: '0.72rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <i className="bx bx-right-arrow-alt"></i> Abrir módulo
       </div>
     </div>
   )
@@ -1619,7 +1775,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
 }
 
 // ---- Main Component ----
-export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId }) {
+export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId, onGrTasksClick }) {
   const [statuses, setStatuses] = useState([])
   const [tasks, setTasks] = useState([])
   const [spaces, setSpaces] = useState([])
@@ -1642,6 +1798,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [showClosedTasks, setShowClosedTasks] = useState(false)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [newTaskContext, setNewTaskContext] = useState({})
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false)
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -1856,6 +2013,17 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         {view === 'home' && (
           <button
             type="button"
+            onClick={() => setShowTemplatesModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            <i className="bx bx-layout" style={{ fontSize: 16 }}></i>
+            Modelos
+          </button>
+        )}
+
+        {view === 'home' && (
+          <button
+            type="button"
             onClick={() => setShowNewSpaceModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#4ade80', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
@@ -1892,6 +2060,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
             onSpaceClick={space => { setSelectedSpace(space); setView('space') }}
+            onGrTasksClick={onGrTasksClick || null}
           />
         </div>
       )}
@@ -1954,6 +2123,16 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         <NewSpaceModal
           onClose={() => setShowNewSpaceModal(false)}
           onCreate={handleSpaceCreated}
+        />
+      )}
+
+      {/* Templates modal */}
+      {showTemplatesModal && (
+        <TemplateSemanalModal
+          onClose={() => setShowTemplatesModal(false)}
+          onCreate={space => { handleSpaceCreated(space); loadData() }}
+          workspaceUsers={workspaceUsers}
+          statuses={statuses}
         />
       )}
 

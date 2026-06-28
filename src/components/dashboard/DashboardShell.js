@@ -18309,6 +18309,7 @@ export default function DashboardShell({
             workspaceUsers={usersList}
             isMaster={isMaster}
             currentUserId={user?.id}
+            onGrTasksClick={(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) ? () => setActiveTab('gr-tarefas') : null}
           />
         )}
 
