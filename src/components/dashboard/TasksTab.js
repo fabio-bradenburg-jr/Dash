@@ -1743,6 +1743,218 @@ function CalendarView({ spaceTasks, statuses, onOpenPanel }) {
   )
 }
 
+// ---- Week Day View ----
+const WEEK_DAYS = [
+  { key: 1, label: 'Segunda-feira', short: 'Seg' },
+  { key: 2, label: 'Terça-feira', short: 'Ter' },
+  { key: 3, label: 'Quarta-feira', short: 'Qua' },
+  { key: 4, label: 'Quinta-feira', short: 'Qui' },
+  { key: 5, label: 'Sexta-feira', short: 'Sex' },
+  { key: 6, label: 'Sábado', short: 'Sáb' },
+  { key: 0, label: 'Domingo', short: 'Dom' },
+]
+
+function getThisWeekDates() {
+  const today = new Date()
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - dow + (dow === 0 ? -6 : 1))
+  return WEEK_DAYS.slice(0, 5).map((d, i) => {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + i)
+    const iso = date.toISOString().split('T')[0]
+    return {
+      ...d,
+      date: iso,
+      dateDisplay: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      isToday: iso === today.toISOString().split('T')[0],
+    }
+  })
+}
+
+function WeekDayTaskRow({ task, statuses, onOpenPanel, onQuickUpdate }) {
+  const status = statuses.find(s => s.id === task.status_id)
+  const isCompleted = status?.is_completed || status?.is_closed
+  const [hovered, setHovered] = useState(false)
+
+  function handleToggle(e) {
+    e.stopPropagation()
+    const closedStatus = statuses.find(s => s.is_closed) || statuses.find(s => s.is_completed)
+    const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
+    const targetId = isCompleted ? initialStatus?.id : closedStatus?.id
+    if (targetId) onQuickUpdate(task.id, { status_id: targetId })
+  }
+
+  return (
+    <div
+      onClick={() => onOpenPanel(task)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '6px 8px', borderRadius: 7, marginBottom: 4,
+        background: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        cursor: 'pointer', transition: 'background 0.1s',
+      }}
+    >
+      <div
+        onClick={handleToggle}
+        style={{
+          width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+          border: `2px solid ${isCompleted ? status?.color || '#26c281' : 'rgba(255,255,255,0.2)'}`,
+          background: isCompleted ? status?.color || '#26c281' : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: 'all 0.15s',
+        }}
+      >
+        {isCompleted && <i className="bx bx-check" style={{ fontSize: 10, color: '#fff' }} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: '0.8rem', color: isCompleted ? '#475569' : '#e2e8f0',
+          textDecoration: isCompleted ? 'line-through' : 'none',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{task.title}</div>
+        {task.assignee_id && (() => {
+          const assignee = null // workspaceUsers not available here; shown in panel
+          return null
+        })()}
+      </div>
+      {status && (
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: status.color, flexShrink: 0 }} />
+      )}
+    </div>
+  )
+}
+
+function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTask, spaceId }) {
+  const weekDays = getThisWeekDates()
+  const [addingDay, setAddingDay] = useState(null)
+  const [newTitle, setNewTitle] = useState('')
+
+  function getTasksForDay(dayKey) {
+    return spaceTasks.filter(t => t.dia_semana === dayKey)
+  }
+
+  function handleAddSubmit(e, dayKey) {
+    e.preventDefault()
+    const title = newTitle.trim()
+    if (!title) { setAddingDay(null); return }
+    const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
+    onAddTask({ title, space_id: spaceId, dia_semana: dayKey, status_id: initialStatus?.id || null })
+    setNewTitle('')
+    setAddingDay(null)
+  }
+
+  async function handleDrop(e, dayKey) {
+    e.preventDefault()
+    const taskId = e.dataTransfer.getData('taskId')
+    if (taskId) onQuickUpdate(taskId, { dia_semana: dayKey })
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, paddingTop: 8 }}>
+      {weekDays.map(day => {
+        const dayTasks = getTasksForDay(day.key)
+        const done = dayTasks.filter(t => {
+          const s = statuses.find(st => st.id === t.status_id)
+          return s?.is_completed || s?.is_closed
+        }).length
+
+        return (
+          <div
+            key={day.key}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => handleDrop(e, day.key)}
+            style={{ display: 'flex', flexDirection: 'column', gap: 0 }}
+          >
+            {/* Column header */}
+            <div style={{
+              padding: '10px 10px 8px',
+              borderRadius: '10px 10px 0 0',
+              background: day.isToday ? 'rgba(38,194,129,0.1)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${day.isToday ? 'rgba(38,194,129,0.25)' : 'rgba(255,255,255,0.07)'}`,
+              borderBottom: 'none',
+              marginBottom: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: day.isToday ? '#26c281' : '#f1f5f9' }}>
+                    {day.label}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: day.isToday ? '#4ade80' : '#475569', marginTop: 2 }}>
+                    {day.dateDisplay}
+                    {day.isToday && <span style={{ marginLeft: 6, background: '#26c281', color: '#000', borderRadius: 4, padding: '1px 5px', fontSize: '0.65rem', fontWeight: 700 }}>Hoje</span>}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#475569' }}>{done}/{dayTasks.length}</div>
+                  {dayTasks.length > 0 && (
+                    <div style={{ width: 28, height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2, marginTop: 3 }}>
+                      <div style={{ width: `${dayTasks.length > 0 ? Math.round((done / dayTasks.length) * 100) : 0}%`, height: '100%', background: '#26c281', borderRadius: 2, transition: 'width 0.3s' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Tasks */}
+            <div style={{
+              flex: 1, minHeight: 120,
+              padding: '8px 6px',
+              background: 'rgba(255,255,255,0.02)',
+              border: `1px solid ${day.isToday ? 'rgba(38,194,129,0.15)' : 'rgba(255,255,255,0.06)'}`,
+              borderTop: 'none',
+              borderRadius: '0 0 10px 10px',
+            }}>
+              {dayTasks.map(t => (
+                <div
+                  key={t.id}
+                  draggable
+                  onDragStart={e => e.dataTransfer.setData('taskId', t.id)}
+                >
+                  <WeekDayTaskRow
+                    task={t}
+                    statuses={statuses}
+                    onOpenPanel={onOpenPanel}
+                    onQuickUpdate={onQuickUpdate}
+                  />
+                </div>
+              ))}
+
+              {/* Add task inline */}
+              {addingDay === day.key ? (
+                <form onSubmit={e => handleAddSubmit(e, day.key)} style={{ marginTop: 4 }}>
+                  <input
+                    autoFocus
+                    value={newTitle}
+                    onChange={e => setNewTitle(e.target.value)}
+                    onBlur={() => { if (!newTitle.trim()) setAddingDay(null) }}
+                    onKeyDown={e => e.key === 'Escape' && setAddingDay(null)}
+                    placeholder="Nome da tarefa..."
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(38,194,129,0.35)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setAddingDay(day.key); setNewTitle('') }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', background: 'none', border: 'none', color: '#334155', cursor: 'pointer', padding: '4px 4px', fontSize: '0.78rem', borderRadius: 5, marginTop: dayTasks.length > 0 ? 4 : 0, transition: 'color 0.1s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#64748b'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#334155'}
+                >
+                  <i className="bx bx-plus" style={{ fontSize: 14 }} /> Adicionar
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ---- SpaceView (with view mode switcher) ----
 function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, columns, onDeleteSpace }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
@@ -1843,6 +2055,17 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           statuses={statuses}
           clients={clients}
           workspaceUsers={workspaceUsers}
+          onOpenPanel={onOpenPanel}
+          onQuickUpdate={onQuickUpdate}
+          onAddTask={onAddTask}
+          spaceId={space.id}
+        />
+      )}
+
+      {viewMode === 'week' && (
+        <WeekDayView
+          spaceTasks={spaceTasks}
+          statuses={statuses}
           onOpenPanel={onOpenPanel}
           onQuickUpdate={onQuickUpdate}
           onAddTask={onAddTask}
@@ -2046,6 +2269,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             {[
               { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
               { key: 'board', icon: 'bx-columns', label: 'Board' },
+              { key: 'week', icon: 'bx-calendar-week', label: 'Semana' },
               { key: 'table', icon: 'bx-table', label: 'Tabela' },
               { key: 'calendar', icon: 'bx-calendar', label: 'Calendário' },
             ].map(({ key, icon, label }) => (
