@@ -2296,7 +2296,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [loading, setLoading] = useState(true)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   // Multi-user filter — defaults to current user (Minhas tarefas)
-  const [filterAssignees, setFilterAssignees] = useState([])
+  const [filterAssignees, setFilterAssignees] = useState(() => currentUserId ? [currentUserId] : [])
   const [filterClient, setFilterClient] = useState('')
   const [view, setView] = useState('home')
   const [selectedSpace, setSelectedSpace] = useState(null)
@@ -2424,7 +2424,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const filteredTasks = tasks.filter(t => {
     if (filterAssignees.length > 0) {
       const taskAssignees = Array.isArray(t.assignee_ids) ? t.assignee_ids : (t.assignee_id ? [t.assignee_id] : [])
-      if (!filterAssignees.some(id => taskAssignees.includes(id))) return false
+      // Always show unassigned tasks alongside filtered users
+      if (taskAssignees.length > 0 && !filterAssignees.some(id => taskAssignees.includes(id))) return false
     }
     if (filterClient && t.client_id !== filterClient) return false
     if (!showClosedTasks && t.closed_at) return false
