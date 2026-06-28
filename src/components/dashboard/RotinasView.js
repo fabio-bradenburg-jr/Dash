@@ -689,11 +689,76 @@ function OverviewGrid({ members, tasks, statuses, weekDates }) {
   )
 }
 
+// ---- Delete Space Modal ----
+function DeleteSpaceModal({ space, onClose, onDeleted }) {
+  const [step, setStep] = useState(1)
+  const [typed, setTyped] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const nameMatch = typed.trim() === space.name.trim()
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await fetch(`/api/tasks/spaces?id=${space.id}`, { method: 'DELETE' })
+      onDeleted(space.id)
+    } finally { setDeleting(false) }
+  }
+
+  const inp = { background: 'var(--bg-panel,#111113)', border: '1px solid rgba(239,68,68,0.3)', color: '#e2e8f0', borderRadius: 6, padding: '8px 10px', fontSize: '0.88rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--bg-dark,#050506)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 14, width: 440, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="bx bx-trash" style={{ fontSize: 18, color: '#ef4444' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#fca5a5' }}>Excluir Espaço</h3>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Esta ação é irreversível</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>
+            <i className="bx bx-x" />
+          </button>
+        </div>
+        {step === 1 && (
+          <>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: 14 }}>Para confirmar, digite o nome do espaço:</p>
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '3px 8px', borderRadius: 5 }}>{space.name}</span>
+            </div>
+            <input autoFocus value={typed} onChange={e => setTyped(e.target.value)} placeholder={`Digite: ${space.name}`} style={inp} />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
+              <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+              <button type="button" disabled={!nameMatch} onClick={() => setStep(2)} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: nameMatch ? '#ef4444' : 'rgba(239,68,68,0.2)', color: nameMatch ? '#fff' : '#64748b', cursor: nameMatch ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600 }}>Continuar</button>
+            </div>
+          </>
+        )}
+        {step === 2 && (
+          <>
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+              <p style={{ margin: '0 0 10px', fontSize: '0.85rem', color: '#fca5a5', fontWeight: 600 }}>Tem certeza? Isso vai apagar permanentemente:</p>
+              <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.8' }}>
+                <li>Todas as tarefas do espaço</li><li>Histórico e comentários</li><li>Anexos e checklists</li><li>Membros e automações</li>
+              </ul>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+              <button type="button" disabled={deleting} onClick={handleDelete} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: '#ef4444', color: '#fff', cursor: deleting ? 'wait' : 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>{deleting ? 'Excluindo...' : 'Excluir Permanentemente'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ---- Main RotinasView ----
-export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack }) {
+export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack, onDeleteSpace }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
-  const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
+  const [mondayDate] = useState(() => getMonday(new Date()))
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [filterMemberId, setFilterMemberId] = useState('all')
   const [viewMode, setViewMode] = useState('week') // week | overview
   const [showMembersPanel, setShowMembersPanel] = useState(false)
@@ -713,6 +778,33 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
   }, [space.id])
 
   useEffect(() => { loadMembers() }, [loadMembers])
+
+  // Auto-renewal: reset recurring tasks at start of each new week
+  useEffect(() => {
+    const weekKey = fmtDate(mondayDate)
+    const storageKey = `rotinas_renewed_${space.id}`
+    const lastRenewed = localStorage.getItem(storageKey)
+    if (lastRenewed === weekKey) return
+
+    const recurringTasks = allTasks.filter(t => t.space_id === space.id && t.recorrente && t.recorrente !== 'once')
+    if (recurringTasks.length === 0) { localStorage.setItem(storageKey, weekKey); return }
+
+    const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
+    if (!initialStatus) return
+
+    Promise.all(recurringTasks.map(t => {
+      const currentStatus = statuses.find(s => s.id === t.status_id)
+      if (!currentStatus?.is_completed && !currentStatus?.is_closed) return null
+      return fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: t.id, status_id: initialStatus.id }),
+      }).then(r => r.json()).then(json => json.task || null)
+    })).then(results => {
+      results.forEach(task => { if (task) onTaskSaved(task, 'update') })
+      localStorage.setItem(storageKey, weekKey)
+    })
+  }, [space.id, mondayDate, allTasks, statuses, onTaskSaved])
 
   function getTasksForCell(diaKey, memberId) {
     return spaceTasks.filter(t => {
@@ -791,19 +883,22 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
 
         <div style={{ flex: 1 }} />
 
-        {/* Week nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button type="button" onClick={() => setMondayDate(d => addDays(d, -7))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', borderRadius: 7, padding: '5px 10px', fontSize: 14 }}>
-            <i className="bx bx-chevron-left" />
-          </button>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', minWidth: 140, textAlign: 'center' }}>{weekStr}</span>
-          <button type="button" onClick={() => setMondayDate(d => addDays(d, 7))} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', borderRadius: 7, padding: '5px 10px', fontSize: 14 }}>
-            <i className="bx bx-chevron-right" />
-          </button>
-          <button type="button" onClick={() => setMondayDate(getMonday(new Date()))} style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#64748b', cursor: 'pointer', borderRadius: 6, padding: '5px 8px' }}>
-            Hoje
-          </button>
+        {/* Current week indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.15)', borderRadius: 7 }}>
+          <i className="bx bx-calendar-week" style={{ color: '#26c281', fontSize: 15 }} />
+          <span style={{ fontSize: '0.82rem', color: '#4ade80', fontWeight: 600 }}>Semana Atual</span>
+          <span style={{ fontSize: '0.75rem', color: '#475569' }}>{weekStr}</span>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef444480', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#ef444480' }}
+        >
+          <i className="bx bx-trash" style={{ fontSize: 15 }} /> Excluir
+        </button>
 
         {/* View toggle */}
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
@@ -928,6 +1023,15 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           workspaceUsers={workspaceUsers}
           onClose={() => { setShowMembersPanel(false); loadMembers() }}
           onMembersChange={setMembers}
+        />
+      )}
+
+      {/* Delete space modal */}
+      {showDeleteModal && (
+        <DeleteSpaceModal
+          space={space}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={id => { onDeleteSpace?.(id); onBack() }}
         />
       )}
 

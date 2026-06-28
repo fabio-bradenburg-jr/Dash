@@ -3300,14 +3300,6 @@ export default function DashboardShell({
   const [offboardingSearch, setOffboardingSearch] = useState('')
   const [offboardingStatusFilter, setOffboardingStatusFilter] = useState('all')
   const [offboardingExpandedPhases, setOffboardingExpandedPhases] = useState(new Set())
-  const [grCompletions, setGrCompletions] = useState([])
-  const [grWeekOffset, setGrWeekOffset] = useState(0)
-  const [grSelectedUser, setGrSelectedUser] = useState(null)
-  const [grTaskDefs, setGrTaskDefs] = useState([])
-  const [grTaskDefsLoaded, setGrTaskDefsLoaded] = useState(false)
-  const [grEditingTask, setGrEditingTask] = useState(null)
-  const [grNewTask, setGrNewTask] = useState(null)
-  const [grManageMode, setGrManageMode] = useState(false)
   const [onboardingManageMode, setOnboardingManageMode] = useState(false)
   const [onboardingPhaseDefs, setOnboardingPhaseDefs] = useState([])
   const [onboardingPhaseDefsLoaded, setOnboardingPhaseDefsLoaded] = useState(false)
@@ -3574,7 +3566,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'gr-tarefas', 'planilha-leads', 'funil']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -3908,15 +3900,6 @@ export default function DashboardShell({
     return d.toISOString().slice(0, 10)
   }, [])
 
-  const loadGrTaskDefs = useCallback(async () => {
-    try {
-      const res = await fetch('/api/gr-tasks/definitions', { cache: 'no-store' })
-      const data = await res.json().catch(() => ({}))
-      setGrTaskDefs(Array.isArray(data.tasks) ? data.tasks : [])
-      setGrTaskDefsLoaded(true)
-    } catch { setGrTaskDefsLoaded(true) }
-  }, [])
-
   const persistReorder = useCallback(async (entity, items) => {
     await Promise.all(items.map((item, i) =>
       fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity, id: item.id, sort_order: i }) })
@@ -3951,18 +3934,6 @@ export default function DashboardShell({
     } catch { setMyNavPermissions([]) }
   }, [isMaster, user?.id])
 
-  const loadGrCompletions = useCallback(async () => {
-    if (activeTab !== 'gr-tarefas') return
-    try {
-      const weekStart = getWeekStart(grWeekOffset)
-      const res = await fetch(`/api/gr-tasks?week_start=${weekStart}`, { cache: 'no-store' })
-      const data = await res.json().catch(() => ({}))
-      setGrCompletions(Array.isArray(data.completions) ? data.completions : [])
-    } catch { setGrCompletions([]) }
-  }, [activeTab, grWeekOffset, getWeekStart])
-
-  useEffect(() => { loadGrCompletions() }, [loadGrCompletions])
-  useEffect(() => { if (activeTab === 'gr-tarefas' && !grTaskDefsLoaded) loadGrTaskDefs() }, [activeTab, grTaskDefsLoaded, loadGrTaskDefs])
   useEffect(() => { if (activeTab === 'onboarding' && !onboardingPhaseDefsLoaded) loadOnboardingPhaseDefs('onboarding') }, [activeTab, onboardingPhaseDefsLoaded, loadOnboardingPhaseDefs])
   useEffect(() => { if (activeTab === 'offboarding' && !offboardingPhaseDefsLoaded) loadOnboardingPhaseDefs('offboarding') }, [activeTab, offboardingPhaseDefsLoaded, loadOnboardingPhaseDefs])
   useEffect(() => { if (activeTab === 'usuarios') loadNavPermissions() }, [activeTab, loadNavPermissions])
@@ -3986,23 +3957,6 @@ export default function DashboardShell({
       body: JSON.stringify({ userId, pageKey, granted }),
     })
   }, [])
-
-  const handleToggleGrTask = useCallback(async (userId, taskId, completed) => {
-    const weekStart = getWeekStart(grWeekOffset)
-    setGrCompletions((prev) => {
-      if (completed) {
-        const exists = prev.find((c) => c.user_id === userId && c.task_id === taskId && c.week_start === weekStart)
-        if (exists) return prev
-        return [...prev, { user_id: userId, task_id: taskId, week_start: weekStart }]
-      }
-      return prev.filter((c) => !(c.user_id === userId && c.task_id === taskId && c.week_start === weekStart))
-    })
-    await fetch('/api/gr-tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, taskId, weekStart, completed }),
-    })
-  }, [grWeekOffset, getWeekStart])
 
   const handleToggleOffboardingTask = useCallback(async (clientId, taskId) => {
     const record = offboardingRecords.find((r) => r.client_id === clientId)
@@ -8920,7 +8874,7 @@ export default function DashboardShell({
   }
 
   useEffect(() => {
-    if (!(canManageUsers || canPersistClientChanges || role === 'gestor_resultado') || !['usuarios', 'operacao', 'clientes', 'gr-tarefas'].includes(activeTab)) return
+    if (!(canManageUsers || canPersistClientChanges || role === 'gestor_resultado') || !['usuarios', 'operacao', 'clientes'].includes(activeTab)) return
     loadUsers()
   }, [canManageUsers, canPersistClientChanges, activeTab, loadUsers])
 
@@ -16954,7 +16908,7 @@ export default function DashboardShell({
               <span className="nav-label">Central de Tarefas</span>
             </button>
           )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual')) && (
             <>
               <button
                 type="button"
@@ -17015,12 +16969,6 @@ export default function DashboardShell({
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => setActiveTab('funil')}>
                       <i className="bx bx-filter-alt"></i>
                       <span className="nav-label">Funil</span>
-                    </button>
-                  )}
-                  {(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'gr-tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('gr-tarefas')}>
-                      <i className="bx bx-task"></i>
-                      <span className="nav-label">G.R - Tarefas</span>
                     </button>
                   )}
                   {(isMaster || hasNavAccess('tarefas')) && (
@@ -18309,451 +18257,8 @@ export default function DashboardShell({
             workspaceUsers={usersList}
             isMaster={isMaster}
             currentUserId={user?.id}
-            onGrTasksClick={(isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) ? () => setActiveTab('gr-tarefas') : null}
           />
         )}
-
-        {activeTab === 'gr-tarefas' && (isMaster || role === 'gestor_resultado' || hasNavAccess('gr-tarefas')) && (() => {
-          const GR_TASKS_FALLBACK = [
-            { id: 'conferir_agenda', label: 'Conferir Agenda', days: [1,2,3,4,5], icon: 'bx-calendar-check', color: '#6366f1' },
-            { id: 'revisao_conta_diaria', label: 'Revisão de Conta (CPL, MQL, Resultado)', days: [1,2,3,4,5], icon: 'bx-bar-chart-alt-2', color: '#8b5cf6' },
-            { id: 'revisao_planilha_leads', label: 'Revisão de Planilha de Leads (MQL, SQL)', days: [1,2,3,4,5], icon: 'bx-spreadsheet', color: '#14b8a6' },
-            { id: 'revisar_orcamento', label: 'Revisar Orçamento das Contas', days: [1], icon: 'bx-money', color: '#22c55e' },
-            { id: 'bom_dia_clientes', label: 'Bom dia clientes', days: [1], icon: 'bx-sun', color: '#f59e0b' },
-            { id: 'relatorio_saude', label: 'Relatório de Saúde dos Clientes', days: [1], icon: 'bx-heart', color: '#ec4899' },
-            { id: 'solicitar_qualidade_leads', label: 'Solicitar Qualidade dos Leads', days: [2], icon: 'bx-user-check', color: '#3b82f6' },
-            { id: 'revisao_otimizacao_terca', label: 'Revisão e Otimização das Contas', days: [2], icon: 'bx-trending-up', color: '#8b5cf6' },
-            { id: 'solicitar_andamento_negociacoes', label: 'Solicitar Andamento das Negociações', days: [3], icon: 'bx-chat', color: '#06b6d4' },
-            { id: 'solicitar_prints', label: 'Solicitar Prints das Conversas', days: [4], icon: 'bx-screenshot', color: '#f97316' },
-            { id: 'revisao_otimizacao_sexta', label: 'Revisão e Otimização das Contas', days: [5], icon: 'bx-trending-up', color: '#8b5cf6' },
-            { id: 'relatorio_semanal', label: 'Relatório Semanal', days: [5], icon: 'bx-file', color: '#10b981' },
-            { id: 'atualizar_formulario', label: 'Atualizar Formulário Nativo', days: [5], icon: 'bx-edit', color: '#84cc16' },
-            { id: 'bom_fds', label: 'Bom Final de Semana', days: [5], icon: 'bx-party', color: '#ef4444' },
-          ]
-          const GR_TASKS = grTaskDefsLoaded && grTaskDefs.length > 0
-            ? grTaskDefs.filter(t => t.active !== false).map(t => ({ id: t.id, label: t.label, days: t.days, icon: t.icon, color: t.color }))
-            : GR_TASKS_FALLBACK
-
-          const DAY_LABELS = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
-          const DAY_COLORS = ['', '#6366f1', '#3b82f6', '#06b6d4', '#f59e0b', '#10b981']
-
-          const weekStart = getWeekStart(grWeekOffset)
-          const weekStartDate = new Date(weekStart + 'T00:00:00Z')
-          const weekEndDate = new Date(weekStartDate)
-          weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 4)
-          const fmt = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
-
-          const grUsersFromList = (usersList || []).filter((u) => u.role === 'gestor_resultado')
-          const selfAsGr = role === 'gestor_resultado' && user && !grUsersFromList.find(u => u.id === user?.id)
-            ? [{ id: user.id, full_name: profile?.full_name || 'Eu', role: 'gestor_resultado' }]
-            : []
-          const allGrUsers = [...grUsersFromList, ...selfAsGr]
-          const selectedGrUser = grSelectedUser || allGrUsers[0] || null
-
-          const userCompletions = selectedGrUser
-            ? grCompletions.filter((c) => c.user_id === selectedGrUser.id && c.week_start === weekStart)
-            : []
-          const completedSet = new Set(userCompletions.map((c) => c.task_id))
-
-          const tasksByDay = [1,2,3,4,5].map((day) => ({
-            day,
-            tasks: GR_TASKS.filter((t) => t.days.includes(day)),
-          }))
-
-          const totalTasks = GR_TASKS.length
-          const doneTasks = completedSet.size
-          const weekPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
-
-          // Today's day of week (1=Mon...5=Fri, 0/6=weekend)
-          const todayUTC = new Date()
-          const todayDow = todayUTC.getUTCDay() === 0 ? 7 : todayUTC.getUTCDay()
-          const isThisWeek = grWeekOffset === 0
-          const todayTasks = isThisWeek && todayDow >= 1 && todayDow <= 5
-            ? GR_TASKS.filter((t) => t.days.includes(todayDow))
-            : []
-          const todayDone = todayTasks.filter((t) => completedSet.has(t.id)).length
-          const todayPending = todayTasks.length - todayDone
-
-          // Team overview (all GR users this week)
-          const teamStats = allGrUsers.map((u) => {
-            const uDone = grCompletions.filter((c) => c.user_id === u.id && c.week_start === weekStart).length
-            return { user: u, done: uDone, pct: Math.round((uDone / totalTasks) * 100) }
-          })
-          const teamAvgPct = teamStats.length > 0
-            ? Math.round(teamStats.reduce((s, t) => s + t.pct, 0) / teamStats.length)
-            : 0
-
-          return (<>
-            <section className="weekly-dashboard-panel onboarding-panel">
-              {/* Header */}
-              <div style={{ padding: '28px 28px 24px', borderBottom: '1px solid rgba(99,102,241,0.15)', background: 'linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(99,102,241,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-                  <div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6366f1', marginBottom: 6, opacity: 0.9 }}><i className="bx bx-task"></i>G.R — Performance</span>
-                    <h2 style={{ margin: '4px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Gestor de Resultado</h2>
-                    <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Tarefas recorrentes semanais — semana de {fmt(weekStartDate)} a {fmt(weekEndDate)}</p>
-                  </div>
-                  {/* Week nav */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '6px 10px', flexShrink: 0 }}>
-                    <button type="button" onClick={() => setGrWeekOffset((v) => v - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, display: 'flex' }}><i className="bx bx-chevron-left"></i></button>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                      {grWeekOffset === 0 ? 'Esta semana' : grWeekOffset === -1 ? 'Semana passada' : `${Math.abs(grWeekOffset)} sem. atrás`}
-                    </span>
-                    <button type="button" onClick={() => setGrWeekOffset((v) => v + 1)} disabled={grWeekOffset >= 0} style={{ background: 'none', border: 'none', cursor: grWeekOffset >= 0 ? 'default' : 'pointer', color: 'inherit', fontSize: 18, display: 'flex', opacity: grWeekOffset >= 0 ? 0.3 : 1 }}><i className="bx bx-chevron-right"></i></button>
-                  </div>
-                </div>
-
-                {allGrUsers.length === 0 && (
-                  <div style={{ marginTop: 20, padding: '16px 20px', background: 'rgba(99,102,241,0.08)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.2)', fontSize: '0.9rem', opacity: 0.8 }}>
-                    <i className="bx bx-info-circle" style={{ marginRight: 8 }}></i>
-                    Nenhum membro com função <strong>Gestor de Resultado</strong>. Vá em <strong>Time</strong> e defina a função de um membro.
-                  </div>
-                )}
-
-                {/* Main metrics panel */}
-                {allGrUsers.length > 0 && selectedGrUser && (
-                  <div style={{ marginTop: 24 }}>
-                    {/* Top row: big metrics */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
-                      {/* Progress donut-style */}
-                      <div style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.15),rgba(99,102,241,0.05))', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', letterSpacing: 1, textTransform: 'uppercase' }}>Semana atual</div>
-                        <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{weekPct}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#6366f1' }}>%</span></div>
-                        <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{doneTasks} de {totalTasks} tarefas</div>
-                        <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${weekPct}%`, background: 'linear-gradient(90deg,#6366f1,#8b5cf6)', borderRadius: 4, transition: 'width .4s' }}></div>
-                        </div>
-                      </div>
-
-                      {/* Today */}
-                      {isThisWeek && todayDow >= 1 && todayDow <= 5 && (
-                        <div style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04))', border: `1px solid ${todayPending === 0 ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.2)'}`, borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#22c55e', letterSpacing: 1, textTransform: 'uppercase' }}>Hoje · {DAY_LABELS[todayDow]}</div>
-                          <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{todayDone}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#22c55e' }}>/{todayTasks.length}</span></div>
-                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{todayPending === 0 ? '✓ Tudo concluído!' : `${todayPending} pendente${todayPending > 1 ? 's' : ''}`}</div>
-                          <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: todayTasks.length > 0 ? `${Math.round((todayDone/todayTasks.length)*100)}%` : '0%', background: '#22c55e', borderRadius: 4, transition: 'width .4s' }}></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Team avg */}
-                      {allGrUsers.length > 1 && (
-                        <div style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04))', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', letterSpacing: 1, textTransform: 'uppercase' }}>Média do Time</div>
-                          <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{teamAvgPct}<span style={{ fontSize: '1rem', fontWeight: 600, color: '#f59e0b' }}>%</span></div>
-                          <div style={{ fontSize: '0.78rem', opacity: 0.6 }}>{allGrUsers.length} gestores</div>
-                          <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${teamAvgPct}%`, background: '#f59e0b', borderRadius: 4, transition: 'width .4s' }}></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Day-by-day heatmap */}
-                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(148,163,184,0.8)', letterSpacing: 1, textTransform: 'uppercase' }}>Por dia</div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flex: 1 }}>
-                          {[1,2,3,4,5].map((d) => {
-                            const dt = GR_TASKS.filter((t) => t.days.includes(d))
-                            const dd = dt.filter((t) => completedSet.has(t.id)).length
-                            const pct = dt.length > 0 ? Math.round((dd / dt.length) * 100) : 0
-                            const isToday = isThisWeek && d === todayDow
-                            return (
-                              <div key={d} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                                  <div style={{ width: '100%', height: `${pct}%`, background: isToday ? '#6366f1' : DAY_COLORS[d], borderRadius: 4, transition: 'height .4s', minHeight: pct > 0 ? 4 : 0 }}></div>
-                                </div>
-                                <span style={{ fontSize: '0.6rem', fontWeight: isToday ? 800 : 600, color: isToday ? '#6366f1' : 'rgba(148,163,184,0.6)' }}>{DAY_LABELS[d].slice(0,3)}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Team cards row (when multiple GRs) */}
-                    {allGrUsers.length > 1 && (
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                        {teamStats.map(({ user: u, done, pct }) => (
-                          <button key={u.id} type="button" onClick={() => setGrSelectedUser(u)}
-                            style={{ flex: '1 1 160px', textAlign: 'left', padding: '12px 14px', borderRadius: 12, border: `1px solid ${selectedGrUser?.id === u.id ? '#6366f1' : 'rgba(255,255,255,0.08)'}`, background: selectedGrUser?.id === u.id ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', color: 'inherit' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{u.full_name || u.email}</span>
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct}%</span>
-                            </div>
-                            <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${pct}%`, background: pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#6366f1', borderRadius: 3, transition: 'width .3s' }}></div>
-                            </div>
-                            <div style={{ fontSize: '0.72rem', opacity: 0.5, marginTop: 4 }}>{done}/{totalTasks} tarefas</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Single GR selector when only 1 */}
-                    {allGrUsers.length === 1 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#6366f1', fontSize: '0.9rem' }}>
-                          {(selectedGrUser?.full_name || selectedGrUser?.email || '?')[0].toUpperCase()}
-                        </div>
-                        <span style={{ fontWeight: 700 }}>{selectedGrUser?.full_name || selectedGrUser?.email}</span>
-                        <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>· Gestor de Resultado</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Task grid by day */}
-              {selectedGrUser && (
-                <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 14 }}>
-                  {tasksByDay.map(({ day, tasks }) => {
-                    const dayDone = tasks.filter((t) => completedSet.has(t.id)).length
-                    const isToday = isThisWeek && day === todayDow
-                    const isPast = isThisWeek && day < todayDow
-                    return (
-                      <div key={day} style={{ background: isToday ? 'rgba(99,102,241,0.07)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isToday ? 'rgba(99,102,241,0.35)' : DAY_COLORS[day] + '28'}`, borderRadius: 14, overflow: 'hidden' }}>
-                        <div style={{ background: isToday ? 'rgba(99,102,241,0.18)' : `${DAY_COLORS[day]}18`, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.9rem', color: isToday ? '#818cf8' : DAY_COLORS[day] }}>{DAY_LABELS[day]}</span>
-                            {isToday && <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#6366f1', color: '#fff', padding: '2px 6px', borderRadius: 8 }}>HOJE</span>}
-                            {isPast && dayDone < tasks.length && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', opacity: 0.8 }}>⚠ pendente</span>}
-                          </div>
-                          <span style={{ fontSize: '0.75rem', opacity: 0.7, fontWeight: 700 }}>{dayDone}/{tasks.length}</span>
-                        </div>
-                        <div style={{ padding: '8px 14px 12px' }}>
-                          {tasks.map((task) => {
-                            const checked = completedSet.has(task.id)
-                            return (
-                              <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                <input type="checkbox" checked={checked} onChange={() => handleToggleGrTask(selectedGrUser.id, task.id, !checked)} style={{ display: 'none' }} />
-                                <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked ? task.color : 'rgba(255,255,255,0.2)'}`, background: checked ? task.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s', boxShadow: checked ? `0 0 8px ${task.color}80` : 'none' }}>
-                                  {checked && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
-                                </span>
-                                <span style={{ fontSize: '0.86rem', opacity: checked ? 0.4 : 0.9, textDecoration: checked ? 'line-through' : 'none' }}>{task.label}</span>
-                              </label>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-
-            {isMaster && onboardingManageMode && (
-              <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
-                    <i className="bx bx-list-ul" style={{ marginRight: 8, color: '#26c281' }}></i>
-                    Editar Tarefas de Onboarding
-                  </h3>
-                  <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setObNewPhase({ label: '', icon: 'bx-check' })}>
-                    <i className="bx bx-plus"></i> Nova fase
-                  </button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {obNewPhase && (
-                    <div style={{ background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <strong style={{ fontSize: '0.85rem' }}>Nova fase</strong>
-                      <input type="text" className="input-field" placeholder="Nome da fase" value={obNewPhase.label} onChange={e => setObNewPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                      <input type="text" className="input-field" placeholder="Ícone (ex: bx-check)" value={obNewPhase.icon} onChange={e => setObNewPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} disabled={!obNewPhase.label.trim()} onClick={async () => {
-                          const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', type: 'onboarding', ...obNewPhase }) })
-                          const data = await res.json()
-                          if (data.phase) { setOnboardingPhaseDefs(prev => [...prev, data.phase]); setObNewPhase(null) }
-                        }}>Salvar</button>
-                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setObNewPhase(null)}>Cancelar</button>
-                      </div>
-                    </div>
-                  )}
-                  {(onboardingPhaseDefsLoaded ? onboardingPhaseDefs : []).map(phase => (
-                    <div key={phase.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 16px' }}>
-                      {obEditingPhase?.id === phase.id ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                          <input type="text" className="input-field" value={obEditingPhase.label} onChange={e => setObEditingPhase(p => ({ ...p, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                          <input type="text" className="input-field" value={obEditingPhase.icon} onChange={e => setObEditingPhase(p => ({ ...p, icon: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} onClick={async () => {
-                              const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'phase', id: obEditingPhase.id, label: obEditingPhase.label, icon: obEditingPhase.icon }) })
-                              const data = await res.json()
-                              if (data.phase) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === data.phase.id ? { ...p, label: data.phase.label, icon: data.phase.icon } : p)); setObEditingPhase(null) }
-                            }}>Salvar</button>
-                            <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setObEditingPhase(null)}>Cancelar</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                          <i className={`bx ${phase.icon}`} style={{ color: '#26c281', fontSize: 16 }}></i>
-                          <span style={{ flex: 1, fontWeight: 700, fontSize: '0.9rem' }}>{phase.label}</span>
-                          <button type="button" className="btn-icon" title="Editar fase" onClick={() => setObEditingPhase({ ...phase })} style={{ color: '#94a3b8', fontSize: '1rem' }}><i className="bx bx-edit"></i></button>
-                          <button type="button" className="btn-icon" title="Excluir fase" onClick={async () => {
-                            if (!confirm(`Excluir fase "${phase.label}" e todas as suas tarefas?`)) return
-                            await fetch(`/api/onboarding-tasks/definitions?entity=phase&id=${phase.id}`, { method: 'DELETE' })
-                            setOnboardingPhaseDefs(prev => prev.filter(p => p.id !== phase.id))
-                          }} style={{ color: '#ef4444', fontSize: '1rem' }}><i className="bx bx-trash"></i></button>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
-                        {obNewItem?.phase_id === phase.id && (
-                          <div style={{ background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.2)', borderRadius: 8, padding: '8px 12px', display: 'flex', gap: 8 }}>
-                            <input type="text" className="input-field" placeholder="Nome da tarefa" value={obNewItem.label} onChange={e => setObNewItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
-                            <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} disabled={!obNewItem.label.trim()} onClick={async () => {
-                              const res = await fetch('/api/onboarding-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', phase_id: phase.id, label: obNewItem.label }) })
-                              const data = await res.json()
-                              if (data.item) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: [...p.tasks, data.item] } : p)); setObNewItem(null) }
-                            }}>Salvar</button>
-                            <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setObNewItem(null)}>Cancelar</button>
-                          </div>
-                        )}
-                        {(phase.tasks || []).map(task => (
-                          <div key={task._id || task.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                            {obEditingItem?._id === task._id ? (
-                              <>
-                                <input type="text" className="input-field" value={obEditingItem.label} onChange={e => setObEditingItem(i => ({ ...i, label: e.target.value }))} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 8px' }} />
-                                <button type="button" className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '4px 10px' }} onClick={async () => {
-                                  const res = await fetch('/api/onboarding-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'item', id: obEditingItem._id, label: obEditingItem.label }) })
-                                  const data = await res.json()
-                                  if (data.item) { setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.map(t => t._id === data.item._id ? data.item : t) } : p)); setObEditingItem(null) }
-                                }}>Salvar</button>
-                                <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 8px' }} onClick={() => setObEditingItem(null)}>Cancelar</button>
-                              </>
-                            ) : (
-                              <>
-                                <span style={{ flex: 1, fontSize: '0.83rem', opacity: 0.85 }}>{task.label}</span>
-                                <button type="button" className="btn-icon" onClick={() => setObEditingItem({ ...task })} style={{ color: '#94a3b8', fontSize: '0.95rem' }}><i className="bx bx-edit"></i></button>
-                                <button type="button" className="btn-icon" onClick={async () => {
-                                  if (!confirm(`Excluir tarefa "${task.label}"?`)) return
-                                  await fetch(`/api/onboarding-tasks/definitions?entity=item&id=${task._id}`, { method: 'DELETE' })
-                                  setOnboardingPhaseDefs(prev => prev.map(p => p.id === phase.id ? { ...p, tasks: p.tasks.filter(t => t._id !== task._id) } : p))
-                                }} style={{ color: '#ef4444', fontSize: '0.95rem' }}><i className="bx bx-trash"></i></button>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                        <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '4px 10px', alignSelf: 'flex-start', marginTop: 4 }} onClick={() => setObNewItem({ phase_id: phase.id, label: '' })}>
-                          <i className="bx bx-plus"></i> Nova tarefa
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {isMaster && (
-              <section className="glass-panel" style={{ margin: '0 0 24px', padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
-                    <i className="bx bx-list-ul" style={{ marginRight: 8, color: '#6366f1' }}></i>
-                    Gerenciar Tarefas
-                  </h3>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setGrManageMode(v => !v)}>
-                      {grManageMode ? 'Fechar' : 'Editar tarefas'}
-                    </button>
-                    {grManageMode && (
-                      <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 12px' }} onClick={() => setGrNewTask({ label: '', days: [1,2,3,4,5], color: '#6366f1', icon: 'bx-check' })}>
-                        <i className="bx bx-plus"></i> Nova tarefa
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {grManageMode && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {grNewTask && (
-                      <div style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <strong style={{ fontSize: '0.85rem' }}>Nova tarefa</strong>
-                        <input type="text" className="input-field" placeholder="Nome da tarefa" value={grNewTask.label} onChange={e => setGrNewTask(t => ({ ...t, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {[['Seg',1],['Ter',2],['Qua',3],['Qui',4],['Sex',5]].map(([lbl, d]) => (
-                            <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={grNewTask.days.includes(d)} onChange={e => setGrNewTask(t => ({ ...t, days: e.target.checked ? [...t.days, d].sort() : t.days.filter(x => x !== d) }))} />
-                              {lbl}
-                            </label>
-                          ))}
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <input type="color" value={grNewTask.color} onChange={e => setGrNewTask(t => ({ ...t, color: e.target.value }))} style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
-                          <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} disabled={!grNewTask.label.trim()} onClick={async () => {
-                            const res = await fetch('/api/gr-tasks/definitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(grNewTask) })
-                            const data = await res.json()
-                            if (data.task) { setGrTaskDefs(prev => [...prev, data.task]); setGrNewTask(null) }
-                          }}>Salvar</button>
-                          <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setGrNewTask(null)}>Cancelar</button>
-                        </div>
-                      </div>
-                    )}
-                    {(grTaskDefsLoaded ? grTaskDefs : []).map((task, taskIdx) => (
-                      <div key={task.id}
-                        draggable
-                        onDragStart={() => { grDragRef.current.idx = taskIdx }}
-                        onDragOver={e => { e.preventDefault(); grDragRef.current.overIdx = taskIdx }}
-                        onDrop={() => {
-                          const { idx: from, overIdx: to } = grDragRef.current
-                          if (from === to || from == null || to == null) return
-                          setGrTaskDefs(prev => {
-                            const arr = [...prev]; const [moved] = arr.splice(from, 1); arr.splice(to, 0, moved)
-                            arr.forEach((t, i) => fetch('/api/gr-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id, order_index: i }) }))
-                            return arr
-                          })
-                          grDragRef.current = {}
-                        }}
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px', cursor: 'grab' }}>
-                        {grEditingTask?.id === task.id ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            <input type="text" className="input-field" value={grEditingTask.label} onChange={e => setGrEditingTask(t => ({ ...t, label: e.target.value }))} style={{ fontSize: '0.85rem', padding: '6px 10px' }} />
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                              {[['Seg',1],['Ter',2],['Qua',3],['Qui',4],['Sex',5]].map(([lbl, d]) => (
-                                <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', cursor: 'pointer' }}>
-                                  <input type="checkbox" checked={grEditingTask.days.includes(d)} onChange={e => setGrEditingTask(t => ({ ...t, days: e.target.checked ? [...t.days, d].sort() : t.days.filter(x => x !== d) }))} />
-                                  {lbl}
-                                </label>
-                              ))}
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <input type="color" value={grEditingTask.color} onChange={e => setGrEditingTask(t => ({ ...t, color: e.target.value }))} style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none' }} />
-                              <button type="button" className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '5px 14px' }} onClick={async () => {
-                                const res = await fetch('/api/gr-tasks/definitions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(grEditingTask) })
-                                const data = await res.json()
-                                if (data.task) { setGrTaskDefs(prev => prev.map(t => t.id === data.task.id ? data.task : t)); setGrEditingTask(null) }
-                              }}>Salvar</button>
-                              <button type="button" className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 10px' }} onClick={() => setGrEditingTask(null)}>Cancelar</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <i className="bx bx-dots-vertical-rounded" style={{ fontSize: 18, opacity: 0.3, cursor: 'grab', flexShrink: 0 }}></i>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: task.color, flexShrink: 0 }}></span>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{task.label}</div>
-                              <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
-                                {task.days.map(d => ['','Seg','Ter','Qua','Qui','Sex'][d]).join(', ')}
-                              </div>
-                            </div>
-                            <button type="button" className="btn-icon" title="Editar" onClick={() => setGrEditingTask({ ...task })} style={{ color: '#94a3b8', fontSize: '1rem' }}>
-                              <i className="bx bx-edit"></i>
-                            </button>
-                            <button type="button" className="btn-icon" title="Excluir" onClick={async () => {
-                              if (!confirm(`Excluir "${task.label}"?`)) return
-                              await fetch(`/api/gr-tasks/definitions?id=${task.id}`, { method: 'DELETE' })
-                              setGrTaskDefs(prev => prev.filter(t => t.id !== task.id))
-                            }} style={{ color: '#ef4444', fontSize: '1rem' }}>
-                              <i className="bx bx-trash"></i>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
-          </>)
-        })()}
 
         {activeTab === 'offboarding' && isMaster && (() => {
           const OFFBOARDING_PHASES_FALLBACK = [
@@ -22468,7 +21973,6 @@ export default function DashboardShell({
                   { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
                   { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
                   { key: 'funil', label: 'Funil', group: 'Performance' },
-                  { key: 'gr-tarefas', label: 'G.R - Tarefas', group: 'Performance' },
                   { key: 'tarefas', label: 'Tarefas', group: 'Performance' },
                   { key: 'editorial-dash', label: 'Painel', group: 'Social Media' },
                   { key: 'editorial', label: 'Calendário', group: 'Social Media' },

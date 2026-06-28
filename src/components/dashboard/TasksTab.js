@@ -1316,7 +1316,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 }
 
 // ---- Home View ----
-function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick, onGrTasksClick }) {
+function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick }) {
   const today = todayStr()
   const tomorrow = offsetDayStr(1)
   const day2 = offsetDayStr(2)
@@ -1368,44 +1368,93 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
           {spaces.map(space => (
             <SpaceCard key={space.id} space={space} onClick={() => onSpaceClick(space)} />
           ))}
-          {onGrTasksClick && (
-            <GrSpaceCard onClick={onGrTasksClick} />
-          )}
         </div>
       </div>
     </div>
   )
 }
 
-function GrSpaceCard({ onClick }) {
-  const [hovered, setHovered] = useState(false)
+// ---- Delete Space Modal ----
+function DeleteSpaceModal({ space, onClose, onDeleted }) {
+  const [step, setStep] = useState(1) // 1 = type name, 2 = final confirm
+  const [typed, setTyped] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const nameMatch = typed.trim() === space.name.trim()
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await fetch(`/api/tasks/spaces?id=${space.id}`, { method: 'DELETE' })
+      onDeleted(space.id)
+      onClose()
+    } finally { setDeleting(false) }
+  }
+
+  const inp = { background: 'var(--bg-panel,#111113)', border: '1px solid rgba(239,68,68,0.3)', color: '#e2e8f0', borderRadius: 6, padding: '8px 10px', fontSize: '0.88rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        borderRadius: 14,
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderTop: '4px solid #8b5cf6',
-        background: hovered ? 'rgba(139,92,246,0.10)' : 'rgba(139,92,246,0.04)',
-        cursor: 'pointer',
-        padding: '14px 16px',
-        transition: 'background 0.15s, box-shadow 0.15s',
-        boxShadow: hovered ? '0 0 18px #8b5cf630' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <i className="bx bx-target-lock" style={{ fontSize: 20, color: '#8b5cf6' }}></i>
-        <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f1f5f9', flex: 1 }}>G.R. Tarefas</span>
-        <span style={{ fontSize: '0.68rem', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', borderRadius: 8, padding: '2px 7px', flexShrink: 0 }}>GR</span>
-      </div>
-      <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Tarefas do Gestor de Resultado</div>
-      <div style={{ fontSize: '0.72rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <i className="bx bx-right-arrow-alt"></i> Abrir módulo
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--bg-dark,#050506)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 14, width: 440, padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="bx bx-trash" style={{ fontSize: 18, color: '#ef4444' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#fca5a5' }}>Excluir Espaço</h3>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Esta ação é irreversível</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>
+            <i className="bx bx-x" />
+          </button>
+        </div>
+
+        {step === 1 && (
+          <>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: 18 }}>
+              Para confirmar a exclusão, digite o nome do espaço:
+            </p>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '3px 8px', borderRadius: 5 }}>{space.name}</span>
+            </div>
+            <input
+              autoFocus
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              placeholder={`Digite: ${space.name}`}
+              style={inp}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>
+                Cancelar
+              </button>
+              <button type="button" disabled={!nameMatch} onClick={() => setStep(2)} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: nameMatch ? '#ef4444' : 'rgba(239,68,68,0.2)', color: nameMatch ? '#fff' : '#64748b', cursor: nameMatch ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.15s' }}>
+                Continuar
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+              <p style={{ margin: '0 0 10px', fontSize: '0.85rem', color: '#fca5a5', fontWeight: 600 }}>Tem certeza? Isso vai apagar permanentemente:</p>
+              <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.8' }}>
+                <li>Todas as tarefas do espaço</li>
+                <li>Histórico e comentários</li>
+                <li>Anexos e checklists</li>
+                <li>Automações vinculadas</li>
+              </ul>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>
+                Cancelar
+              </button>
+              <button type="button" disabled={deleting} onClick={handleDelete} style={{ padding: '8px 18px', borderRadius: 7, border: 'none', background: '#ef4444', color: '#fff', cursor: deleting ? 'wait' : 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+                {deleting ? 'Excluindo...' : 'Excluir Permanentemente'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -1695,8 +1744,9 @@ function CalendarView({ spaceTasks, statuses, onOpenPanel }) {
 }
 
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, columns }) {
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, columns, onDeleteSpace }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const filteredByStatus = statuses.map(status => ({
     status,
@@ -1726,6 +1776,15 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
         <div style={{ flex: 1 }} />
         <button
           type="button"
+          onClick={() => setShowDeleteModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef444480', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#ef444480' }}
+        >
+          <i className="bx bx-trash" style={{ fontSize: 15 }} /> Excluir
+        </button>
+        <button
+          type="button"
           onClick={() => {
             if (onNewTask) onNewTask({ space_id: space.id, status_id: statuses[0]?.id })
             else if (onAddTask) { const firstStatus = statuses[0]; if (firstStatus) onAddTask({ title: 'Nova tarefa', status_id: firstStatus.id, space_id: space.id }) }
@@ -1736,6 +1795,14 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           Nova Tarefa
         </button>
       </div>
+
+      {showDeleteModal && (
+        <DeleteSpaceModal
+          space={space}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={id => { onDeleteSpace?.(id); onBack() }}
+        />
+      )}
 
       {/* Task content by viewMode */}
       {viewMode === 'list' && filteredByStatus.map(({ status, tasks: groupTasks }) => (
@@ -1807,7 +1874,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
 }
 
 // ---- Main Component ----
-export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId, onGrTasksClick }) {
+export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId }) {
   const [statuses, setStatuses] = useState([])
   const [tasks, setTasks] = useState([])
   const [spaces, setSpaces] = useState([])
@@ -1926,6 +1993,11 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
   function handleSpaceCreated(space) {
     setSpaces(prev => [...prev, space])
+  }
+
+  function handleSpaceDeleted(spaceId) {
+    setSpaces(prev => prev.filter(s => s.id !== spaceId))
+    setTasks(prev => prev.filter(t => t.space_id !== spaceId))
   }
 
   const filteredTasks = tasks.filter(t => {
@@ -2092,7 +2164,6 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
             onSpaceClick={space => { setSelectedSpace(space); setView('space') }}
-            onGrTasksClick={onGrTasksClick || null}
           />
         </div>
       )}
@@ -2110,6 +2181,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
               else setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t))
             }}
             onBack={() => { setView('home'); setSelectedSpace(null) }}
+            onDeleteSpace={id => { handleSpaceDeleted(id); setView('home'); setSelectedSpace(null) }}
           />
         </div>
       )}
@@ -2129,6 +2201,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onNewTask={ctx => { setNewTaskContext(ctx); setShowNewTaskModal(true) }}
             viewMode={viewMode}
             columns={columns}
+            onDeleteSpace={handleSpaceDeleted}
           />
         </div>
       )}
