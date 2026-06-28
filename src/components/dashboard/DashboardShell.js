@@ -16861,14 +16861,6 @@ export default function DashboardShell({
         '--accent-rgb': `${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b}`,
       }}
     >
-      {/* Notification bell — fixed top-right */}
-      <div style={{
-        position: 'fixed', top: 14, right: 18, zIndex: 99998,
-        display: 'flex', alignItems: 'center',
-      }}>
-        <NotificationBell isLight={isLightAppMode} />
-      </div>
-
       <aside className="sidebar glass-panel sidebar-collapsed">
         <div className="sidebar-top">
           <div className="logo">
@@ -17321,6 +17313,9 @@ export default function DashboardShell({
               </>
             )}
 
+            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <NotificationBell isLight={isLightAppMode} />
+            </div>
           </div>
         </header>
 
