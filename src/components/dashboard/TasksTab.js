@@ -1759,9 +1759,10 @@ function getThisWeekDates() {
   const dow = today.getDay()
   const monday = new Date(today)
   monday.setDate(today.getDate() - dow + (dow === 0 ? -6 : 1))
-  return WEEK_DAYS.slice(0, 5).map((d, i) => {
+  const OFFSETS = [0, 1, 2, 3, 4, 5, 6] // Mon=0, Tue=1, ..., Sat=5, Sun=6
+  return WEEK_DAYS.slice(0, 7).map((d, i) => {
     const date = new Date(monday)
-    date.setDate(monday.getDate() + i)
+    date.setDate(monday.getDate() + OFFSETS[i])
     const iso = date.toISOString().split('T')[0]
     return {
       ...d,
@@ -1854,7 +1855,7 @@ function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTa
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, paddingTop: 8 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10, paddingTop: 8 }}>
       {weekDays.map(day => {
         const dayTasks = getTasksForDay(day.key)
         const done = dayTasks.filter(t => {
