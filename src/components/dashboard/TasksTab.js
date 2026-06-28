@@ -924,6 +924,167 @@ function StatusGroup({ status, tasks, statuses, clients, workspaceUsers, onOpenP
 }
 
 // ---- Side Panel ----
+const RECURRING_TYPE_LABELS = { daily: 'Diariamente', weekly: 'Semanalmente', monthly: 'Mensalmente', yearly: 'Anualmente', custom: 'Personalizado' }
+const WEEK_DAYS_REC = [{ key: 1, label: 'Seg' }, { key: 2, label: 'Ter' }, { key: 3, label: 'Qua' }, { key: 4, label: 'Qui' }, { key: 5, label: 'Sex' }, { key: 6, label: 'Sáb' }, { key: 0, label: 'Dom' }]
+
+function RecurrenceModal({ task, onSave, onClose }) {
+  const [type, setType] = useState(task.recurring_type || 'weekly')
+  const [interval, setInterval] = useState(task.recurring_interval || 1)
+  const [days, setDays] = useState(task.recurring_days || [])
+  const [endType, setEndType] = useState(task.recurring_end_type || 'never')
+  const [endDate, setEndDate] = useState(task.recurring_end_date || '')
+  const [occurrences, setOccurrences] = useState(task.recurring_occurrences || 1)
+  const [createWhen, setCreateWhen] = useState(task.create_when || 'on_completion')
+  const [copyDesc, setCopyDesc] = useState(task.copy_description !== false)
+  const [copyCheck, setCopyCheck] = useState(task.copy_checklist !== false)
+  const [copyAssignees, setCopyAssignees] = useState(task.copy_assignees !== false)
+  const [copyAttachments, setCopyAttachments] = useState(task.copy_attachments || false)
+  const [copySubtasks, setCopySubtasks] = useState(task.copy_subtasks || false)
+  const [copyTags, setCopyTags] = useState(task.copy_tags !== false)
+  const [saving, setSaving] = useState(false)
+
+  function toggleDay(d) {
+    setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await onSave({
+        is_recurring: true,
+        recurring_type: type,
+        recurring_interval: interval,
+        recurring_days: type === 'weekly' ? days : [],
+        recurring_end_type: endType,
+        recurring_end_date: endType === 'on_date' ? endDate : null,
+        recurring_occurrences: endType === 'after' ? occurrences : null,
+        create_when: createWhen,
+        copy_description: copyDesc,
+        copy_checklist: copyCheck,
+        copy_assignees: copyAssignees,
+        copy_attachments: copyAttachments,
+        copy_subtasks: copySubtasks,
+        copy_tags: copyTags,
+      })
+      onClose()
+    } finally { setSaving(false) }
+  }
+
+  async function handleRemove() {
+    setSaving(true)
+    try {
+      await onSave({ is_recurring: false, recurring_type: null, recurring_interval: 1, recurring_days: [], recurring_end_type: 'never', recurring_end_date: null, recurring_occurrences: null })
+      onClose()
+    } finally { setSaving(false) }
+  }
+
+  const sel = { background: '#111113', border: '1px solid rgba(255,255,255,0.12)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', outline: 'none', width: '100%' }
+  const label = { fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, display: 'block' }
+  const sect = { marginBottom: 16 }
+  const check = { display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.83rem', color: '#cbd5e1', marginBottom: 6, cursor: 'pointer' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="bx bx-refresh" style={{ color: '#26c281' }} /> Repetição
+          </h3>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}>
+            <i className="bx bx-x" />
+          </button>
+        </div>
+
+        <div style={sect}>
+          <span style={label}>Frequência</span>
+          <select value={type} onChange={e => setType(e.target.value)} style={sel}>
+            {Object.entries(RECURRING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+
+        {type === 'custom' && (
+          <div style={{ ...sect, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ ...label, marginBottom: 0, whiteSpace: 'nowrap' }}>Repetir a cada</span>
+            <input type="number" min={1} value={interval} onChange={e => setInterval(Number(e.target.value))}
+              style={{ ...sel, width: 70 }} />
+            <select value="day" style={{ ...sel, width: 100 }}>
+              <option value="day">dias</option>
+            </select>
+          </div>
+        )}
+
+        {type === 'weekly' && (
+          <div style={sect}>
+            <span style={label}>Dias da semana</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {WEEK_DAYS_REC.map(d => (
+                <button key={d.key} type="button" onClick={() => toggleDay(d.key)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600, background: days.includes(d.key) ? '#26c281' : 'transparent', borderColor: days.includes(d.key) ? '#26c281' : 'rgba(255,255,255,0.15)', color: days.includes(d.key) ? '#fff' : '#94a3b8' }}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={sect}>
+          <span style={label}>Término</span>
+          <select value={endType} onChange={e => setEndType(e.target.value)} style={sel}>
+            <option value="never">Nunca</option>
+            <option value="after">Após X ocorrências</option>
+            <option value="on_date">Em uma data específica</option>
+          </select>
+          {endType === 'after' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Após</span>
+              <input type="number" min={1} value={occurrences} onChange={e => setOccurrences(Number(e.target.value))} style={{ ...sel, width: 80 }} />
+              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>ocorrências</span>
+            </div>
+          )}
+          {endType === 'on_date' && (
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ ...sel, marginTop: 8, colorScheme: 'dark' }} />
+          )}
+        </div>
+
+        <div style={sect}>
+          <span style={label}>Criar nova tarefa quando</span>
+          <select value={createWhen} onChange={e => setCreateWhen(e.target.value)} style={sel}>
+            <option value="on_completion">A tarefa for concluída</option>
+            <option value="on_date">Chegar a data programada</option>
+          </select>
+        </div>
+
+        <div style={{ ...sect, background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '12px 14px' }}>
+          <span style={{ ...label, marginBottom: 10 }}>Nova tarefa deve copiar</span>
+          {[
+            ['copyDesc', copyDesc, setCopyDesc, 'Descrição'],
+            ['copyCheck', copyCheck, setCopyCheck, 'Checklist'],
+            ['copyAssignees', copyAssignees, setCopyAssignees, 'Responsáveis'],
+            ['copyAttachments', copyAttachments, setCopyAttachments, 'Anexos'],
+            ['copySubtasks', copySubtasks, setCopySubtasks, 'Subtarefas'],
+            ['copyTags', copyTags, setCopyTags, 'Tags'],
+          ].map(([key, val, setter, lbl]) => (
+            <label key={key} style={check}>
+              <input type="checkbox" checked={val} onChange={e => setter(e.target.checked)} style={{ accentColor: '#26c281', width: 14, height: 14 }} />
+              {lbl}
+            </label>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#26c281', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', opacity: saving ? 0.7 : 1 }}>
+            {saving ? 'Salvando...' : 'Salvar repetição'}
+          </button>
+          {task.is_recurring && (
+            <button type="button" onClick={handleRemove} disabled={saving} style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}>
+              Remover
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields }) {
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
@@ -940,6 +1101,7 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
   const [saving, setSaving] = useState(false)
   const [confirmHardDelete, setConfirmHardDelete] = useState(false)
   const [hardDeleting, setHardDeleting] = useState(false)
+  const [showRecurrence, setShowRecurrence] = useState(false)
 
   async function handleHardDelete() {
     setHardDeleting(true)
@@ -977,8 +1139,21 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
     try {
       const res = await fetch(`/api/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) })
       const json = await res.json()
-      if (json.task) { setTask(json.task); onUpdated(json.task) }
+      if (json.task) {
+        setTask(json.task)
+        onUpdated(json.task)
+        // Trigger recurring generation when task is closed
+        if (field === 'status_id' && json.task.is_recurring && json.task.create_when === 'on_completion' && json.task.closed_at) {
+          fetch('/api/tasks/recurring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId }) }).catch(() => {})
+        }
+      }
     } finally { setSaving(false) }
+  }
+
+  async function saveRecurrence(fields) {
+    const res = await fetch(`/api/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...fields }) })
+    const json = await res.json()
+    if (json.task) { setTask(json.task); onUpdated(json.task) }
   }
 
   async function updateAssignees(ids) {
@@ -1150,6 +1325,17 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
           </div>
 
           <div style={fieldWrap}>
+            <button
+              type="button"
+              onClick={() => setShowRecurrence(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 7, border: '1px solid', borderColor: task.is_recurring ? '#26c281' : 'rgba(255,255,255,0.12)', background: task.is_recurring ? 'rgba(38,194,129,0.1)' : 'transparent', color: task.is_recurring ? '#26c281' : '#94a3b8', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, width: '100%' }}
+            >
+              <i className="bx bx-refresh" style={{ fontSize: 15 }} />
+              {task.is_recurring ? `Repetição: ${RECURRING_TYPE_LABELS[task.recurring_type] || task.recurring_type}` : 'Repetir'}
+            </button>
+          </div>
+
+          <div style={fieldWrap}>
             <div style={labelStyle}>Descrição</div>
             <textarea
               defaultValue={task.description || ''}
@@ -1272,6 +1458,10 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
             Criado em {new Date(task.created_at).toLocaleDateString('pt-BR')}
             {saving && <span style={{ marginLeft: 8, color: '#26c281' }}>Salvando...</span>}
           </div>
+
+          {showRecurrence && (
+            <RecurrenceModal task={task} onSave={saveRecurrence} onClose={() => setShowRecurrence(false)} />
+          )}
 
           {isMaster && (
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -2208,6 +2398,13 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     if (json.task) {
       if (updates.is_archived) setTasks(prev => prev.filter(t => t.id !== taskId))
       else setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...json.task } : t))
+      // Trigger recurring generation on completion
+      if (updates.status_id !== undefined && json.task.is_recurring && json.task.create_when === 'on_completion' && json.task.closed_at) {
+        fetch('/api/tasks/recurring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId }) })
+          .then(r => r.json())
+          .then(data => { if (data.task) setTasks(prev => [...prev, data.task]) })
+          .catch(() => {})
+      }
     }
   }
 

@@ -169,7 +169,7 @@ export async function PUT(request) {
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
-    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id', 'space_id', 'dia_semana', 'recorrente', 'horario', 'ordem']
+    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id', 'space_id', 'dia_semana', 'recorrente', 'horario', 'ordem', 'is_recurring', 'recurring_type', 'recurring_interval', 'recurring_days', 'recurring_end_type', 'recurring_end_date', 'recurring_occurrences', 'recurring_occurrences_done', 'create_when', 'copy_description', 'copy_checklist', 'copy_assignees', 'copy_attachments', 'copy_subtasks', 'copy_tags', 'last_generated_at', 'next_generation_at', 'recurring_parent_id']
     for (const f of fields) {
       if (body[f] !== undefined) updates[f] = body[f]
     }
