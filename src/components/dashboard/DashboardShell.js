@@ -11,6 +11,7 @@ import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
 import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
+import ManualReportTab from '@/components/dashboard/ManualReportTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
 import FunnelTab from '@/components/dashboard/FunnelTab'
 import TasksTab from '@/components/dashboard/TasksTab'
@@ -3573,7 +3574,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'gr-tarefas', 'planilha-leads', 'funil']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'gr-tarefas', 'planilha-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -16953,7 +16954,7 @@ export default function DashboardShell({
               <span className="nav-label">Central de Tarefas</span>
             </button>
           )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('gr-tarefas') || role === 'gestor_resultado') && (
             <>
               <button
                 type="button"
@@ -16996,6 +16997,12 @@ export default function DashboardShell({
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
                       <i className="bx bx-file"></i>
                       <span className="nav-label">Relatórios</span>
+                    </button>
+                  )}
+                  {(isMaster || hasNavAccess('relatorio-manual')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorio-manual' ? 'active' : ''}`} onClick={() => setActiveTab('relatorio-manual')}>
+                      <i className="bx bx-file-plus"></i>
+                      <span className="nav-label">Relatório Manual</span>
                     </button>
                   )}
                   {(isMaster || hasNavAccess('planilha-leads')) && (
@@ -17161,6 +17168,7 @@ export default function DashboardShell({
                 {activeTab === 'editorial-dash' && 'Painel Social Media'}
                 {activeTab === 'editorial-plans' && 'Planejamentos'}
                 {activeTab === 'relatorios' && 'Relatórios Salvos'}
+                {activeTab === 'relatorio-manual' && 'Relatório Manual'}
                 {activeTab === 'settings' && 'Settings'}
               </h1>
               {activeTab !== 'assistant' && (
@@ -17181,6 +17189,7 @@ export default function DashboardShell({
                   {activeTab === 'editorial-dash' && 'Visão consolidada das publicações por status, cliente e plataforma com os próximos posts da semana.'}
                   {activeTab === 'editorial-plans' && 'Histórico de planejamentos salvos. Exporte em PDF ou crie novos diretamente pelo calendário.'}
                   {activeTab === 'relatorios' && 'Acesse e baixe os relatórios PDF gerados para cada cliente.'}
+                  {activeTab === 'relatorio-manual' && 'Crie, edite e exporte relatórios de campanha personalizados com dados inseridos manualmente.'}
                   {activeTab === 'settings' && 'Ajuste integrações, IA, aparência, campos de clientes e estrutura operacional sem sair do domínio principal.'}
                 </p>
               )}
@@ -21301,6 +21310,12 @@ export default function DashboardShell({
         {activeTab === 'relatorios' && (isMaster || hasNavAccess('relatorios')) && (
           <section style={{ padding: '24px' }}>
             <ReportsTab clients={clients} />
+          </section>
+        )}
+
+        {activeTab === 'relatorio-manual' && (isMaster || hasNavAccess('relatorio-manual')) && (
+          <section style={{ padding: '24px' }}>
+            <ManualReportTab clients={clients} />
           </section>
         )}
 
