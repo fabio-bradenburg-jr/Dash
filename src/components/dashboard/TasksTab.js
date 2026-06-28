@@ -8,6 +8,7 @@ import AutomationsTab from '@/components/dashboard/AutomationsTab'
 import NewTaskModal from '@/components/dashboard/NewTaskModal'
 import ArchivedTasksPanel from '@/components/dashboard/ArchivedTasksPanel'
 import CustomFieldsManager from '@/components/dashboard/CustomFieldsManager'
+import RotinasView from '@/components/dashboard/RotinasView'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -536,6 +537,9 @@ function SpaceCard({ space, onClick }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <i className={`bx ${space.icon}`} style={{ fontSize: 20, color: space.color }}></i>
         <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f1f5f9', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{space.name}</span>
+        {space.space_type === 'rotinas' && (
+          <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>Rotinas</span>
+        )}
         {space.is_private && (
           <span style={{ fontSize: '0.68rem', background: 'rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 8, padding: '2px 7px', flexShrink: 0 }}>
             <i className="bx bx-lock" style={{ marginRight: 3, fontSize: 10 }}></i>Privado
@@ -679,7 +683,7 @@ function TemplateSemanalModal({ onClose, onCreate, workspaceUsers, statuses }) {
 }
 
 function NewSpaceModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false })
+  const [form, setForm] = useState({ name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false, space_type: 'standard' })
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e) {
@@ -687,7 +691,7 @@ function NewSpaceModal({ onClose, onCreate }) {
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      const res = await fetch('/api/tasks/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+      const res = await fetch('/api/tasks/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form }) })
       const json = await res.json()
       if (json.space) { onCreate(json.space); onClose() }
     } finally { setSaving(false) }
@@ -776,6 +780,34 @@ function NewSpaceModal({ onClose, onCreate }) {
                 <i className="bx bx-lock" style={{ marginRight: 6 }}></i>Só eu
               </button>
             </div>
+          </div>
+
+          <div style={{ marginBottom: 22 }}>
+            <label style={labelStyle}>Tipo de Espaço</label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, space_type: 'standard' }))}
+                style={{ flex: 1, padding: '10px 8px', borderRadius: 8, border: `1px solid ${form.space_type === 'standard' ? '#26c281' : 'rgba(255,255,255,0.08)'}`, background: form.space_type === 'standard' ? 'rgba(38,194,129,0.12)' : 'rgba(255,255,255,0.03)', color: form.space_type === 'standard' ? '#4ade80' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s', textAlign: 'center' }}
+              >
+                <i className="bx bx-list-ul" style={{ display: 'block', fontSize: 20, marginBottom: 4 }} />
+                Padrão
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, space_type: 'rotinas', icon: 'bx-refresh', color: '#8b5cf6' }))}
+                style={{ flex: 1, padding: '10px 8px', borderRadius: 8, border: `1px solid ${form.space_type === 'rotinas' ? '#8b5cf6' : 'rgba(255,255,255,0.08)'}`, background: form.space_type === 'rotinas' ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.03)', color: form.space_type === 'rotinas' ? '#a78bfa' : '#64748b', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.15s', textAlign: 'center' }}
+              >
+                <i className="bx bx-refresh" style={{ display: 'block', fontSize: 20, marginBottom: 4 }} />
+                Central de Rotinas
+              </button>
+            </div>
+            {form.space_type === 'rotinas' && (
+              <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#8b5cf6' }}>
+                <i className="bx bx-info-circle" style={{ marginRight: 4 }} />
+                Visão semanal por dia, gestão de membros e indicadores de produtividade.
+              </p>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -1936,8 +1968,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
         <div style={{ flex: 1 }} />
 
-        {/* View mode switcher — shown when inside a space */}
-        {view === 'space' && (
+        {/* View mode switcher — shown when inside a standard space */}
+        {view === 'space' && selectedSpace?.space_type !== 'rotinas' && (
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
             {[
               { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
@@ -1965,7 +1997,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         )}
 
         {/* Column manager — visible in table view */}
-        {view === 'space' && viewMode === 'table' && (
+        {view === 'space' && viewMode === 'table' && selectedSpace?.space_type !== 'rotinas' && (
           <ColumnManager
             columns={columns}
             onChange={setColumns}
@@ -2065,7 +2097,24 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         </div>
       )}
 
-      {!loading && view === 'space' && selectedSpace && (
+      {!loading && view === 'space' && selectedSpace && selectedSpace.space_type === 'rotinas' && (
+        <div style={{ paddingTop: 12 }}>
+          <RotinasView
+            space={selectedSpace}
+            allTasks={tasks}
+            statuses={statuses}
+            workspaceUsers={workspaceUsers}
+            onOpenPanel={task => setSelectedTaskId(task.id)}
+            onTaskSaved={(task, type) => {
+              if (type === 'create') setTasks(prev => [...prev, task])
+              else setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...task } : t))
+            }}
+            onBack={() => { setView('home'); setSelectedSpace(null) }}
+          />
+        </div>
+      )}
+
+      {!loading && view === 'space' && selectedSpace && selectedSpace.space_type !== 'rotinas' && (
         <div style={{ paddingTop: 12 }}>
           <SpaceView
             space={selectedSpace}

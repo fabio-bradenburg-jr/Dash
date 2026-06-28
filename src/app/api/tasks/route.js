@@ -137,6 +137,10 @@ export async function POST(request) {
     if (body.description) insert.description = body.description
     if (body.parent_task_id) insert.parent_task_id = body.parent_task_id
     if (body.space_id) insert.space_id = body.space_id
+    if (body.dia_semana !== undefined) insert.dia_semana = body.dia_semana
+    if (body.recorrente) insert.recorrente = body.recorrente
+    if (body.horario) insert.horario = body.horario
+    if (body.ordem !== undefined) insert.ordem = body.ordem
 
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
@@ -165,7 +169,7 @@ export async function PUT(request) {
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
-    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id', 'space_id']
+    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived', 'parent_task_id', 'space_id', 'dia_semana', 'recorrente', 'horario', 'ordem']
     for (const f of fields) {
       if (body[f] !== undefined) updates[f] = body[f]
     }

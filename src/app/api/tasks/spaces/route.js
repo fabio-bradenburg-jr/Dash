@@ -82,6 +82,7 @@ export async function POST(request) {
         is_private: Boolean(body.is_private),
         owner_id: ctx.user.id,
         sort_order: 0,
+        space_type: body.space_type || 'standard',
       })
       .select('*')
       .single()
