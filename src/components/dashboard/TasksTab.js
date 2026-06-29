@@ -2342,7 +2342,6 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [showClosedTasks, setShowClosedTasks] = useState(false)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [newTaskContext, setNewTaskContext] = useState({})
-  const [showTemplatesModal, setShowTemplatesModal] = useState(false)
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -2551,16 +2550,6 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           </button>
         )}
 
-        {view === 'home' && (
-          <button
-            type="button"
-            onClick={() => setShowTemplatesModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
-          >
-            <i className="bx bx-layout" style={{ fontSize: 16 }}></i>
-            Modelos
-          </button>
-        )}
 
         {view === 'home' && (
           <button
@@ -2688,15 +2677,6 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         />
       )}
 
-      {/* Templates modal */}
-      {showTemplatesModal && (
-        <TemplateSemanalModal
-          onClose={() => setShowTemplatesModal(false)}
-          onCreate={space => { handleSpaceCreated(space); loadData() }}
-          workspaceUsers={allUsers}
-          statuses={statuses}
-        />
-      )}
 
       {/* Automations overlay — z-index above notification bell (10000) */}
       {showAutomations && (
