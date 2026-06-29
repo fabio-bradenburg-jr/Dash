@@ -39,7 +39,7 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('pt-BR')
 }
 
-export default function NotificationBell({ isLight = false, supabaseClient = null }) {
+export default function NotificationBell({ isLight = false, supabaseClient = null, inSidebar = false }) {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -132,18 +132,21 @@ export default function NotificationBell({ isLight = false, supabaseClient = nul
       <button
         type="button"
         onClick={() => { setOpen((o) => !o); if (!open) loadNotifications() }}
-        style={{
+        className={inSidebar ? 'nav-item nav-button' : undefined}
+        data-tooltip={inSidebar ? 'Notificações' : undefined}
+        aria-label="Notificações"
+        style={inSidebar ? { position: 'relative' } : {
           position: 'relative', background: 'transparent', border: 'none',
           cursor: 'pointer', color: isLight ? '#475569' : '#94a3b8',
           padding: '6px 8px', borderRadius: 8, display: 'flex', alignItems: 'center',
           transition: 'color .15s',
         }}
-        title="Notificações"
       >
         <i className="bx bx-bell" style={{ fontSize: 20 }} />
+        {inSidebar && <span className="nav-label">Notificações</span>}
         {unreadCount > 0 && (
           <span style={{
-            position: 'absolute', top: 3, right: 3,
+            position: 'absolute', top: 3, right: inSidebar ? 3 : 3,
             minWidth: 16, height: 16, borderRadius: 999,
             background: '#ef4444', color: '#fff',
             fontSize: 10, fontWeight: 700,
@@ -158,7 +161,7 @@ export default function NotificationBell({ isLight = false, supabaseClient = nul
       {/* Dropdown panel */}
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          position: 'fixed', bottom: 60, left: 80,
           width: 360, maxHeight: 520,
           background: bg, border: `1px solid ${borderColor}`,
           borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,.35)',
