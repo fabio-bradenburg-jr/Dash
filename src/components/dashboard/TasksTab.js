@@ -2190,10 +2190,253 @@ function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTa
   )
 }
 
+// ---- SaveViewModal ----
+const VIEW_MODE_LABELS = { list: 'Lista', board: 'Board', week: 'Semana', table: 'Tabela', calendar: 'Calendário' }
+
+function SaveViewModal({ onClose, onSaved, spaceId, currentConfig, existingView }) {
+  const isEdit = !!existingView
+  const [name, setName] = useState(existingView?.name || '')
+  const [isDefaultUser, setIsDefaultUser] = useState(existingView?.is_default_user || false)
+  const [isShared, setIsShared] = useState(existingView?.is_shared || false)
+  const [isDefaultSpace, setIsDefaultSpace] = useState(existingView?.is_default_space || false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave() {
+    if (!name.trim()) { setError('Nome é obrigatório.'); return }
+    setSaving(true); setError('')
+    try {
+      const method = isEdit ? 'PUT' : 'POST'
+      const body = isEdit
+        ? { id: existingView.id, name, is_shared: isShared, is_default_user: isDefaultUser, is_default_space: isDefaultSpace, config: currentConfig }
+        : { name, space_id: spaceId, config: currentConfig, is_shared: isShared, is_default_user: isDefaultUser, is_default_space: isDefaultSpace }
+      const res = await fetch('/api/task-views', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erro ao salvar')
+      onSaved(json.view)
+      onClose()
+    } catch (e) { setError(e.message) } finally { setSaving(false) }
+  }
+
+  const GRN = '#26c281'
+  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' }
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 5 }
+
+  function Toggle({ checked, onChange, label, sub }) {
+    return (
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '10px 12px', borderRadius: 8, background: checked ? GRN + '10' : 'rgba(255,255,255,0.03)', border: `1px solid ${checked ? GRN + '33' : 'rgba(255,255,255,0.08)'}`, transition: 'all 0.15s' }}>
+        <div onClick={() => onChange(!checked)} style={{ width: 38, height: 22, borderRadius: 999, background: checked ? GRN : 'rgba(255,255,255,0.12)', position: 'relative', cursor: 'pointer', flexShrink: 0, marginTop: 1, transition: 'background 0.2s' }}>
+          <div style={{ position: 'absolute', top: 3, left: checked ? 19 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: checked ? '#e2e8f0' : '#94a3b8' }}>{label}</div>
+          {sub && <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{sub}</div>}
+        </div>
+      </label>
+    )
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#111113', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, width: '100%', maxWidth: 460, boxShadow: '0 24px 80px rgba(0,0,0,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="bx bx-bookmark-plus" style={{ fontSize: 18, color: GRN }} />
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>{isEdit ? 'Editar Visualização' : 'Salvar Visualização'}</span>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
+        </div>
+
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Config summary */}
+          {currentConfig && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.06)', borderRadius: 5, padding: '3px 8px', color: '#94a3b8' }}>
+                <i className={`bx bx-${currentConfig.viewMode === 'board' ? 'columns' : currentConfig.viewMode === 'calendar' ? 'calendar' : 'list-ul'}`} style={{ marginRight: 4 }} />
+                {VIEW_MODE_LABELS[currentConfig.viewMode] || currentConfig.viewMode}
+              </span>
+              {currentConfig.filterAssignees?.length > 0 && <span style={{ fontSize: 11, background: 'rgba(38,194,129,0.1)', borderRadius: 5, padding: '3px 8px', color: GRN }}>{currentConfig.filterAssignees.length} responsável(is)</span>}
+              {currentConfig.filterClient && <span style={{ fontSize: 11, background: 'rgba(59,130,246,0.1)', borderRadius: 5, padding: '3px 8px', color: '#60a5fa' }}>Cliente filtrado</span>}
+              {currentConfig.showClosedTasks && <span style={{ fontSize: 11, background: 'rgba(99,102,241,0.1)', borderRadius: 5, padding: '3px 8px', color: '#818cf8' }}>Incluir fechadas</span>}
+            </div>
+          )}
+
+          <div>
+            <label style={labelStyle}>Nome da visualização *</label>
+            <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Minhas Demandas, Urgentes, Semana Comercial..." style={inputStyle} onKeyDown={e => e.key === 'Enter' && handleSave()} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Toggle checked={isDefaultUser} onChange={setIsDefaultUser} label="Tornar padrão para mim" sub="Esta visualização abre automaticamente quando você acessa o espaço" />
+            <Toggle checked={isShared} onChange={setIsShared} label="Compartilhar com a equipe" sub="Todos os membros do espaço podem ver e usar esta visualização" />
+            {isShared && <Toggle checked={isDefaultSpace} onChange={setIsDefaultSpace} label="Tornar padrão do espaço" sub="Novos usuários e quem não tem padrão definido usam esta visualização" />}
+          </div>
+
+          {error && <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{error}</p>}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <button type="button" onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 7, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ background: GRN, border: 'none', color: '#fff', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {saving && <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 14 }} />}
+            {isEdit ? 'Salvar alterações' : 'Salvar visualização'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---- ViewsManager ----
+function ViewsManager({ views, spaceId, currentConfig, currentUserId, onClose, onApply, onSaved, onDeleted }) {
+  const GRN = '#26c281'
+  const [savingView, setSavingView] = useState(null)
+  const [editingView, setEditingView] = useState(null)
+  const [deleting, setDeleting] = useState(null)
+
+  async function handleDelete(view) {
+    setDeleting(view.id)
+    try {
+      const res = await fetch(`/api/task-views?id=${view.id}`, { method: 'DELETE' })
+      if (res.ok) onDeleted(view.id)
+    } finally { setDeleting(null) }
+  }
+
+  async function handleDuplicate(view) {
+    try {
+      const res = await fetch('/api/task-views', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${view.name} (cópia)`, space_id: spaceId, config: view.config, is_shared: false, is_default_user: false, is_default_space: false }),
+      })
+      const json = await res.json()
+      if (res.ok) onSaved(json.view)
+    } catch {}
+  }
+
+  const myViews = views.filter(v => v.owner_id === currentUserId)
+  const sharedViews = views.filter(v => v.owner_id !== currentUserId && v.is_shared)
+
+  function ViewRow({ v }) {
+    const isOwner = v.owner_id === currentUserId
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 6 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: GRN + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`bx bx-${v.config?.viewMode === 'board' ? 'columns' : v.config?.viewMode === 'calendar' ? 'calendar' : v.config?.viewMode === 'week' ? 'calendar-week' : v.config?.viewMode === 'table' ? 'table' : 'list-ul'}`} style={{ fontSize: 14, color: GRN }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
+          <div style={{ display: 'flex', gap: 5, marginTop: 3, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: '#475569' }}>{VIEW_MODE_LABELS[v.config?.viewMode] || v.config?.viewMode}</span>
+            {v.is_default_user && <span style={{ fontSize: 10, background: GRN + '22', color: GRN, borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>Meu padrão</span>}
+            {v.is_default_space && <span style={{ fontSize: 10, background: 'rgba(99,102,241,0.2)', color: '#818cf8', borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>Padrão do espaço</span>}
+            {v.is_shared && <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: '#60a5fa', borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>Compartilhada</span>}
+            {!v.is_shared && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.06)', color: '#64748b', borderRadius: 4, padding: '1px 5px' }}>Privada</span>}
+          </div>
+        </div>
+        <button type="button" onClick={() => onApply(v)} title="Aplicar visualização" style={{ background: 'none', border: `1px solid ${GRN}55`, color: GRN, borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Aplicar</button>
+        {isOwner && <>
+          <button type="button" onClick={() => setEditingView(v)} title="Editar" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><i className="bx bx-edit-alt" style={{ fontSize: 13 }} /></button>
+          <button type="button" onClick={() => handleDuplicate(v)} title="Duplicar" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><i className="bx bx-copy" style={{ fontSize: 13 }} /></button>
+          <button type="button" onClick={() => handleDelete(v)} disabled={deleting === v.id} style={{ background: 'none', border: '1px solid rgba(239,68,68,0.2)', color: '#ef444466', borderRadius: 6, padding: '4px 8px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><i className="bx bx-trash" style={{ fontSize: 13 }} /></button>
+        </>}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#111113', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <i className="bx bx-bookmark" style={{ fontSize: 18, color: GRN }} />
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>Gerenciar Visualizações</span>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
+          <button type="button" onClick={() => setSavingView(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', marginBottom: 16, background: GRN + '12', border: `1px dashed ${GRN}55`, color: GRN, borderRadius: 9, padding: '10px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <i className="bx bx-plus" style={{ fontSize: 15 }} /> Salvar visualização atual
+          </button>
+
+          {myViews.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Minhas visualizações</p>
+              {myViews.map(v => <ViewRow key={v.id} v={v} />)}
+            </div>
+          )}
+
+          {sharedViews.length > 0 && (
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Compartilhadas com a equipe</p>
+              {sharedViews.map(v => <ViewRow key={v.id} v={v} />)}
+            </div>
+          )}
+
+          {views.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '30px 0', color: '#475569' }}>
+              <i className="bx bx-bookmark" style={{ fontSize: 28 }} />
+              <p style={{ marginTop: 10, fontSize: 13 }}>Nenhuma visualização salva ainda.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {(savingView || editingView) && (
+        <SaveViewModal
+          spaceId={spaceId}
+          currentConfig={currentConfig}
+          existingView={editingView || undefined}
+          onClose={() => { setSavingView(false); setEditingView(null) }}
+          onSaved={v => { onSaved(v); setSavingView(false); setEditingView(null) }}
+        />
+      )}
+    </div>
+  )
+}
+
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, onViewModeChange, columns, onColumnsChange, customFields, onDeleteSpace }) {
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, onViewModeChange, columns, onColumnsChange, customFields, onDeleteSpace, filterAssignees, filterClient, showClosedTasks, currentUserId }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showSaveView, setShowSaveView] = useState(false)
+  const [showManageViews, setShowManageViews] = useState(false)
+  const [savedViews, setSavedViews] = useState([])
+  const [viewsLoaded, setViewsLoaded] = useState(false)
+  const [activeViewId, setActiveViewId] = useState(null)
+
+  // Build current config snapshot for saving
+  const currentViewConfig = { viewMode, filterAssignees, filterClient, showClosedTasks, columns: columns.map(c => ({ key: c.key, visible: c.visible, width: c.width })) }
+
+  useEffect(() => {
+    if (viewsLoaded) return
+    fetch(`/api/task-views?space_id=${space.id}`).then(r => r.json()).then(json => {
+      setSavedViews(json.views || [])
+      setViewsLoaded(true)
+    }).catch(() => setViewsLoaded(true))
+  }, [space.id, viewsLoaded])
+
+  function handleApplyView(v) {
+    setActiveViewId(v.id)
+    const c = v.config || {}
+    if (c.viewMode) onViewModeChange?.(c.viewMode)
+    setShowManageViews(false)
+  }
+
+  function handleViewSaved(v) {
+    setSavedViews(prev => {
+      const idx = prev.findIndex(x => x.id === v.id)
+      if (idx >= 0) { const n = [...prev]; n[idx] = v; return n }
+      return [...prev, v]
+    })
+    setActiveViewId(v.id)
+  }
+
+  function handleViewDeleted(id) {
+    setSavedViews(prev => prev.filter(v => v.id !== id))
+    if (activeViewId === id) setActiveViewId(null)
+  }
 
   const filteredByStatus = statuses.map(status => ({
     status,
@@ -2247,6 +2490,34 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           <ColumnManager columns={columns} onChange={onColumnsChange} customFields={customFields || []} />
         )}
 
+        {/* Saved views pill strip */}
+        {savedViews.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, maxWidth: 300, overflowX: 'auto' }}>
+            {savedViews.slice(0, 4).map(v => (
+              <button key={v.id} type="button" onClick={() => handleApplyView(v)}
+                style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, border: `1px solid ${activeViewId === v.id ? '#26c281' : 'rgba(255,255,255,0.1)'}`, background: activeViewId === v.id ? '#26c28118' : 'transparent', color: activeViewId === v.id ? '#26c281' : '#64748b', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <i className={`bx bx-${v.config?.viewMode === 'board' ? 'columns' : v.config?.viewMode === 'calendar' ? 'calendar' : 'list-ul'}`} style={{ fontSize: 12 }} />
+                {v.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Save + Manage views buttons */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button type="button" onClick={() => setShowSaveView(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 11px', borderRadius: 7, border: '1px solid rgba(38,194,129,0.3)', background: 'transparent', color: '#26c281', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+            title="Salvar visualização atual">
+            <i className="bx bx-bookmark-plus" style={{ fontSize: 14 }} />
+            Salvar
+          </button>
+          <button type="button" onClick={() => setShowManageViews(true)}
+            style={{ display: 'flex', alignItems: 'center', padding: '6px 8px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b', fontSize: '0.8rem', cursor: 'pointer' }}
+            title="Gerenciar visualizações">
+            <i className="bx bx-dots-horizontal-rounded" style={{ fontSize: 15 }} />
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => setShowDeleteModal(true)}
@@ -2274,6 +2545,28 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           space={space}
           onClose={() => setShowDeleteModal(false)}
           onDeleted={id => { onDeleteSpace?.(id); onBack() }}
+        />
+      )}
+
+      {showSaveView && (
+        <SaveViewModal
+          spaceId={space.id}
+          currentConfig={currentViewConfig}
+          onClose={() => setShowSaveView(false)}
+          onSaved={v => { handleViewSaved(v); setShowSaveView(false) }}
+        />
+      )}
+
+      {showManageViews && (
+        <ViewsManager
+          views={savedViews}
+          spaceId={space.id}
+          currentConfig={currentViewConfig}
+          currentUserId={currentUserId}
+          onClose={() => setShowManageViews(false)}
+          onApply={handleApplyView}
+          onSaved={handleViewSaved}
+          onDeleted={handleViewDeleted}
         />
       )}
 
@@ -2671,6 +2964,10 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onColumnsChange={setColumns}
             customFields={customFields}
             onDeleteSpace={handleSpaceDeleted}
+            filterAssignees={filterAssignees}
+            filterClient={filterClient}
+            showClosedTasks={showClosedTasks}
+            currentUserId={currentUserId}
           />
         </div>
       )}
