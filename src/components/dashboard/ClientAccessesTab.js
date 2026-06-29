@@ -996,17 +996,25 @@ function ClientCard({ client, accesses, onClick }) {
         </div>
         {hasIssue && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0, marginTop: 4 }} />}
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <span style={{ fontSize: 11, color: G, fontWeight: 600 }}>{active} ativos</span>
-        {pending > 0 && <span style={{ fontSize: 11, color: '#f59e0b' }}>· {pending} pend.</span>}
-        {problem > 0 && <span style={{ fontSize: 11, color: '#ef4444' }}>· {problem} prob.</span>}
-        {total === 0 && <span style={{ fontSize: 11, color: '#334155' }}>Clique para adicionar</span>}
-      </div>
-      <div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${completeness}%`, background: completeness < 40 ? '#ef4444' : completeness < 70 ? '#f59e0b' : G, borderRadius: 4, transition: 'width .4s' }} />
-        </div>
-        <div style={{ fontSize: 10, color: completeness < 40 ? '#ef4444' : completeness < 70 ? '#f59e0b' : SUB, marginTop: 5, fontWeight: 600 }}>{completeness}% completo</div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {total === 0 ? (
+          <span style={{ fontSize: 11, color: '#334155' }}>Clique para adicionar</span>
+        ) : (
+          <>
+            {(accesses || []).filter((a) => !a.is_archived && a.status === 'active').map((a, i) => {
+              const cat = CATEGORIES.find((c) => c.key === a.category)
+              const ic = (a.category === 'custom' && a.icon) ? a.icon : (cat?.icon || 'bx-lock-alt')
+              const col = (a.category === 'custom' && a.icon_color) ? a.icon_color : (cat?.color || '#475569')
+              return (
+                <div key={i} title={a.platform_name || cat?.label || a.category} style={{ width: 22, height: 22, borderRadius: 6, background: col + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className={`bx ${ic}`} style={{ fontSize: 13, color: col }} />
+                </div>
+              )
+            })}
+            {pending > 0 && <span style={{ fontSize: 11, color: '#f59e0b', marginLeft: 2 }}>· {pending} pend.</span>}
+            {problem > 0 && <span style={{ fontSize: 11, color: '#ef4444', marginLeft: 2 }}>· {problem} prob.</span>}
+          </>
+        )}
       </div>
     </button>
   )
