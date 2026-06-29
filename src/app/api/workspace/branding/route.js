@@ -15,7 +15,6 @@ async function getAuthorizedBrandingContext() {
   } = await supabase.auth.getUser()
 
   const adminSupabase = createAdminClient()
-  if (error) throw error
 
   if (!user) {
     const token = (await cookies()).get(PLATFORM_AUTH_COOKIE)?.value
