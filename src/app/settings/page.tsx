@@ -394,7 +394,7 @@ function rgbToHex({ r, g, b }: { r: number; g: number; b: number }): string {
   return `#${[r, g, b].map((channel) => clampRgbChannel(channel).toString(16).padStart(2, '0')).join('')}`
 }
 
-export default function SettingsPage({ embeddedOverride = false }: { embeddedOverride?: boolean } = {}) {
+export default function SettingsPage({ embeddedOverride = false, onGlobalIntegrationsChange }: { embeddedOverride?: boolean; onGlobalIntegrationsChange?: (integrations: GlobalIntegrationsState) => void } = {}) {
   const { appearance, updateAppearance, access } = useUser()
   const canManageClients = Boolean(access?.canManageClients)
   const canEditIntegrations = Boolean(access?.canEditIntegrations)
@@ -943,6 +943,7 @@ export default function SettingsPage({ embeddedOverride = false }: { embeddedOve
         console.error('Erro ao salvar integrações globais no servidor:', error)
       })
 
+      onGlobalIntegrationsChange?.(nextIntegrations)
       return nextIntegrations
     })
   }

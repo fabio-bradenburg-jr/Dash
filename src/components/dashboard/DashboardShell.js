@@ -17337,7 +17337,7 @@ export default function DashboardShell({
 
         {activeTab === 'settings' && (isMaster || hasNavAccess('settings')) && (
           <section style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <SettingsPage embeddedOverride={true} />
+            <SettingsPage embeddedOverride={true} onGlobalIntegrationsChange={setGlobalIntegrations} />
           </section>
         )}
 
