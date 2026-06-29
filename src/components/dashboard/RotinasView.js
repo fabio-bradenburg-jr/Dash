@@ -773,7 +773,7 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
 export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack, onDeleteSpace }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
-  const [mondayDate] = useState(() => getMonday(new Date()))
+  const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [filterMemberId, setFilterMemberId] = useState('all')
   const [viewMode, setViewMode] = useState('week') // week | overview
@@ -870,6 +870,15 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
 
   const today = fmtDate(new Date())
   const weekStr = `${weekDates[0]?.display} — ${weekDates[weekDates.length - 1]?.display}`
+  const thisMonday = fmtDate(getMonday(new Date()))
+  const currentMondayStr = fmtDate(mondayDate)
+  const isCurrentWeek = currentMondayStr === thisMonday
+  const weekLabel = isCurrentWeek ? 'Esta semana' : (() => {
+    const diff = Math.round((mondayDate - getMonday(new Date())) / (7 * 86400000))
+    if (diff === -1) return 'Semana passada'
+    if (diff === 1) return 'Próxima semana'
+    return diff < 0 ? `${Math.abs(diff)} sem. atrás` : `Em ${diff} sem.`
+  })()
 
   // Ranking
   const ranking = members
@@ -899,11 +908,32 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
 
         <div style={{ flex: 1 }} />
 
-        {/* Current week indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.15)', borderRadius: 7 }}>
-          <i className="bx bx-calendar-week" style={{ color: '#26c281', fontSize: 15 }} />
-          <span style={{ fontSize: '0.82rem', color: '#4ade80', fontWeight: 600 }}>Semana Atual</span>
-          <span style={{ fontSize: '0.75rem', color: '#475569' }}>{weekStr}</span>
+        {/* Week navigator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, overflow: 'hidden' }}>
+          <button type="button" onClick={() => setMondayDate(d => addDays(d, -7))}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px 10px', display: 'flex', alignItems: 'center', fontSize: 18, lineHeight: 1 }}
+            title="Semana anterior">
+            <i className="bx bx-chevron-left" />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px' }}>
+            <i className="bx bx-calendar-week" style={{ color: '#26c281', fontSize: 14 }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isCurrentWeek ? '#4ade80' : '#94a3b8', lineHeight: 1.2 }}>{weekLabel}</div>
+              <div style={{ fontSize: '0.68rem', color: '#475569', lineHeight: 1.2 }}>{weekStr}</div>
+            </div>
+          </div>
+          <button type="button" onClick={() => setMondayDate(d => addDays(d, 7))}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px 10px', display: 'flex', alignItems: 'center', fontSize: 18, lineHeight: 1 }}
+            title="Próxima semana">
+            <i className="bx bx-chevron-right" />
+          </button>
+          {!isCurrentWeek && (
+            <button type="button" onClick={() => setMondayDate(getMonday(new Date()))}
+              style={{ background: 'rgba(38,194,129,0.12)', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.06)', color: '#26c281', cursor: 'pointer', padding: '6px 10px', fontSize: '0.72rem', fontWeight: 700 }}
+              title="Voltar para esta semana">
+              Hoje
+            </button>
+          )}
         </div>
 
         <button
