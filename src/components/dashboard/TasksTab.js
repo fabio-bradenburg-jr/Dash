@@ -2454,11 +2454,19 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     setTasks(prev => prev.filter(t => t.space_id !== spaceId))
   }
 
+  const UNASSIGNED_KEY = '__unassigned__'
   const filteredTasks = tasks.filter(t => {
     if (filterAssignees.length > 0) {
       const taskAssignees = Array.isArray(t.assignee_ids) ? t.assignee_ids : (t.assignee_id ? [t.assignee_id] : [])
-      // Always show unassigned tasks alongside filtered users
-      if (taskAssignees.length > 0 && !filterAssignees.some(id => taskAssignees.includes(id))) return false
+      const filterOnlyUnassigned = filterAssignees.length === 1 && filterAssignees[0] === UNASSIGNED_KEY
+      if (filterOnlyUnassigned) {
+        if (taskAssignees.length > 0) return false
+      } else {
+        const realFilters = filterAssignees.filter(id => id !== UNASSIGNED_KEY)
+        const includeUnassigned = filterAssignees.includes(UNASSIGNED_KEY)
+        if (taskAssignees.length === 0) { if (!includeUnassigned) return false }
+        else if (!realFilters.some(id => taskAssignees.includes(id))) return false
+      }
     }
     if (filterClient && t.client_id !== filterClient) return false
     if (!showClosedTasks && t.closed_at) return false

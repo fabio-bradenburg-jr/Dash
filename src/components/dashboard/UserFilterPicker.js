@@ -95,11 +95,15 @@ export default function UserFilterPicker({ users = [], value = [], onChange, cur
     setOpen(false)
   }
 
+  const UNASSIGNED = '__unassigned__'
+  const isUnassignedOnly = value.length === 1 && value[0] === UNASSIGNED
   const label = value.length === 0
     ? 'Todos os responsáveis'
     : value.length === 1 && value[0] === currentUserId
       ? 'Minhas tarefas'
-      : `${value.length} responsável(is)`
+      : isUnassignedOnly
+        ? 'Sem responsável'
+        : `${value.length} responsável(is)`
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -115,7 +119,9 @@ export default function UserFilterPicker({ users = [], value = [], onChange, cur
       >
         <i className="bx bx-user" style={{ fontSize: 15, color: value.length > 0 ? GREEN : subtext, flexShrink: 0 }} />
 
-        {selectedUsers.length > 0 ? (
+        {isUnassignedOnly ? (
+          <span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>Sem responsável</span>
+        ) : selectedUsers.length > 0 ? (
           selectedUsers.map(u => (
             <UserChip key={u.id} user={u} onRemove={id => onChange(value.filter(v => v !== id))} />
           ))
@@ -187,6 +193,24 @@ export default function UserFilterPicker({ users = [], value = [], onChange, cur
               </div>
               <span>Todos os responsáveis</span>
               {value.length === 0 && <i className="bx bx-check" style={{ marginLeft: 'auto', color: GREEN }} />}
+            </button>
+            {/* Sem responsável */}
+            <button
+              type="button"
+              onClick={() => { onChange([UNASSIGNED]); setOpen(false) }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 8px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                background: isUnassignedOnly ? GREEN + '18' : 'transparent',
+                color: isUnassignedOnly ? GREEN : subtext,
+                fontSize: 12, fontWeight: 600, textAlign: 'left',
+              }}
+            >
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(100,116,139,0.15)', border: '1.5px dashed rgba(100,116,139,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="bx bx-user-x" style={{ fontSize: 13, color: subtext }} />
+              </div>
+              <span>Sem responsável</span>
+              {isUnassignedOnly && <i className="bx bx-check" style={{ marginLeft: 'auto', color: GREEN }} />}
             </button>
           </div>
 
