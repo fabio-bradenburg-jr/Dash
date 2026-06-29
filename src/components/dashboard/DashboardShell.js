@@ -21150,27 +21150,25 @@ export default function DashboardShell({
 
         {activeTab === 'clientes' && isEditClientModalOpen && activeClient && (
           <div className="modal-overlay" onClick={() => setIsEditClientModalOpen(false)}>
-            <div className="modal-card modal-card-wide glass-panel modal-client-editor simple-client-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-card modal-card-wide glass-panel modal-client-editor simple-client-modal" onClick={(event) => event.stopPropagation()} style={{ position: 'relative' }}>
+              <button type="button" className="modal-close" onClick={() => setIsEditClientModalOpen(false)} aria-label="Fechar edição de cliente" style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+                <i className="bx bx-x"></i>
+              </button>
               <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {activeClient.logoUrl ? (
-                      <img src={activeClient.logoUrl} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
-                    ) : (
-                      <span style={{ width: 42, height: 42, borderRadius: 10, background: activeClient.dashboardColor ? activeClient.dashboardColor + '22' : 'rgba(38,194,129,0.12)', border: `1px solid ${activeClient.dashboardColor ? activeClient.dashboardColor + '44' : 'rgba(38,194,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <i className="bx bx-building-house" style={{ fontSize: 20, color: activeClient.dashboardColor || '#26c281', opacity: 0.8 }}></i>
-                      </span>
-                    )}
-                    <div>
-                      <span className="management-hero-kicker" style={{ fontSize: '0.68rem', marginBottom: 2 }}><i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar cliente</span>
-                      <h3 style={{ margin: '2px 0 3px', fontSize: '1.1rem', fontWeight: 900 }}>{activeClient.name}</h3>
-                      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.45 }}>Identifique, configure APIs e vincule a conta de anúncio.</p>
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 36 }}>
+                  {activeClient.logoUrl ? (
+                    <img src={activeClient.logoUrl} alt="" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                  ) : (
+                    <span style={{ width: 42, height: 42, borderRadius: 10, background: activeClient.dashboardColor ? activeClient.dashboardColor + '22' : 'rgba(38,194,129,0.12)', border: `1px solid ${activeClient.dashboardColor ? activeClient.dashboardColor + '44' : 'rgba(38,194,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <i className="bx bx-building-house" style={{ fontSize: 20, color: activeClient.dashboardColor || '#26c281', opacity: 0.8 }}></i>
+                    </span>
+                  )}
+                  <div>
+                    <span className="management-hero-kicker" style={{ fontSize: '0.68rem', marginBottom: 2 }}><i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar cliente</span>
+                    <h3 style={{ margin: '2px 0 3px', fontSize: '1.1rem', fontWeight: 900 }}>{activeClient.name}</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.45 }}>Identifique, configure APIs e vincule a conta de anúncio.</p>
                   </div>
-                  <button type="button" className="modal-close" onClick={() => setIsEditClientModalOpen(false)} aria-label="Fechar edição de cliente" style={{ flexShrink: 0, zIndex: 1 }}>
-                    <i className="bx bx-x"></i>
-                  </button>
                 </div>
               </div>
 
