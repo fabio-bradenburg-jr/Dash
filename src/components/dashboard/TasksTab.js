@@ -1555,9 +1555,13 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-          {spaces.map(space => (
-            <SpaceCard key={space.id} space={space} onClick={() => onSpaceClick(space)} />
-          ))}
+          {spaces.map(space => {
+            const spaceTasks = tasks.filter(t => t.space_id === space.id)
+            const task_count = spaceTasks.length
+            const completed_count = spaceTasks.filter(t => closedIds.has(t.status_id)).length
+            const overdue_count = spaceTasks.filter(t => t.due_date && t.due_date < today && !closedIds.has(t.status_id)).length
+            return <SpaceCard key={space.id} space={{ ...space, task_count, completed_count, overdue_count }} onClick={() => onSpaceClick(space)} />
+          })}
         </div>
       </div>
     </div>
@@ -2147,7 +2151,7 @@ function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTa
 }
 
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, columns, onDeleteSpace }) {
+function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, onViewModeChange, columns, onColumnsChange, customFields, onDeleteSpace }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -2177,6 +2181,32 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
           {space.description && <span style={{ marginLeft: 10, fontSize: '0.8rem', color: '#64748b' }}>{space.description}</span>}
         </div>
         <div style={{ flex: 1 }} />
+
+        {/* View mode switcher */}
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
+          {[
+            { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
+            { key: 'board', icon: 'bx-columns', label: 'Board' },
+            { key: 'week', icon: 'bx-calendar-week', label: 'Semana' },
+            { key: 'table', icon: 'bx-table', label: 'Tabela' },
+            { key: 'calendar', icon: 'bx-calendar', label: 'Calendário' },
+          ].map(({ key, icon, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onViewModeChange?.(key)}
+              title={label}
+              style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: '0.8rem', transition: 'all 0.15s', background: viewMode === key ? '#26c281' : 'transparent', color: viewMode === key ? '#fff' : '#64748b' }}
+            >
+              <i className={`bx ${icon}`} style={{ fontSize: 15 }} />
+            </button>
+          ))}
+        </div>
+
+        {viewMode === 'table' && (
+          <ColumnManager columns={columns} onChange={onColumnsChange} customFields={customFields || []} />
+        )}
+
         <button
           type="button"
           onClick={() => setShowDeleteModal(true)}
@@ -2471,44 +2501,6 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
         <div style={{ flex: 1 }} />
 
-        {/* View mode switcher — shown when inside a standard space */}
-        {view === 'space' && selectedSpace?.space_type !== 'rotinas' && (
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
-            {[
-              { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
-              { key: 'board', icon: 'bx-columns', label: 'Board' },
-              { key: 'week', icon: 'bx-calendar-week', label: 'Semana' },
-              { key: 'table', icon: 'bx-table', label: 'Tabela' },
-              { key: 'calendar', icon: 'bx-calendar', label: 'Calendário' },
-            ].map(({ key, icon, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setViewMode(key)}
-                title={label}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.15s',
-                  background: viewMode === key ? '#26c281' : 'transparent',
-                  color: viewMode === key ? '#fff' : '#64748b',
-                }}
-              >
-                <i className={`bx ${icon}`} style={{ fontSize: 15 }} />
-                <span style={{ display: 'none' }}>{label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Column manager — visible in table view */}
-        {view === 'space' && viewMode === 'table' && selectedSpace?.space_type !== 'rotinas' && (
-          <ColumnManager
-            columns={columns}
-            onChange={setColumns}
-            customFields={customFields}
-          />
-        )}
-
         <button
           type="button"
           onClick={() => setShowSettings(true)}
@@ -2589,7 +2581,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {!loading && view === 'home' && (
         <div style={{ paddingTop: 16 }}>
           <HomeView
-            tasks={tasks}
+            tasks={filteredTasks}
             statuses={statuses}
             spaces={spaces}
             workspaceUsers={allUsers}
@@ -2632,7 +2624,10 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onAddTask={handleAddTask}
             onNewTask={ctx => { setNewTaskContext(ctx); setShowNewTaskModal(true) }}
             viewMode={viewMode}
+            onViewModeChange={setViewMode}
             columns={columns}
+            onColumnsChange={setColumns}
+            customFields={customFields}
             onDeleteSpace={handleSpaceDeleted}
           />
         </div>
