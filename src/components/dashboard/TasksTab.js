@@ -6,6 +6,7 @@ import UserFilterPicker from '@/components/dashboard/UserFilterPicker'
 import ColumnManager, { DEFAULT_COLUMNS } from '@/components/dashboard/ColumnManager'
 import AutomationsTab from '@/components/dashboard/AutomationsTab'
 import NewTaskModal from '@/components/dashboard/NewTaskModal'
+import ClientFilterPicker from '@/components/dashboard/ClientFilterPicker'
 import ArchivedTasksPanel from '@/components/dashboard/ArchivedTasksPanel'
 import CustomFieldsManager from '@/components/dashboard/CustomFieldsManager'
 import RotinasView from '@/components/dashboard/RotinasView'
@@ -2833,10 +2834,11 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         />
 
         {/* Client filter */}
-        <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={selectStyle}>
-          <option value="">Todos os clientes</option>
-          {(clients || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <ClientFilterPicker
+          clients={clients || []}
+          value={filterClient}
+          onChange={setFilterClient}
+        />
 
         {(filterAssignees.length > 0 || filterClient) && (
           <button type="button" onClick={() => { setFilterAssignees([]); setFilterClient('') }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 3 }}>
