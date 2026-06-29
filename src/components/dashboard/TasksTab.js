@@ -2460,12 +2460,17 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       const taskAssignees = Array.isArray(t.assignee_ids) ? t.assignee_ids : (t.assignee_id ? [t.assignee_id] : [])
       const filterOnlyUnassigned = filterAssignees.length === 1 && filterAssignees[0] === UNASSIGNED_KEY
       if (filterOnlyUnassigned) {
+        // show only tasks with no assignee
         if (taskAssignees.length > 0) return false
       } else {
         const realFilters = filterAssignees.filter(id => id !== UNASSIGNED_KEY)
         const includeUnassigned = filterAssignees.includes(UNASSIGNED_KEY)
-        if (taskAssignees.length === 0) { if (!includeUnassigned) return false }
-        else if (!realFilters.some(id => taskAssignees.includes(id))) return false
+        if (taskAssignees.length === 0) {
+          // unassigned tasks: show if __unassigned__ is selected OR always (default behaviour)
+          if (!includeUnassigned && realFilters.length > 0) return true
+        } else if (!realFilters.some(id => taskAssignees.includes(id))) {
+          return false
+        }
       }
     }
     if (filterClient && t.client_id !== filterClient) return false
