@@ -9,7 +9,6 @@ import {
   getPlatformMetaConnectionContext,
   saveWorkspaceMetaConnection,
 } from '@/lib/server/meta-connection'
-import { getDashboardState, saveDashboardState } from '@/lib/server/dashboard-store'
 
 function buildMetaReturnUrl(request, returnTo) {
   const fallback = new URL('/', request.url)
@@ -41,7 +40,7 @@ export async function GET(request) {
       context = await getAuthorizedMetaConnectionContext({ requireEdit: true })
     }
 
-    const { supabase, adminSupabase, accessContext } = context
+    const { adminSupabase, accessContext } = context
     if (!accessContext.canEditIntegrations) {
       throw new Error('Sem permissão para gerenciar a conexão da Meta.')
     }
@@ -65,14 +64,32 @@ export async function GET(request) {
         : null,
     })
 
-    const dashboardState = await getDashboardState(adminSupabase, accessContext)
-    await saveDashboardState(adminSupabase, accessContext, {
-      ...dashboardState,
-      globalIntegrations: {
-        ...(dashboardState.globalIntegrations || {}),
-        metaConnectionMode: 'oauth',
-      },
-    })
+    // Targeted update: only set metaConnectionMode in globalIntegrations without
+    // touching any other workspace data (clients, operationCards, onboarding, etc.)
+    const { data: currentPref } = await adminSupabase
+      .from('workspace_preferences')
+      .select('payload')
+      .eq('workspace_id', accessContext.workspaceId)
+      .maybeSingle()
+
+    const currentPayload =
+      currentPref?.payload && typeof currentPref.payload === 'object' ? currentPref.payload : {}
+
+    await adminSupabase
+      .from('workspace_preferences')
+      .upsert(
+        {
+          workspace_id: accessContext.workspaceId,
+          payload: {
+            ...currentPayload,
+            globalIntegrations: {
+              ...(currentPayload.globalIntegrations || {}),
+              metaConnectionMode: 'oauth',
+            },
+          },
+        },
+        { onConflict: 'workspace_id' }
+      )
 
     redirectUrl = buildMetaReturnUrl(request, oauthCookie.returnTo)
     redirectUrl.searchParams.set('meta_connected', '1')
