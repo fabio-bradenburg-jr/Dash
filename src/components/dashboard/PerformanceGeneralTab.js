@@ -281,6 +281,7 @@ function ChartModal({ title, entityId, metrics, dateRange, customSince, customUn
 
   useEffect(() => {
     if (!entityId) { setLoading(false); return }
+    if (dateRange === 'custom' && (!customSince || !customUntil)) { setLoading(false); return }
     let cancelled = false
     setLoading(true)
     setError('')
@@ -685,6 +686,7 @@ function InlineAdChart({ ad, dateRange, customSince, customUntil, metaRequestHea
 
   useEffect(() => {
     if (!ad.adId) { setLoading(false); return }
+    if (dateRange === 'custom' && (!customSince || !customUntil)) { setLoading(false); return }
     setLoading(true); setError('')
     const params = new URLSearchParams({ entityId: ad.adId })
     if (dateRange === 'custom' && customSince && customUntil) {
@@ -744,6 +746,7 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   useEffect(() => {
     const url = client.leadsSheetUrl || ''
     if (!url) return
+    if (dateRange === 'custom' && (!customSince || !customUntil)) return
     setSheetLoading(true)
     setSheetData(null)
     setSheetError(null)
@@ -796,12 +799,15 @@ function ClientDetailModal({ client, clientData, dateRangeLabel, dateRange, cust
   useEffect(() => {
     const adAccountId = String(client.metaAdAccountId || '').replace(/^act_/, '')
     if (!adAccountId) return
+    if (dateRange === 'custom' && (!customSince || !customUntil)) return
     setBreakdownLoading(true)
     setBreakdownData(null)
-    const params = new URLSearchParams({ ad_account_id: adAccountId, date_preset: dateRange || 'last_7d' })
+    const params = new URLSearchParams({ ad_account_id: adAccountId })
     if (dateRange === 'custom' && customSince && customUntil) {
       params.set('since', customSince)
       params.set('until', customUntil)
+    } else {
+      params.set('date_preset', dateRange || 'last_7d')
     }
     fetch('/api/meta/breakdowns?' + params.toString(), { headers: metaRequestHeaders || {} })
       .then(r => r.json())
