@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 import { getDashboardState } from '@/lib/server/dashboard-store'
 import { requestAssistantReply, resolveAssistantAiConfig } from '@/lib/server/ai-chat'
 import type { AssistantChatBody, AssistantContextSnapshot, AssistantMessage } from '@/lib/types/ai'
@@ -23,23 +21,8 @@ function normalizeChatBody(body: unknown): AssistantChatBody & { providerOverrid
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (error) {
-      throw error
-    }
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const body = normalizeChatBody(await request.json().catch(() => ({})))
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canUseAi) {
       return NextResponse.json(
@@ -48,7 +31,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const dashboardState = await getDashboardState(supabase, accessContext)
+    const body = normalizeChatBody(await request.json().catch(() => ({})))
+    const dashboardState = await getDashboardState(adminSupabase, accessContext)
     const baseIntegrations = dashboardState.globalIntegrations || {}
     const mergedIntegrations = body.providerOverride
       ? { ...baseIntegrations, aiProvider: body.providerOverride }
@@ -56,7 +40,7 @@ export async function POST(request: Request) {
     const aiConfig = resolveAssistantAiConfig(mergedIntegrations)
     const result = await requestAssistantReply({
       config: aiConfig,
-      adminSupabase: supabase,
+      adminSupabase,
       dashboardState,
       accessContext,
       clientId: body.clientId,

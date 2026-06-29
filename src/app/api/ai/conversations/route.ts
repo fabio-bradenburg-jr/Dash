@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 import {
   createAssistantConversation,
   listAssistantConversations,
@@ -9,25 +7,15 @@ import {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, user, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canUseAi || !accessContext.workspaceId) {
       return NextResponse.json({ error: 'Sem permissão para usar o assistente.' }, { status: 403 })
     }
 
     const conversations = await listAssistantConversations(
-      supabase,
+      adminSupabase,
       accessContext.workspaceId,
       user.id
     )
@@ -44,25 +32,15 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, user, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canUseAi || !accessContext.workspaceId) {
       return NextResponse.json({ error: 'Sem permissão para usar o assistente.' }, { status: 403 })
     }
 
     const conversation = await createAssistantConversation(
-      supabase,
+      adminSupabase,
       accessContext.workspaceId,
       user.id,
       accessContext.aiAccessLevel

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { AI_ACCESS_LEVELS, getAccessContext, isPrimaryAdminEmail, USER_ROLES } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
+import { AI_ACCESS_LEVELS, isPrimaryAdminEmail, USER_ROLES } from '@/lib/server/access-control'
 
 function isMissingRelationError(error) {
   const message = String(error?.message || '').toLowerCase()
@@ -58,24 +57,14 @@ async function validateClientGroups(adminSupabase, workspaceId, clientGroupIds) 
 }
 
 async function getAuthorizedContext() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
+  const ctx = await resolveAuthContext()
+  if (ctx.errorResponse) return ctx
 
-  if (!user) {
-    return { errorResponse: NextResponse.json({ error: 'Não autenticado.' }, { status: 401 }) }
-  }
-
-  const adminSupabase = createAdminClient()
-  const accessContext = await getAccessContext(supabase, user, { adminSupabase })
-
-  if (!accessContext.canManageUsers || !accessContext.workspaceId) {
+  if (!ctx.accessContext.canManageUsers || !ctx.accessContext.workspaceId) {
     return { errorResponse: NextResponse.json({ error: 'Sem permissão para gerenciar usuários.' }, { status: 403 }) }
   }
 
-  return { supabase, adminSupabase, accessContext, user }
+  return { adminSupabase: ctx.adminSupabase, accessContext: ctx.accessContext, user: ctx.user }
 }
 
 export async function PATCH(request, context) {

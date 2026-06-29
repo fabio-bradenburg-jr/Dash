@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 
 async function getAuthContext() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return { error: NextResponse.json({ error: 'Não autenticado.' }, { status: 401 }) }
-  const adminSupabase = createAdminClient()
-  const accessContext = await getAccessContext(supabase, user, { adminSupabase })
-  if (!accessContext.workspaceId) return { error: NextResponse.json({ error: 'Sem workspace.' }, { status: 403 }) }
-  return { user, accessContext, adminSupabase }
+  const ctx = await resolveAuthContext()
+  if (ctx.errorResponse) return { error: ctx.errorResponse }
+  return { user: ctx.user, accessContext: ctx.accessContext, adminSupabase: ctx.adminSupabase }
 }
 
 // GET /api/permissions — all permissions + user overrides for ?user_id=xxx
@@ -43,6 +37,11 @@ export async function PUT(request) {
   try {
     const ctx = await getAuthContext()
     if (ctx.error) return ctx.error
+
+    if (!ctx.accessContext.canManageUsers) {
+      return NextResponse.json({ error: 'Sem permissão para gerenciar permissões.' }, { status: 403 })
+    }
+
     const { user_id, overrides = [] } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'user_id obrigatório.' }, { status: 400 })
     const { workspaceId } = ctx.accessContext

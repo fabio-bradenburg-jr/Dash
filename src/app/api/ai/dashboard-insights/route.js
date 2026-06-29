@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 import { getDashboardState } from '@/lib/server/dashboard-store'
 import { requestDashboardInsights, resolveDashboardAiConfig } from '@/lib/server/ai-dashboard'
 
@@ -29,29 +27,15 @@ function normalizeInsightPayload(body) {
 
 export async function POST(request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (error) {
-      throw error
-    }
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const body = await request.json().catch(() => ({}))
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canViewDashboard) {
       return NextResponse.json({ error: 'Seu usuário não tem permissão para usar os insights com IA.' }, { status: 403 })
     }
 
-    const dashboardState = await getDashboardState(supabase, accessContext)
+    const body = await request.json().catch(() => ({}))
+    const dashboardState = await getDashboardState(adminSupabase, accessContext)
     const aiConfig = resolveDashboardAiConfig(dashboardState.globalIntegrations)
     const payload = normalizeInsightPayload(body)
     const result = await requestDashboardInsights(aiConfig, payload)

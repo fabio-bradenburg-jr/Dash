@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 import { encryptPassword, decryptPassword } from '@/lib/server/access-encryption'
 
 async function getAuthContext() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return { error: NextResponse.json({ error: 'Não autenticado.' }, { status: 401 }) }
-  const adminSupabase = createAdminClient()
-  const accessContext = await getAccessContext(supabase, user, { adminSupabase })
-  if (!accessContext.workspaceId) return { error: NextResponse.json({ error: 'Sem workspace.' }, { status: 403 }) }
-  return { user, accessContext, adminSupabase, workspaceId: accessContext.workspaceId }
+  const ctx = await resolveAuthContext()
+  if (ctx.errorResponse) return { error: ctx.errorResponse }
+  return { user: ctx.user, accessContext: ctx.accessContext, adminSupabase: ctx.adminSupabase, workspaceId: ctx.accessContext.workspaceId }
 }
 
 function sanitize(acc) {

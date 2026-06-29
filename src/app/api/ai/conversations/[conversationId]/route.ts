@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 import { deleteAssistantConversation, getAssistantConversationDetail } from '@/lib/server/assistant-conversations'
 
 export async function GET(
@@ -9,18 +7,8 @@ export async function GET(
   context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, user, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canUseAi || !accessContext.workspaceId) {
       return NextResponse.json({ error: 'Sem permissão para usar o assistente.' }, { status: 403 })
@@ -28,7 +16,7 @@ export async function GET(
 
     const params = await context.params
     const detail = await getAssistantConversationDetail(
-      supabase,
+      adminSupabase,
       accessContext.workspaceId,
       user.id,
       params.conversationId
@@ -53,18 +41,8 @@ export async function DELETE(
   context: { params: Promise<{ conversationId: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const { errorResponse, user, accessContext, adminSupabase } = await resolveAuthContext()
+    if (errorResponse) return errorResponse
 
     if (!accessContext.canUseAi || !accessContext.workspaceId) {
       return NextResponse.json({ error: 'Sem permissão para usar o assistente.' }, { status: 403 })
@@ -72,7 +50,7 @@ export async function DELETE(
 
     const params = await context.params
     const deleted = await deleteAssistantConversation(
-      supabase,
+      adminSupabase,
       accessContext.workspaceId,
       user.id,
       params.conversationId
