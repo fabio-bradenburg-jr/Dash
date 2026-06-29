@@ -18,6 +18,7 @@ import TasksTab from '@/components/dashboard/TasksTab'
 import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
 import ActionSpaceSettings from '@/components/dashboard/ActionSpaceSettings'
 import NotificationBell from '@/components/dashboard/NotificationBell'
+import RolesTab from '@/components/dashboard/RolesTab'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -3223,6 +3224,7 @@ export default function DashboardShell({
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [activeTab, setActiveTab] = useState(REMOVED_TABS.has(initialTab) ? 'assistant' : initialTab)
+  const [teamSubTab, setTeamSubTab] = useState('usuarios') // 'usuarios' | 'funcoes'
   const [dateRange, setDateRange] = useState('last_7d')
   const [draftDateRange, setDraftDateRange] = useState('last_7d')
   const [customSince, setCustomSince] = useState('')
@@ -21918,7 +21920,38 @@ export default function DashboardShell({
                 </div>
               </div>
 
-              <div className="glass-panel users-toolbar-card management-directory-card simple-team-card">
+              {/* Sub-tabs */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+                {[
+                  { key: 'usuarios', label: 'Usuários', icon: 'bx-group' },
+                  { key: 'funcoes', label: 'Funções e Permissões', icon: 'bx-shield' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setTeamSubTab(tab.key)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                      background: teamSubTab === tab.key ? 'rgba(255,255,255,0.08)' : 'transparent',
+                      color: teamSubTab === tab.key ? '#e2e8f0' : '#64748b',
+                      fontSize: 13, fontWeight: teamSubTab === tab.key ? 700 : 500,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <i className={`bx ${tab.icon}`} style={{ fontSize: 14 }} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {teamSubTab === 'funcoes' && (
+                <div className="glass-panel" style={{ padding: 24 }}>
+                  <RolesTab />
+                </div>
+              )}
+
+              {teamSubTab === 'usuarios' && <><div className="glass-panel users-toolbar-card management-directory-card simple-team-card">
                 <div className="user-picker-head">
                   <div>
                     <span className="management-card-kicker">Cadastro simples</span>
@@ -22070,7 +22103,7 @@ export default function DashboardShell({
                 </div></div>
               )}
 
-              {isEditUserModalOpen && selectedManagedUser && (
+              {teamSubTab === 'usuarios' && isEditUserModalOpen && selectedManagedUser && (
                 <div className="modal-overlay" onClick={() => setIsEditUserModalOpen(false)}><div className="modal-card glass-panel" onClick={(event) => event.stopPropagation()}>
                   <div className="modal-header"><div><h3>Editar membro</h3><p>Atualize nome, dashboards liberados, IA e integrações.</p></div><button type="button" className="modal-close" onClick={() => setIsEditUserModalOpen(false)} aria-label="Fechar edição de membro"><i className="bx bx-x"></i></button></div>
                   {editUserError && <div className="form-alert">{editUserError}</div>}
@@ -22127,7 +22160,7 @@ export default function DashboardShell({
                   })()}
                   <div className="modal-foot"><span className="form-note">Os acessos do time são salvos no Supabase e aplicados no login deste usuário.</span><div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsEditUserModalOpen(false)}>Cancelar</button><button type="button" className="btn btn-primary" onClick={() => handleUpdateUser(selectedManagedUser)}>Salvar membro</button></div></div>
                 </div></div>
-              )}
+              )}</>}
             </section>
           ) : (
             <section className="clients-layout users-management-layout simple-team-layout"><div className="empty-panel glass-panel"><h3>Acesso do time</h3><p>Seu usuário tem acesso aos dashboards liberados pelo master. Para alterar permissões, fale com o administrador.</p></div></section>
