@@ -373,7 +373,7 @@ body {
     isolation: isolate;
 }
 
-/* Subtle LED accent — sidebar */
+/* LED accent — sidebar (app green) */
 .sidebar::before {
     content: '';
     position: absolute;
@@ -383,17 +383,17 @@ body {
     background: conic-gradient(
         from var(--led-angle),
         transparent 0deg,
-        rgba(91, 138, 245, 0) 280deg,
-        rgba(91, 138, 245, 0.22) 310deg,
-        rgba(124, 106, 247, 0.5) 328deg,
-        rgba(91, 138, 245, 0.22) 346deg,
-        rgba(91, 138, 245, 0) 380deg,
+        rgba(38, 194, 129, 0) 280deg,
+        rgba(38, 194, 129, 0.35) 310deg,
+        rgba(79, 223, 155, 0.8) 328deg,
+        rgba(38, 194, 129, 0.35) 346deg,
+        rgba(38, 194, 129, 0) 380deg,
         transparent 380deg
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    animation: led-spin-sidebar 6s linear infinite;
+    animation: led-spin-sidebar 5s linear infinite;
     pointer-events: none;
 }
 
