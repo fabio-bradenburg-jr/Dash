@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const DIAS = [
   { key: 1, label: 'Segunda', short: 'Seg' },
@@ -324,9 +325,12 @@ function RotinasTaskModal({ spaceId, members, statuses, initialDia, initialMembe
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
               <label style={lbl}>Dia da Semana</label>
-              <select value={form.dia_semana} onChange={e => setForm(f => ({ ...f, dia_semana: Number(e.target.value) }))} style={inp}>
-                {DIAS_SEMANA.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
-              </select>
+              <CustomSelect
+                options={DIAS_SEMANA.map(d => ({ value: d.key, label: d.label }))}
+                value={form.dia_semana}
+                onChange={v => setForm(f => ({ ...f, dia_semana: Number(v) }))}
+                icon="bx-calendar"
+              />
             </div>
             <div>
               <label style={lbl}>Horário</label>
@@ -336,20 +340,28 @@ function RotinasTaskModal({ spaceId, members, statuses, initialDia, initialMembe
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Recorrência</label>
-            <select value={form.recorrente} onChange={e => setForm(f => ({ ...f, recorrente: e.target.value }))} style={inp}>
-              <option value="weekly">Toda semana</option>
-              <option value="biweekly">A cada 2 semanas</option>
-              <option value="monthly">Mensal</option>
-              <option value="once">Uma vez</option>
-            </select>
+            <CustomSelect
+              options={[
+                { value: 'weekly', label: 'Toda semana' },
+                { value: 'biweekly', label: 'A cada 2 semanas' },
+                { value: 'monthly', label: 'Mensal' },
+                { value: 'once', label: 'Uma vez' },
+              ]}
+              value={form.recorrente}
+              onChange={v => setForm(f => ({ ...f, recorrente: v }))}
+              icon="bx-refresh"
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Responsável</label>
-            <select value={form.assignee_id} onChange={e => setForm(f => ({ ...f, assignee_id: e.target.value }))} style={inp}>
-              <option value="">Sem responsável</option>
-              {members.map(m => <option key={m.id} value={m.user_id || m.id}>{m.name}{m.cargo ? ` — ${m.cargo}` : ''}</option>)}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem responsável' }, ...members.map(m => ({ value: m.user_id || m.id, label: m.name + (m.cargo ? ` — ${m.cargo}` : '') }))]}
+              value={form.assignee_id}
+              onChange={v => setForm(f => ({ ...f, assignee_id: v }))}
+              placeholder="Sem responsável"
+              icon="bx-user"
+            />
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
@@ -454,13 +466,16 @@ function MemberModal({ spaceId, workspaceUsers, onClose, onSave, existing }) {
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Vincular usuário do workspace</label>
-            <select value={form.user_id} onChange={e => {
-              const u = workspaceUsers?.find(u => u.id === e.target.value)
-              setForm(f => ({ ...f, user_id: e.target.value, name: u ? (u.full_name || u.email) : f.name }))
-            }} style={inp}>
-              <option value="">Sem vínculo</option>
-              {(workspaceUsers || []).map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem vínculo' }, ...(workspaceUsers || []).map(u => ({ value: u.id, label: u.full_name || u.email }))]}
+              value={form.user_id}
+              onChange={v => {
+                const u = workspaceUsers?.find(u => u.id === v)
+                setForm(f => ({ ...f, user_id: v, name: u ? (u.full_name || u.email) : f.name }))
+              }}
+              placeholder="Sem vínculo"
+              icon="bx-user-circle"
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
@@ -484,12 +499,13 @@ function MemberModal({ spaceId, workspaceUsers, onClose, onSave, existing }) {
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Template de Função</label>
-            <select value={form.template_funcao} onChange={e => setForm(f => ({ ...f, template_funcao: e.target.value }))} style={inp}>
-              <option value="">Sem template</option>
-              {Object.entries(TEMPLATES_FUNCAO).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem template' }, ...Object.entries(TEMPLATES_FUNCAO).map(([k, v]) => ({ value: k, label: v.label }))]}
+              value={form.template_funcao}
+              onChange={v => setForm(f => ({ ...f, template_funcao: v }))}
+              placeholder="Sem template"
+              icon="bx-layout"
+            />
           </div>
 
           {form.template_funcao && !existing && (

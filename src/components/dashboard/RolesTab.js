@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const GREEN = '#26c281'
 
@@ -356,10 +357,13 @@ function DeleteRoleModal({ role, allRoles, onClose, onDeleted }) {
               Existem <strong>{role.user_count}</strong> usuário(s) utilizando a função <strong>"{role.name}"</strong>.
             </p>
             <label style={S.label}>Transferir usuários para:</label>
-            <select value={transferTo} onChange={e => setTransferTo(e.target.value)} style={S.input}>
-              <option value="">Selecionar função...</option>
-              {others.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Selecionar função...' }, ...others.map(r => ({ value: r.id, label: r.name }))]}
+              value={transferTo}
+              onChange={setTransferTo}
+              placeholder="Selecionar função..."
+              icon="bx-transfer"
+            />
           </div>
         ) : (
           <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 14 }}>

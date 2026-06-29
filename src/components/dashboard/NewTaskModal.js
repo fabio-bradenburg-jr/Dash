@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const GREEN = '#26c281'
 
@@ -236,8 +237,18 @@ function RecurrenceSection({ value, onChange }) {
     { value: 'yearly', label: 'Anualmente' },
   ]
 
-  const selectStyle = { ...INPUT_STYLE, padding: '6px 8px', fontSize: 12 }
   const numStyle = { ...INPUT_STYLE, padding: '6px 8px', fontSize: 12, width: 60, textAlign: 'center' }
+
+  const recTypeOptions = TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))
+  const endTypeOptions = [
+    { value: 'never', label: 'Nunca' },
+    { value: 'occurrences', label: 'Após X ocorrências' },
+    { value: 'date', label: 'Em uma data' },
+  ]
+  const createWhenOptions = [
+    { value: 'on_completion', label: 'Ao concluir a tarefa atual' },
+    { value: 'on_creation', label: 'Ao criar a tarefa' },
+  ]
 
   return (
     <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
@@ -276,9 +287,7 @@ function RecurrenceSection({ value, onChange }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ flex: 1 }}>
               <label style={LABEL_STYLE}>Frequência</label>
-              <select value={type} onChange={e => update({ recurring_type: e.target.value })} style={selectStyle}>
-                {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <CustomSelect options={recTypeOptions} value={type} onChange={v => update({ recurring_type: v })} icon="bx-refresh" />
             </div>
             <div>
               <label style={LABEL_STYLE}>A cada</label>
@@ -322,11 +331,7 @@ function RecurrenceSection({ value, onChange }) {
           {/* End condition */}
           <div>
             <label style={LABEL_STYLE}>Fim da repetição</label>
-            <select value={endType} onChange={e => update({ recurring_end_type: e.target.value })} style={selectStyle}>
-              <option value="never">Nunca</option>
-              <option value="occurrences">Após X ocorrências</option>
-              <option value="date">Em uma data</option>
-            </select>
+            <CustomSelect options={endTypeOptions} value={endType} onChange={v => update({ recurring_end_type: v })} icon="bx-stop-circle" />
           </div>
 
           {endType === 'occurrences' && (
@@ -351,10 +356,7 @@ function RecurrenceSection({ value, onChange }) {
           {/* When to create */}
           <div>
             <label style={LABEL_STYLE}>Criar próxima instância</label>
-            <select value={createWhen} onChange={e => update({ create_when: e.target.value })} style={selectStyle}>
-              <option value="on_completion">Ao concluir a tarefa atual</option>
-              <option value="on_creation">Ao criar a tarefa</option>
-            </select>
+            <CustomSelect options={createWhenOptions} value={createWhen} onChange={v => update({ create_when: v })} icon="bx-time" />
           </div>
         </div>
       )}
@@ -579,21 +581,23 @@ export default function NewTaskModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={LABEL_STYLE}>Status</label>
-              <select value={form.status_id} onChange={set('status_id')} style={INPUT_STYLE}>
-                <option value="">Sem status</option>
-                {statuses.map(s => (
-                  <option key={s.id} value={s.id}>{s.label}</option>
-                ))}
-              </select>
+              <CustomSelect
+                options={[{ value: '', label: 'Sem status' }, ...statuses.map(s => ({ value: s.id, label: s.label, dot: s.color }))]}
+                value={form.status_id}
+                onChange={v => setForm(prev => ({ ...prev, status_id: v }))}
+                placeholder="Sem status"
+                icon="bx-circle"
+              />
             </div>
             <div>
               <label style={LABEL_STYLE}>Responsável</label>
-              <select value={form.assignee_id} onChange={set('assignee_id')} style={INPUT_STYLE}>
-                <option value="">Sem responsável</option>
-                {workspaceUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
-                ))}
-              </select>
+              <CustomSelect
+                options={[{ value: '', label: 'Sem responsável' }, ...workspaceUsers.map(u => ({ value: u.id, label: u.full_name || u.email }))]}
+                value={form.assignee_id}
+                onChange={v => setForm(prev => ({ ...prev, assignee_id: v }))}
+                placeholder="Sem responsável"
+                icon="bx-user"
+              />
             </div>
           </div>
 
@@ -601,21 +605,23 @@ export default function NewTaskModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={LABEL_STYLE}>Cliente</label>
-              <select value={form.client_id} onChange={set('client_id')} style={INPUT_STYLE}>
-                <option value="">Sem cliente</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                options={[{ value: '', label: 'Sem cliente' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                value={form.client_id}
+                onChange={v => setForm(prev => ({ ...prev, client_id: v }))}
+                placeholder="Sem cliente"
+                icon="bx-buildings"
+              />
             </div>
             <div>
               <label style={LABEL_STYLE}>Espaço</label>
-              <select value={form.space_id} onChange={set('space_id')} style={INPUT_STYLE}>
-                <option value="">Sem espaço</option>
-                {spaces.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                options={[{ value: '', label: 'Sem espaço' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
+                value={form.space_id}
+                onChange={v => setForm(prev => ({ ...prev, space_id: v }))}
+                placeholder="Sem espaço"
+                icon="bx-folder"
+              />
             </div>
           </div>
 
@@ -623,13 +629,18 @@ export default function NewTaskModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={LABEL_STYLE}>Prioridade</label>
-              <select value={form.priority} onChange={set('priority')} style={INPUT_STYLE}>
-                <option value="none">Sem prioridade</option>
-                <option value="urgent">Urgente</option>
-                <option value="high">Alta</option>
-                <option value="medium">Média</option>
-                <option value="low">Baixa</option>
-              </select>
+              <CustomSelect
+                options={[
+                  { value: 'none', label: 'Sem prioridade', color: '#64748b' },
+                  { value: 'urgent', label: 'Urgente', color: '#ef4444' },
+                  { value: 'high', label: 'Alta', color: '#f97316' },
+                  { value: 'medium', label: 'Média', color: '#eab308' },
+                  { value: 'low', label: 'Baixa', color: '#3b82f6' },
+                ]}
+                value={form.priority}
+                onChange={v => setForm(prev => ({ ...prev, priority: v }))}
+                icon="bx-flag"
+              />
             </div>
             <div>
               <label style={LABEL_STYLE}>Data de entrega</label>

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 function Avatar({ name, size = 26 }) {
   if (!name) return <div style={{ width: size, height: size, borderRadius: '50%', background: '#334155', flexShrink: 0 }} />
@@ -130,26 +131,41 @@ export default function ArchivedTasksPanel({ workspaceUsers, clients, spaces, st
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', flexShrink: 0 }}>
-          <select value={filterSpace} onChange={e => setFilterSpace(e.target.value)} style={selectStyle}>
-            <option value="">Todos os espaços</option>
-            {(spaces || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-
-          <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={selectStyle}>
-            <option value="">Todos os clientes</option>
-            {(clients || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-
-          <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)} style={selectStyle}>
-            <option value="">Todos os responsáveis</option>
-            {(workspaceUsers || []).map(u => <option key={u.id} value={u.id}>{u.full_name || u.email}</option>)}
-          </select>
-
-          <select value={sort} onChange={e => setSort(e.target.value)} style={selectStyle}>
-            <option value="recent">Mais recentes</option>
-            <option value="oldest">Mais antigas</option>
-            <option value="completed">Por conclusão</option>
-          </select>
+          <CustomSelect
+            options={[{ value: '', label: 'Todos os espaços' }, ...(spaces || []).map(s => ({ value: s.id, label: s.name }))]}
+            value={filterSpace}
+            onChange={setFilterSpace}
+            placeholder="Todos os espaços"
+            icon="bx-folder"
+            style={{ minWidth: 160 }}
+          />
+          <CustomSelect
+            options={[{ value: '', label: 'Todos os clientes' }, ...(clients || []).map(c => ({ value: c.id, label: c.name }))]}
+            value={filterClient}
+            onChange={setFilterClient}
+            placeholder="Todos os clientes"
+            icon="bx-buildings"
+            style={{ minWidth: 160 }}
+          />
+          <CustomSelect
+            options={[{ value: '', label: 'Todos os responsáveis' }, ...(workspaceUsers || []).map(u => ({ value: u.id, label: u.full_name || u.email }))]}
+            value={filterAssignee}
+            onChange={setFilterAssignee}
+            placeholder="Todos os responsáveis"
+            icon="bx-user"
+            style={{ minWidth: 160 }}
+          />
+          <CustomSelect
+            options={[
+              { value: 'recent', label: 'Mais recentes' },
+              { value: 'oldest', label: 'Mais antigas' },
+              { value: 'completed', label: 'Por conclusão' },
+            ]}
+            value={sort}
+            onChange={setSort}
+            icon="bx-sort"
+            style={{ minWidth: 140 }}
+          />
         </div>
 
         {/* Task list */}

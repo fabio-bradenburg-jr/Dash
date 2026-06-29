@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const initialForm = {
   name: '',
@@ -122,13 +123,18 @@ export function ClientCreatePanel() {
               </div>
 
               <Field label="Status">
-                <select value={form.status} onChange={(event) => updateField('status', event.target.value)} style={inputStyle}>
-                  <option value="ONBOARDING">Onboarding</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="PAUSED">Paused</option>
-                  <option value="AT_RISK">At Risk</option>
-                  <option value="CHURNED">Churned</option>
-                </select>
+                <CustomSelect
+                  options={[
+                    { value: 'ONBOARDING', label: 'Onboarding', color: '#3b82f6' },
+                    { value: 'ACTIVE', label: 'Active', color: '#26c281' },
+                    { value: 'PAUSED', label: 'Paused', color: '#f59e0b' },
+                    { value: 'AT_RISK', label: 'At Risk', color: '#f97316' },
+                    { value: 'CHURNED', label: 'Churned', color: '#ef4444' },
+                  ]}
+                  value={form.status}
+                  onChange={v => updateField('status', v)}
+                  icon="bx-pulse"
+                />
               </Field>
 
               {error ? <p style={{ color: '#ba1a1a', fontSize: '0.8rem', fontWeight: 700 }}>{error}</p> : null}

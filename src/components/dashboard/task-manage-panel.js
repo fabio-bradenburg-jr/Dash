@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 export function TaskManagePanel({ task }) {
   const router = useRouter()
@@ -81,21 +82,31 @@ export function TaskManagePanel({ task }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
                 <Field label="Priority">
-                  <select value={form.priority} onChange={(event) => updateField('priority', event.target.value)} style={inputStyle}>
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </select>
+                  <CustomSelect
+                    options={[
+                      { value: 'LOW', label: 'Low', color: '#3b82f6' },
+                      { value: 'MEDIUM', label: 'Medium', color: '#eab308' },
+                      { value: 'HIGH', label: 'High', color: '#f97316' },
+                      { value: 'URGENT', label: 'Urgent', color: '#ef4444' },
+                    ]}
+                    value={form.priority}
+                    onChange={v => updateField('priority', v)}
+                    icon="bx-flag"
+                  />
                 </Field>
 
                 <Field label="Status">
-                  <select value={form.status} onChange={(event) => updateField('status', event.target.value)} style={inputStyle}>
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In progress</option>
-                    <option value="BLOCKED">Blocked</option>
-                    <option value="DONE">Done</option>
-                  </select>
+                  <CustomSelect
+                    options={[
+                      { value: 'OPEN', label: 'Open' },
+                      { value: 'IN_PROGRESS', label: 'In progress', color: '#3b82f6' },
+                      { value: 'BLOCKED', label: 'Blocked', color: '#ef4444' },
+                      { value: 'DONE', label: 'Done', color: '#26c281' },
+                    ]}
+                    value={form.status}
+                    onChange={v => updateField('status', v)}
+                    icon="bx-circle"
+                  />
                 </Field>
 
                 <Field label="Deadline">

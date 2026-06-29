@@ -10,6 +10,7 @@ import ClientFilterPicker from '@/components/dashboard/ClientFilterPicker'
 import ArchivedTasksPanel from '@/components/dashboard/ArchivedTasksPanel'
 import CustomFieldsManager from '@/components/dashboard/CustomFieldsManager'
 import RotinasView from '@/components/dashboard/RotinasView'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgente', color: '#ef4444' },
@@ -168,10 +169,12 @@ function CustomFieldValue({ field, value, onChange }) {
       )
     case 'select':
       return (
-        <select style={inputStyle} value={value || ''} onChange={e => onChange(e.target.value || null)}>
-          <option value="">—</option>
-          {options.map((o, i) => <option key={i} value={o.label}>{o.label}</option>)}
-        </select>
+        <CustomSelect
+          options={[{ value: '', label: '—' }, ...options.map((o, i) => ({ value: o.label, label: o.label, color: o.color }))]}
+          value={value || ''}
+          onChange={v => onChange(v || null)}
+          placeholder="—"
+        />
       )
     case 'multiselect': {
       const selected = Array.isArray(value) ? value : []
@@ -192,9 +195,12 @@ function CustomFieldValue({ field, value, onChange }) {
     case 'priority': {
       const PRIORITIES = [{ v:'urgent',l:'Urgente',c:'#ef4444'},{v:'high',l:'Alta',c:'#f97316'},{v:'medium',l:'Média',c:'#eab308'},{v:'low',l:'Baixa',c:'#3b82f6'},{v:'none',l:'Sem prioridade',c:'#64748b'}]
       return (
-        <select style={inputStyle} value={value || 'none'} onChange={e => onChange(e.target.value)}>
-          {PRIORITIES.map(p => <option key={p.v} value={p.v}>{p.l}</option>)}
-        </select>
+        <CustomSelect
+          options={PRIORITIES.map(p => ({ value: p.v, label: p.l, color: p.c }))}
+          value={value || 'none'}
+          onChange={onChange}
+          icon="bx-flag"
+        />
       )
     }
     default:
@@ -650,12 +656,13 @@ function TemplateSemanalModal({ onClose, onCreate, workspaceUsers, statuses }) {
 
           <div style={{ marginBottom: 18 }}>
             <label style={labelStyle}>Responsável</label>
-            <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} style={inputStyle}>
-              <option value="">Sem responsável</option>
-              {(workspaceUsers || []).map(u => (
-                <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
-              ))}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem responsável' }, ...(workspaceUsers || []).map(u => ({ value: u.id, label: u.full_name || u.email }))]}
+              value={assigneeId}
+              onChange={setAssigneeId}
+              placeholder="Sem responsável"
+              icon="bx-user"
+            />
           </div>
 
           <div style={{ marginBottom: 22, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 10, padding: '12px 14px' }}>
@@ -998,9 +1005,12 @@ function RecurrenceModal({ task, onSave, onClose }) {
 
         <div style={sect}>
           <span style={label}>Frequência</span>
-          <select value={type} onChange={e => setType(e.target.value)} style={sel}>
-            {Object.entries(RECURRING_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          <CustomSelect
+            options={Object.entries(RECURRING_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+            value={type}
+            onChange={setType}
+            icon="bx-refresh"
+          />
         </div>
 
         {type === 'custom' && (
@@ -1008,9 +1018,7 @@ function RecurrenceModal({ task, onSave, onClose }) {
             <span style={{ ...label, marginBottom: 0, whiteSpace: 'nowrap' }}>Repetir a cada</span>
             <input type="number" min={1} value={interval} onChange={e => setInterval(Number(e.target.value))}
               style={{ ...sel, width: 70 }} />
-            <select value="day" style={{ ...sel, width: 100 }}>
-              <option value="day">dias</option>
-            </select>
+            <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>dias</span>
           </div>
         )}
 
@@ -1029,11 +1037,16 @@ function RecurrenceModal({ task, onSave, onClose }) {
 
         <div style={sect}>
           <span style={label}>Término</span>
-          <select value={endType} onChange={e => setEndType(e.target.value)} style={sel}>
-            <option value="never">Nunca</option>
-            <option value="after">Após X ocorrências</option>
-            <option value="on_date">Em uma data específica</option>
-          </select>
+          <CustomSelect
+            options={[
+              { value: 'never', label: 'Nunca' },
+              { value: 'after', label: 'Após X ocorrências' },
+              { value: 'on_date', label: 'Em uma data específica' },
+            ]}
+            value={endType}
+            onChange={setEndType}
+            icon="bx-stop-circle"
+          />
           {endType === 'after' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
               <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Após</span>
@@ -1048,10 +1061,15 @@ function RecurrenceModal({ task, onSave, onClose }) {
 
         <div style={sect}>
           <span style={label}>Criar nova tarefa quando</span>
-          <select value={createWhen} onChange={e => setCreateWhen(e.target.value)} style={sel}>
-            <option value="on_completion">A tarefa for concluída</option>
-            <option value="on_date">Chegar a data programada</option>
-          </select>
+          <CustomSelect
+            options={[
+              { value: 'on_completion', label: 'A tarefa for concluída' },
+              { value: 'on_date', label: 'Chegar a data programada' },
+            ]}
+            value={createWhen}
+            onChange={setCreateWhen}
+            icon="bx-time"
+          />
         </div>
 
         <div style={{ ...sect, background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '12px 14px' }}>
@@ -1285,17 +1303,23 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 
           <div style={fieldWrap}>
             <div style={labelStyle}>Status</div>
-            <select value={task.status_id || ''} onChange={e => updateField('status_id', e.target.value || null)} style={selectStyle}>
-              <option value="">Sem status</option>
-              {statuses.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem status' }, ...statuses.map(s => ({ value: s.id, label: s.label, dot: s.color }))]}
+              value={task.status_id || ''}
+              onChange={v => updateField('status_id', v || null)}
+              placeholder="Sem status"
+              icon="bx-circle"
+            />
           </div>
 
           <div style={fieldWrap}>
             <div style={labelStyle}>Prioridade</div>
-            <select value={task.priority} onChange={e => updateField('priority', e.target.value)} style={selectStyle}>
-              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-            </select>
+            <CustomSelect
+              options={Object.entries(PRIORITY_CONFIG).map(([k, v]) => ({ value: k, label: v.label, color: v.color }))}
+              value={task.priority || 'none'}
+              onChange={v => updateField('priority', v)}
+              icon="bx-flag"
+            />
           </div>
 
           <div style={fieldWrap}>
@@ -1309,10 +1333,13 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 
           <div style={fieldWrap}>
             <div style={labelStyle}>Cliente</div>
-            <select value={task.client_id || ''} onChange={e => updateField('client_id', e.target.value || null)} style={selectStyle}>
-              <option value="">Nenhum</option>
-              {(clients || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <CustomSelect
+              options={[{ value: '', label: 'Nenhum' }, ...(clients || []).map(c => ({ value: c.id, label: c.name }))]}
+              value={task.client_id || ''}
+              onChange={v => updateField('client_id', v || null)}
+              placeholder="Nenhum"
+              icon="bx-buildings"
+            />
           </div>
 
           <div style={fieldWrap}>

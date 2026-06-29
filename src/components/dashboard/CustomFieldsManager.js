@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const FIELD_TYPES = [
   { value: 'text',        label: 'Texto curto',       icon: 'bx-text' },
@@ -65,11 +66,12 @@ function FieldForm({ initial, onSave, onCancel, saving }) {
 
       <div>
         <label style={S.label}>Tipo</label>
-        <select style={S.input} value={form.field_type} onChange={e => setForm(f => ({...f, field_type: e.target.value, config: {}}))}>
-          {FIELD_TYPES.map(t => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
+        <CustomSelect
+          options={FIELD_TYPES.map(t => ({ value: t.value, label: t.label }))}
+          value={form.field_type}
+          onChange={v => setForm(f => ({ ...f, field_type: v, config: {} }))}
+          icon="bx-category"
+        />
       </div>
 
       {isSelect && (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 
 const initialForm = {
   title: '',
@@ -108,45 +109,53 @@ export function TaskCreatePanel() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                 <Field label="Client">
-                  <select value={form.clientId} onChange={(event) => updateField('clientId', event.target.value)} style={inputStyle}>
-                    <option value="">Internal Ops</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={[{ value: '', label: 'Internal Ops' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                    value={form.clientId}
+                    onChange={v => updateField('clientId', v)}
+                    placeholder="Internal Ops"
+                    icon="bx-buildings"
+                  />
                 </Field>
 
                 <Field label="Owner">
-                  <select value={form.teamMemberId} onChange={(event) => updateField('teamMemberId', event.target.value)} style={inputStyle}>
-                    <option value="">Unassigned</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.fullName}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={[{ value: '', label: 'Unassigned' }, ...teamMembers.map(m => ({ value: m.id, label: m.fullName }))]}
+                    value={form.teamMemberId}
+                    onChange={v => updateField('teamMemberId', v)}
+                    placeholder="Unassigned"
+                    icon="bx-user"
+                  />
                 </Field>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
                 <Field label="Priority">
-                  <select value={form.priority} onChange={(event) => updateField('priority', event.target.value)} style={inputStyle}>
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </select>
+                  <CustomSelect
+                    options={[
+                      { value: 'LOW', label: 'Low', color: '#3b82f6' },
+                      { value: 'MEDIUM', label: 'Medium', color: '#eab308' },
+                      { value: 'HIGH', label: 'High', color: '#f97316' },
+                      { value: 'URGENT', label: 'Urgent', color: '#ef4444' },
+                    ]}
+                    value={form.priority}
+                    onChange={v => updateField('priority', v)}
+                    icon="bx-flag"
+                  />
                 </Field>
 
                 <Field label="Status">
-                  <select value={form.status} onChange={(event) => updateField('status', event.target.value)} style={inputStyle}>
-                    <option value="OPEN">Open</option>
-                    <option value="IN_PROGRESS">In progress</option>
-                    <option value="BLOCKED">Blocked</option>
-                    <option value="DONE">Done</option>
-                  </select>
+                  <CustomSelect
+                    options={[
+                      { value: 'OPEN', label: 'Open' },
+                      { value: 'IN_PROGRESS', label: 'In progress', color: '#3b82f6' },
+                      { value: 'BLOCKED', label: 'Blocked', color: '#ef4444' },
+                      { value: 'DONE', label: 'Done', color: '#26c281' },
+                    ]}
+                    value={form.status}
+                    onChange={v => updateField('status', v)}
+                    icon="bx-circle"
+                  />
                 </Field>
 
                 <Field label="Estimated hours">
