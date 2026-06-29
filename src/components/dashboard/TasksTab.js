@@ -518,13 +518,21 @@ function PrioritySection({ title, color, tasks, statuses, spaces, workspaceUsers
 }
 
 // ---- Space Card ----
-function SpaceCard({ space, onClick }) {
+function SpaceCard({ space, onClick, onEdit, onDuplicate, onArchive, onDelete }) {
   const [hovered, setHovered] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
   const pct = space.task_count > 0 ? Math.round((space.completed_count / space.task_count) * 100) : 0
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function h(e) { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [menuOpen])
 
   return (
     <div
-      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -539,9 +547,10 @@ function SpaceCard({ space, onClick }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
+        position: 'relative',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={onClick}>
         <i className={`bx ${space.icon}`} style={{ fontSize: 20, color: space.color }}></i>
         <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f1f5f9', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{space.name}</span>
         {space.space_type === 'rotinas' && (
@@ -554,17 +563,298 @@ function SpaceCard({ space, onClick }) {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }}>
+      <div style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }} onClick={onClick}>
         <span style={{ color: '#64748b' }}>{space.task_count} tarefa{space.task_count !== 1 ? 's' : ''}</span>
         {space.overdue_count > 0 && <span style={{ color: '#ef4444', fontWeight: 600 }}>{space.overdue_count} atrasada{space.overdue_count !== 1 ? 's' : ''}</span>}
         <span style={{ color: '#22c55e' }}>{space.completed_count} concluída{space.completed_count !== 1 ? 's' : ''}</span>
       </div>
 
-      <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 4 }}>
+      <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 4, height: 4 }} onClick={onClick}>
         <div style={{ height: '100%', background: space.color, borderRadius: 4, width: `${pct}%`, transition: 'width 0.3s' }} />
       </div>
 
-      <div style={{ fontSize: '0.72rem', color: '#475569' }}>{pct}% concluído</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '0.72rem', color: '#475569' }} onClick={onClick}>{pct}% concluído</span>
+
+        {/* ⋮ menu */}
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+            style={{ background: menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, transition: 'background 0.1s' }}
+          >
+            <i className="bx bx-dots-vertical-rounded" />
+          </button>
+          {menuOpen && (
+            <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 4, background: '#1a1b1e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, zIndex: 400, minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+              {[
+                { icon: 'bx-edit', label: 'Editar Espaço', action: onEdit, color: '#e2e8f0' },
+                { icon: 'bx-copy', label: 'Duplicar Espaço', action: onDuplicate, color: '#e2e8f0' },
+                { icon: 'bx-archive-in', label: 'Arquivar Espaço', action: onArchive, color: '#f59e0b' },
+                { icon: 'bx-trash', label: 'Excluir Espaço', action: onDelete, color: '#ef4444' },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setMenuOpen(false); item.action?.() }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', background: 'none', border: 'none', color: item.color, cursor: 'pointer', padding: '9px 14px', fontSize: '0.84rem', textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  <i className={`bx ${item.icon}`} style={{ fontSize: 15 }} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---- Edit Space Modal ----
+function EditSpaceModal({ space, onClose, onSaved }) {
+  const [name, setName] = useState(space.name || '')
+  const [description, setDescription] = useState(space.description || '')
+  const [color, setColor] = useState(space.color || '#26c281')
+  const [icon, setIcon] = useState(space.icon || 'bx-folder')
+  const [isPrivate, setIsPrivate] = useState(space.is_private || false)
+  const [defaultView, setDefaultView] = useState(space.default_view || 'list')
+  const [spaceType, setSpaceType] = useState(space.space_type || 'standard')
+  const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState('info')
+
+  async function handleSave(e) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/tasks/spaces', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: space.id, name: name.trim(), description: description || null, color, icon, is_private: isPrivate, default_view: defaultView, space_type: spaceType }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      onSaved(json.space)
+      onClose()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inp = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 7, padding: '8px 12px', fontSize: '0.88rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+  const tabs = [{ key: 'info', label: 'Informações', icon: 'bx-info-circle' }, { key: 'view', label: 'Visualização', icon: 'bx-layout' }, { key: 'perms', label: 'Permissões', icon: 'bx-lock' }]
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#0d0e10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: 520, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <i className={`bx ${icon}`} style={{ fontSize: 18, color }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9' }}>Editar Espaço</h3>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>{space.name}</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 22 }}><i className="bx bx-x" /></button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '0 16px' }}>
+          {tabs.map(t => (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'none', border: 'none', borderBottom: tab === t.key ? '2px solid #26c281' : '2px solid transparent', color: tab === t.key ? '#26c281' : '#64748b', cursor: 'pointer', fontSize: '0.83rem', fontWeight: tab === t.key ? 700 : 500, marginBottom: -1 }}>
+              <i className={`bx ${t.icon}`} style={{ fontSize: 14 }} />{t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSave} style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {tab === 'info' && (
+            <>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>Nome do Espaço</label>
+                <input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="Nome do espaço" required />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>Descrição</label>
+                <textarea style={{ ...inp, resize: 'vertical', fontFamily: 'inherit', minHeight: 72 }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Descrição opcional" rows={3} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Ícone</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {SPACE_ICONS.map(ic => (
+                    <button key={ic.value} type="button" onClick={() => setIcon(ic.value)}
+                      style={{ width: 36, height: 36, borderRadius: 8, border: icon === ic.value ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.1)', background: icon === ic.value ? color + '22' : 'transparent', color: icon === ic.value ? color : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title={ic.label}>
+                      <i className={`bx ${ic.value}`} style={{ fontSize: 16 }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Cor</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {SPACE_COLORS.map(c => (
+                    <button key={c} type="button" onClick={() => setColor(c)}
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: color === c ? '3px solid #fff' : '2px solid transparent', cursor: 'pointer', outline: color === c ? `2px solid ${c}` : 'none', outlineOffset: 2 }} />
+                  ))}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px dashed rgba(255,255,255,0.2)', cursor: 'pointer', overflow: 'hidden' }} title="Cor personalizada">
+                    <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+                    <i className="bx bx-palette" style={{ fontSize: 13, color: '#64748b' }} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Tipo do Espaço</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[{ value: 'standard', label: 'Padrão', icon: 'bx-folder', desc: 'Espaço de tarefas regular' }, { value: 'rotinas', label: 'Rotinas', icon: 'bx-calendar-week', desc: 'Tarefas organizadas por dia da semana' }].map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setSpaceType(opt.value)}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: spaceType === opt.value ? `1.5px solid ${color}` : '1px solid rgba(255,255,255,0.1)', background: spaceType === opt.value ? color + '18' : 'transparent', color: spaceType === opt.value ? color : '#64748b', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                        <i className={`bx ${opt.icon}`} style={{ fontSize: 15 }} />
+                        <span style={{ fontWeight: 700, fontSize: '0.83rem' }}>{opt.label}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#475569' }}>{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {tab === 'view' && (
+            <>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Visualização Padrão</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {[
+                    { value: 'list', label: 'Lista', icon: 'bx-list-ul' },
+                    { value: 'board', label: 'Board', icon: 'bx-columns' },
+                    { value: 'table', label: 'Tabela', icon: 'bx-table' },
+                    { value: 'calendar', label: 'Calendário', icon: 'bx-calendar' },
+                    { value: 'week', label: 'Semana', icon: 'bx-calendar-week' },
+                  ].map(v => (
+                    <button key={v.value} type="button" onClick={() => setDefaultView(v.value)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 8, border: defaultView === v.value ? `1.5px solid ${color}` : '1px solid rgba(255,255,255,0.1)', background: defaultView === v.value ? color + '18' : 'transparent', color: defaultView === v.value ? color : '#64748b', cursor: 'pointer', fontSize: '0.83rem', fontWeight: defaultView === v.value ? 700 : 500 }}>
+                      <i className={`bx ${v.icon}`} style={{ fontSize: 15 }} />{v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {tab === 'perms' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>Visibilidade</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[{ value: false, label: 'Público', icon: 'bx-globe', desc: 'Todos os membros do workspace podem ver' }, { value: true, label: 'Privado', icon: 'bx-lock', desc: 'Apenas você pode ver este espaço' }].map(opt => (
+                  <button key={String(opt.value)} type="button" onClick={() => setIsPrivate(opt.value)}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: isPrivate === opt.value ? `1.5px solid ${color}` : '1px solid rgba(255,255,255,0.1)', background: isPrivate === opt.value ? color + '18' : 'transparent', color: isPrivate === opt.value ? color : '#64748b', cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                      <i className={`bx ${opt.icon}`} style={{ fontSize: 15 }} />
+                      <span style={{ fontWeight: 700, fontSize: '0.83rem' }}>{opt.label}</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#475569' }}>{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 'auto' }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+            <button type="submit" disabled={saving || !name.trim()} style={{ padding: '8px 22px', borderRadius: 8, border: 'none', background: '#26c281', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', opacity: saving || !name.trim() ? 0.6 : 1 }}>
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ---- Duplicate Space Modal ----
+function DuplicateSpaceModal({ space, onClose, onCreated }) {
+  const [name, setName] = useState(`${space.name} (cópia)`)
+  const [copyTasks, setCopyTasks] = useState(true)
+  const [copyAssignees, setCopyAssignees] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  async function handleDuplicate(e) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const res = await fetch('/api/tasks/spaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'duplicate', source_id: space.id, name: name.trim(), copy_tasks: copyTasks, copy_assignees: copyAssignees }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      onCreated(json.space)
+      onClose()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inp = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 7, padding: '8px 12px', fontSize: '0.88rem', width: '100%', outline: 'none', boxSizing: 'border-box' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#0d0e10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 420, maxWidth: '95vw', padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="bx bx-copy" style={{ fontSize: 17, color: '#818cf8' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#f1f5f9' }}>Duplicar Espaço</h3>
+            <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b' }}>{space.name}</p>
+          </div>
+          <button type="button" onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 22 }}><i className="bx bx-x" /></button>
+        </div>
+
+        <form onSubmit={handleDuplicate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: 6, fontWeight: 600 }}>Nome do novo espaço</label>
+            <input style={inp} value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 9, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>O que incluir na cópia?</p>
+            {[
+              { key: 'copyTasks', value: copyTasks, setter: setCopyTasks, label: 'Copiar tarefas', desc: `${space.task_count || 0} tarefas` },
+              { key: 'copyAssignees', value: copyAssignees, setter: setCopyAssignees, label: 'Manter responsáveis', desc: 'Mantém as atribuições das tarefas', disabled: !copyTasks },
+            ].map(opt => (
+              <label key={opt.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: opt.disabled ? 'not-allowed' : 'pointer', opacity: opt.disabled ? 0.4 : 1 }}>
+                <input type="checkbox" checked={opt.value} onChange={e => opt.setter(e.target.checked)} disabled={opt.disabled} style={{ accentColor: '#26c281', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '0.83rem', color: '#e2e8f0', fontWeight: 500 }}>{opt.label}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{opt.desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+            <button type="submit" disabled={saving || !name.trim()} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#26c281', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', opacity: saving || !name.trim() ? 0.6 : 1 }}>
+              {saving ? 'Duplicando...' : 'Duplicar'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
@@ -1534,11 +1824,17 @@ function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, o
 }
 
 // ---- Home View ----
-function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick }) {
+function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewSpace, onSpaceClick, onSpaceUpdated, onSpaceDeleted, onSpaceCreated }) {
   const today = todayStr()
   const tomorrow = offsetDayStr(1)
   const day2 = offsetDayStr(2)
   const day7 = offsetDayStr(7)
+
+  const [editingSpace, setEditingSpace] = useState(null)
+  const [duplicatingSpace, setDuplicatingSpace] = useState(null)
+  const [deletingSpace, setDeletingSpace] = useState(null)
+  const [archivingSpace, setArchivingSpace] = useState(null)
+  const [archiving, setArchiving] = useState(false)
 
   const closedIds = new Set(statuses.filter(s => s.is_closed).map(s => s.id))
   const openTasks = tasks.filter(t => !closedIds.has(t.status_id))
@@ -1547,6 +1843,26 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
   const todayTasks = openTasks.filter(t => t.due_date === today)
   const tomorrowTasks = openTasks.filter(t => t.due_date === tomorrow)
   const next7 = openTasks.filter(t => t.due_date && t.due_date >= day2 && t.due_date <= day7)
+
+  async function handleArchiveConfirm() {
+    if (!archivingSpace) return
+    setArchiving(true)
+    try {
+      const res = await fetch('/api/tasks/spaces', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: archivingSpace.id, is_archived: true }),
+      })
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      onSpaceDeleted?.(archivingSpace.id)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setArchiving(false)
+      setArchivingSpace(null)
+    }
+  }
 
   return (
     <div>
@@ -1588,10 +1904,72 @@ function HomeView({ tasks, statuses, spaces, workspaceUsers, onOpenPanel, onNewS
             const task_count = spaceTasks.length
             const completed_count = spaceTasks.filter(t => closedIds.has(t.status_id)).length
             const overdue_count = spaceTasks.filter(t => t.due_date && t.due_date < today && !closedIds.has(t.status_id)).length
-            return <SpaceCard key={space.id} space={{ ...space, task_count, completed_count, overdue_count }} onClick={() => onSpaceClick(space)} />
+            return (
+              <SpaceCard
+                key={space.id}
+                space={{ ...space, task_count, completed_count, overdue_count }}
+                onClick={() => onSpaceClick(space)}
+                onEdit={() => setEditingSpace(space)}
+                onDuplicate={() => setDuplicatingSpace(space)}
+                onArchive={() => setArchivingSpace(space)}
+                onDelete={() => setDeletingSpace(space)}
+              />
+            )
           })}
         </div>
       </div>
+
+      {/* Modals */}
+      {editingSpace && (
+        <EditSpaceModal
+          space={editingSpace}
+          onClose={() => setEditingSpace(null)}
+          onSaved={updated => { onSpaceUpdated?.(updated); setEditingSpace(null) }}
+        />
+      )}
+
+      {duplicatingSpace && (
+        <DuplicateSpaceModal
+          space={duplicatingSpace}
+          onClose={() => setDuplicatingSpace(null)}
+          onCreated={newSpace => { onSpaceCreated?.(newSpace); setDuplicatingSpace(null) }}
+        />
+      )}
+
+      {deletingSpace && (
+        <DeleteSpaceModal
+          space={deletingSpace}
+          onClose={() => setDeletingSpace(null)}
+          onDeleted={id => { onSpaceDeleted?.(id); setDeletingSpace(null) }}
+        />
+      )}
+
+      {/* Archive confirm */}
+      {archivingSpace && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#0d0e10', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 14, width: 400, padding: 26, boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="bx bx-archive-in" style={{ fontSize: 17, color: '#f59e0b' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#fde68a' }}>Arquivar Espaço</h3>
+                <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b' }}>O espaço ficará oculto mas pode ser restaurado</p>
+              </div>
+              <button type="button" onClick={() => setArchivingSpace(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20 }}><i className="bx bx-x" /></button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '0 0 18px' }}>
+              Tem certeza que deseja arquivar <strong style={{ color: '#e2e8f0' }}>{archivingSpace.name}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setArchivingSpace(null)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+              <button type="button" onClick={handleArchiveConfirm} disabled={archiving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#000', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', opacity: archiving ? 0.6 : 1 }}>
+                {archiving ? 'Arquivando...' : 'Arquivar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2809,6 +3187,10 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     setSpaces(prev => [...prev, space])
   }
 
+  function handleSpaceUpdated(updated) {
+    setSpaces(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s))
+  }
+
   function handleSpaceDeleted(spaceId) {
     setSpaces(prev => prev.filter(s => s.id !== spaceId))
     setTasks(prev => prev.filter(t => t.space_id !== spaceId))
@@ -2952,6 +3334,9 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
             onSpaceClick={space => { setSelectedSpace(space); setView('space') }}
+            onSpaceUpdated={handleSpaceUpdated}
+            onSpaceDeleted={handleSpaceDeleted}
+            onSpaceCreated={handleSpaceCreated}
           />
         </div>
       )}
