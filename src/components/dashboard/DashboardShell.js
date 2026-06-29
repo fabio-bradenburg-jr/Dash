@@ -19,6 +19,7 @@ import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
 import ActionSpaceSettings from '@/components/dashboard/ActionSpaceSettings'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 import RolesTab from '@/components/dashboard/RolesTab'
+import CustomSelect from '@/components/dashboard/CustomSelect'
 import { useUser } from '@/lib/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -18840,12 +18841,13 @@ export default function DashboardShell({
               <form className="form-grid" onSubmit={handleCreateOperationCard}>
                 <div className="input-group">
                   <label>Cliente</label>
-                  <select value={newOperationClientId} onChange={(event) => setNewOperationClientId(event.target.value)}>
-                    <option value="">Selecione um cliente</option>
-                    {operationEditableClients.map((client) => (
-                      <option key={`operation-client-${client.id}`} value={client.id}>{client.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={[{ value: '', label: 'Selecione um cliente' }, ...operationEditableClients.map(c => ({ value: c.id, label: c.name }))]}
+                    value={newOperationClientId}
+                    onChange={setNewOperationClientId}
+                    placeholder="Selecione um cliente"
+                    icon="bx-buildings"
+                  />
                 </div>
                 <div className="input-group">
                   <label>Título do card</label>
@@ -18853,35 +18855,39 @@ export default function DashboardShell({
                 </div>
                 <div className="input-group">
                   <label>Tipo de tarefa</label>
-                  <select value={newOperationTaskType} onChange={(event) => setNewOperationTaskType(event.target.value)}>
-                    {operationTaskTypeOptions.map((taskType) => (
-                      <option key={`new-operation-task-type-${taskType}`} value={taskType}>{taskType}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={operationTaskTypeOptions.map(t => ({ value: t, label: t }))}
+                    value={newOperationTaskType}
+                    onChange={setNewOperationTaskType}
+                    icon="bx-category"
+                  />
                 </div>
                 <div className="input-group">
                   <label>Coluna</label>
-                  <select value={newOperationLane} onChange={(event) => setNewOperationLane(event.target.value)}>
-                    {operationLanes.map((lane) => (
-                      <option key={`new-operation-lane-${lane.key}`} value={lane.key}>{lane.label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={operationLanes.map(l => ({ value: l.key, label: l.label }))}
+                    value={newOperationLane}
+                    onChange={setNewOperationLane}
+                    icon="bx-columns"
+                  />
                 </div>
                 <div className="input-group">
                   <label>Status</label>
-                  <select value={newOperationStatus} onChange={(event) => setNewOperationStatus(event.target.value)}>
-                    {operationStatuses.map((status) => (
-                      <option key={`new-operation-status-${status.key}`} value={status.key}>{status.label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={operationStatuses.map(s => ({ value: s.key, label: s.label, color: s.color }))}
+                    value={newOperationStatus}
+                    onChange={setNewOperationStatus}
+                    icon="bx-circle"
+                  />
                 </div>
                 <div className="input-group">
                   <label>Prioridade</label>
-                  <select value={newOperationPriority} onChange={(event) => setNewOperationPriority(event.target.value)}>
-                    {OPERATION_PRIORITY_OPTIONS.map((priority) => (
-                      <option key={`new-operation-priority-${priority.value}`} value={priority.value}>{priority.label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    options={OPERATION_PRIORITY_OPTIONS.map(p => ({ value: p.value, label: p.label, color: p.color }))}
+                    value={newOperationPriority}
+                    onChange={setNewOperationPriority}
+                    icon="bx-flag"
+                  />
                 </div>
                 <div className="input-group">
                   <label>Tags</label>
@@ -19038,11 +19044,13 @@ export default function DashboardShell({
                                 </div>
                                 <div className="input-group">
                                   <label>Status</label>
-                                  <select value={subtask.status || operationStatuses[0]?.key || 'aberto'} disabled={!canEditCard} onChange={(event) => handleOperationSubtaskFieldChange(card.id, subtask.id, 'status', event.target.value)}>
-                                    {operationStatuses.map((status) => (
-                                      <option key={`${subtask.id}-${status.key}`} value={status.key}>{status.label}</option>
-                                    ))}
-                                  </select>
+                                  <CustomSelect
+                                    options={operationStatuses.map(s => ({ value: s.key, label: s.label, color: s.color }))}
+                                    value={subtask.status || operationStatuses[0]?.key || 'aberto'}
+                                    onChange={v => handleOperationSubtaskFieldChange(card.id, subtask.id, 'status', v)}
+                                    disabled={!canEditCard}
+                                    icon="bx-circle"
+                                  />
                                 </div>
                                 <div className="input-group client-long-text-field" style={{ gridColumn: '1 / -1' }}>
                                   <label>Descrição</label>
@@ -19126,25 +19134,14 @@ export default function DashboardShell({
                       >
                         <div className="operation-clickup-title-wrap">
                           <div className="operation-clickup-title-meta">
-                            <select
-                              className="operation-clickup-type-select"
+                            <CustomSelect
+                              options={operationTaskTypeOptions.map(t => ({ value: t, label: t }))}
                               value={card.taskType || operationTaskTypeOptions[0] || 'Tarefa'}
+                              onChange={v => handleOperationCardFieldChange(card.id, 'taskType', v)}
                               disabled={!canEditCard}
-                              onChange={(event) => handleOperationCardFieldChange(card.id, 'taskType', event.target.value)}
-                              style={
-                                isLightAppMode
-                                  ? {
-                                      border: '1px solid rgba(15, 23, 42, 0.08)',
-                                      background: 'rgba(255, 255, 255, 0.98)',
-                                      color: '#334155',
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {operationTaskTypeOptions.map((taskType) => (
-                                <option key={`${card.id}-task-type-${taskType}`} value={taskType}>{taskType}</option>
-                              ))}
-                            </select>
+                              icon="bx-category"
+                              style={{ minWidth: 130 }}
+                            />
                             <span
                               className="operation-clickup-id"
                               style={
@@ -19198,27 +19195,33 @@ export default function DashboardShell({
                         >
                           <div className="operation-clickup-field-row">
                             <span>Status</span>
-                            <select value={card.status} disabled={!canEditCard} onChange={(event) => handleOperationCardFieldChange(card.id, 'status', event.target.value)}>
-                              {operationStatuses.map((status) => (
-                                <option key={`${card.id}-modal-status-${status.key}`} value={status.key}>{status.label}</option>
-                              ))}
-                            </select>
+                            <CustomSelect
+                              options={operationStatuses.map(s => ({ value: s.key, label: s.label, color: s.color }))}
+                              value={card.status}
+                              onChange={v => handleOperationCardFieldChange(card.id, 'status', v)}
+                              disabled={!canEditCard}
+                              icon="bx-circle"
+                            />
                           </div>
                           <div className="operation-clickup-field-row">
                             <span>Coluna</span>
-                            <select value={card.lane} disabled={!canEditCard} onChange={(event) => handleMoveOperationCard(card.id, event.target.value)}>
-                              {operationLanes.map((lane) => (
-                                <option key={`${card.id}-modal-lane-${lane.key}`} value={lane.key}>{lane.label}</option>
-                              ))}
-                            </select>
+                            <CustomSelect
+                              options={operationLanes.map(l => ({ value: l.key, label: l.label }))}
+                              value={card.lane}
+                              onChange={v => handleMoveOperationCard(card.id, v)}
+                              disabled={!canEditCard}
+                              icon="bx-columns"
+                            />
                           </div>
                           <div className="operation-clickup-field-row">
                             <span>Prioridade</span>
-                            <select value={card.priority || 'sem_prioridade'} disabled={!canEditCard} onChange={(event) => handleOperationCardFieldChange(card.id, 'priority', event.target.value)}>
-                              {OPERATION_PRIORITY_OPTIONS.map((priority) => (
-                                <option key={`${card.id}-priority-${priority.value}`} value={priority.value}>{priority.label}</option>
-                              ))}
-                            </select>
+                            <CustomSelect
+                              options={OPERATION_PRIORITY_OPTIONS.map(p => ({ value: p.value, label: p.label, color: p.color }))}
+                              value={card.priority || 'sem_prioridade'}
+                              onChange={v => handleOperationCardFieldChange(card.id, 'priority', v)}
+                              disabled={!canEditCard}
+                              icon="bx-flag"
+                            />
                           </div>
                           <div className="operation-clickup-field-row">
                             <span>Datas</span>
@@ -19323,16 +19326,13 @@ export default function DashboardShell({
                                   <div key={`${card.id}-custom-${field.id}`} className="operation-custom-field-item">
                                     <label>{field.label}</label>
                                     {field.type === 'select' ? (
-                                      <select
+                                      <CustomSelect
+                                        options={[{ value: '', label: 'Selecione' }, ...(field.options || []).map(o => ({ value: o, label: o }))]}
                                         value={card.customFieldValues?.[field.key] || ''}
+                                        onChange={v => handleOperationCustomFieldValueChange(card.id, field.key, v)}
                                         disabled={!canEditCard}
-                                        onChange={(event) => handleOperationCustomFieldValueChange(card.id, field.key, event.target.value)}
-                                      >
-                                        <option value="">Selecione</option>
-                                        {(field.options || []).map((option) => (
-                                          <option key={`${field.id}-${option}`} value={option}>{option}</option>
-                                        ))}
-                                      </select>
+                                        placeholder="Selecione"
+                                      />
                                     ) : (
                                       <input
                                         type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
@@ -19469,42 +19469,42 @@ export default function DashboardShell({
                   </div>
                 </div>
                 <div className="operation-stellar-filters">
-                  <label className="operation-stellar-filter">
+                  <div className="operation-stellar-filter">
                     <span style={isLightAppMode ? { color: '#64748b' } : undefined}>Segmento</span>
-                    <select value={operationSegmentFilter} onChange={(event) => setOperationSegmentFilter(event.target.value)} style={isLightAppMode ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.99))', border: '1px solid rgba(15, 23, 42, 0.08)', color: '#334155', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)' } : undefined}>
-                      <option value="all">All Segments</option>
-                      {operationSegmentOptions.map((option) => (
-                        <option key={`segment-${option}`} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="operation-stellar-filter">
+                    <CustomSelect
+                      options={[{ value: 'all', label: 'All Segments' }, ...operationSegmentOptions.map(o => ({ value: o, label: o }))]}
+                      value={operationSegmentFilter}
+                      onChange={setOperationSegmentFilter}
+                      isLight={isLightAppMode}
+                    />
+                  </div>
+                  <div className="operation-stellar-filter">
                     <span style={isLightAppMode ? { color: '#64748b' } : undefined}>Tier</span>
-                    <select value={operationTierFilter} onChange={(event) => setOperationTierFilter(event.target.value)} style={isLightAppMode ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.99))', border: '1px solid rgba(15, 23, 42, 0.08)', color: '#334155', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)' } : undefined}>
-                      <option value="all">All Tiers</option>
-                      {operationTierOptions.map((option) => (
-                        <option key={`tier-${option}`} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="operation-stellar-filter">
+                    <CustomSelect
+                      options={[{ value: 'all', label: 'All Tiers' }, ...operationTierOptions.map(o => ({ value: o, label: o }))]}
+                      value={operationTierFilter}
+                      onChange={setOperationTierFilter}
+                      isLight={isLightAppMode}
+                    />
+                  </div>
+                  <div className="operation-stellar-filter">
                     <span style={isLightAppMode ? { color: '#64748b' } : undefined}>Squad</span>
-                    <select value={operationSquadFilter} onChange={(event) => setOperationSquadFilter(event.target.value)} style={isLightAppMode ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.99))', border: '1px solid rgba(15, 23, 42, 0.08)', color: '#334155', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)' } : undefined}>
-                      <option value="all">All Squads</option>
-                      {operationSquadOptions.map((option) => (
-                        <option key={`squad-${option}`} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="operation-stellar-filter">
+                    <CustomSelect
+                      options={[{ value: 'all', label: 'All Squads' }, ...operationSquadOptions.map(o => ({ value: o, label: o }))]}
+                      value={operationSquadFilter}
+                      onChange={setOperationSquadFilter}
+                      isLight={isLightAppMode}
+                    />
+                  </div>
+                  <div className="operation-stellar-filter">
                     <span style={isLightAppMode ? { color: '#64748b' } : undefined}>Responsável</span>
-                    <select value={operationResponsibleFilter} onChange={(event) => setOperationResponsibleFilter(event.target.value)} style={isLightAppMode ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.99))', border: '1px solid rgba(15, 23, 42, 0.08)', color: '#334155', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)' } : undefined}>
-                      <option value="all">All Owners</option>
-                      {operationResponsibleOptions.map((option) => (
-                        <option key={`responsible-${option}`} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
+                    <CustomSelect
+                      options={[{ value: 'all', label: 'All Owners' }, ...operationResponsibleOptions.map(o => ({ value: o, label: o }))]}
+                      value={operationResponsibleFilter}
+                      onChange={setOperationResponsibleFilter}
+                      isLight={isLightAppMode}
+                    />
+                  </div>
                   <button type="button" className="operation-stellar-filter-button" aria-label="Filtros adicionais" style={isLightAppMode ? { background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.99))', border: '1px solid rgba(15, 23, 42, 0.08)', color: '#334155', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)' } : undefined}>
                     <i className="bx bx-slider-alt"></i>
                   </button>
@@ -22872,23 +22872,23 @@ export default function DashboardShell({
                             <i className="bx bx-search"></i>
                             <input type="text" placeholder="Buscar campanha" value={campaignSearch} onChange={(event) => setCampaignSearch(event.target.value)} />
                           </div>
-                          <div className="date-picker glass-item compact-filter">
-                            <i className="bx bx-filter-alt"></i>
-                            <select value={campaignStatusFilter} onChange={(event) => setCampaignStatusFilter(event.target.value)}>
-                              <option value="all">Todos os status</option>
-                              <option value="ACTIVE">Ativas</option>
-                              <option value="PAUSED">Pausadas</option>
-                              <option value="ARCHIVED">Arquivadas</option>
-                            </select>
-                          </div>
-                          <div className="date-picker glass-item compact-filter">
-                            <i className="bx bx-sort-down"></i>
-                            <select value={campaignSortBy} onChange={(event) => setCampaignSortBy(event.target.value)}>
-                              {campaignSortOptions.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
-                              ))}
-                            </select>
-                          </div>
+                          <CustomSelect
+                            options={[
+                              { value: 'all', label: 'Todos os status' },
+                              { value: 'ACTIVE', label: 'Ativas', color: '#26c281' },
+                              { value: 'PAUSED', label: 'Pausadas', color: '#f59e0b' },
+                              { value: 'ARCHIVED', label: 'Arquivadas', color: '#64748b' },
+                            ]}
+                            value={campaignStatusFilter}
+                            onChange={setCampaignStatusFilter}
+                            icon="bx-filter-alt"
+                          />
+                          <CustomSelect
+                            options={campaignSortOptions.map(o => ({ value: o.value, label: o.label }))}
+                            value={campaignSortBy}
+                            onChange={setCampaignSortBy}
+                            icon="bx-sort-down"
+                          />
                         </div>
                       </div>
                       {activeDraftDashboardTemplate && isCampaignColumnLibraryOpen && (
