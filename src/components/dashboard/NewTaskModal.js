@@ -498,7 +498,7 @@ export default function NewTaskModal({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 0,
     opacity: mounted ? 1 : 0,
     transition: 'opacity 0.18s ease',
   }
@@ -508,9 +508,12 @@ export default function NewTaskModal({
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 14,
     width: '100%',
-    maxWidth: 600,
-    maxHeight: '90vh',
-    overflowY: 'auto',
+    maxWidth: '100%',
+    height: '100%',
+    maxHeight: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'hidden',
     boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
     transform: mounted ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(12px)',
     opacity: mounted ? 1 : 0,
@@ -539,7 +542,7 @@ export default function NewTaskModal({
         </div>
 
         {/* Body */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflowY: 'auto' }}>
 
           {/* Title */}
           <div>
