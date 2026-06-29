@@ -2294,6 +2294,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const [spaces, setSpaces] = useState([])
   const [customFields, setCustomFields] = useState([])
   const [loading, setLoading] = useState(true)
+  const [internalUsers, setInternalUsers] = useState([])
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   // Multi-user filter — defaults to current user (Minhas tarefas)
   const [filterAssignees, setFilterAssignees] = useState(() => currentUserId ? [currentUserId] : [])
@@ -2336,15 +2337,17 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [taskRes, spacesRes, fieldsRes] = await Promise.all([
+      const [taskRes, spacesRes, fieldsRes, usersRes] = await Promise.all([
         fetch('/api/tasks'),
         fetch('/api/tasks/spaces'),
         fetch('/api/tasks/custom-fields?entity_type=task'),
+        fetch('/api/users'),
       ])
       const [taskJson, spacesJson, fieldsJson] = await Promise.all([taskRes.json(), spacesRes.json(), fieldsRes.json()])
       if (taskJson.tasks) setTasks(taskJson.tasks)
       if (spacesJson.spaces) setSpaces(spacesJson.spaces)
       if (fieldsJson.fields) setCustomFields(fieldsJson.fields)
+      if (usersRes.ok) { const u = await usersRes.json(); if (Array.isArray(u)) setInternalUsers(u) }
     } finally {
       setLoading(false)
     }
@@ -2432,6 +2435,9 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     return true
   })
 
+  // Use users loaded internally if available, otherwise fall back to prop
+  const allUsers = internalUsers.length > 0 ? internalUsers : (workspaceUsers || [])
+
   const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '5px 10px', fontSize: '0.82rem', outline: 'none' }
 
   return (
@@ -2445,7 +2451,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
         {/* User filter — always visible */}
         <UserFilterPicker
-          users={workspaceUsers || []}
+          users={allUsers}
           value={filterAssignees}
           onChange={setFilterAssignees}
           currentUserId={currentUserId}
@@ -2586,7 +2592,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             tasks={tasks}
             statuses={statuses}
             spaces={spaces}
-            workspaceUsers={workspaceUsers}
+            workspaceUsers={allUsers}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
             onSpaceClick={space => { setSelectedSpace(space); setView('space') }}
@@ -2600,7 +2606,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             space={selectedSpace}
             allTasks={tasks}
             statuses={statuses}
-            workspaceUsers={workspaceUsers}
+            workspaceUsers={allUsers}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onTaskSaved={(task, type) => {
               if (type === 'create') setTasks(prev => [...prev, task])
@@ -2619,7 +2625,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             tasks={filteredTasks}
             statuses={statuses}
             clients={clients}
-            workspaceUsers={workspaceUsers}
+            workspaceUsers={allUsers}
             onBack={() => { setView('home'); setSelectedSpace(null) }}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onQuickUpdate={handleQuickUpdate}
@@ -2643,7 +2649,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             taskId={selectedTaskId}
             statuses={statuses}
             clients={clients}
-            workspaceUsers={workspaceUsers}
+            workspaceUsers={allUsers}
             onClose={() => setSelectedTaskId(null)}
             onUpdated={handlePanelUpdate}
             isMaster={isMaster}
@@ -2679,7 +2685,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         <TemplateSemanalModal
           onClose={() => setShowTemplatesModal(false)}
           onCreate={space => { handleSpaceCreated(space); loadData() }}
-          workspaceUsers={workspaceUsers}
+          workspaceUsers={allUsers}
           statuses={statuses}
         />
       )}
@@ -2709,7 +2715,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
               </button>
             </div>
             <div style={{ flex: 1 }}>
-              <AutomationsTab workspaceUsers={workspaceUsers || []} isMaster={isMaster} />
+              <AutomationsTab workspaceUsers={allUsers} isMaster={isMaster} />
             </div>
           </div>
         </>
@@ -2724,7 +2730,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
           defaultContext={newTaskContext}
           spaces={spaces}
           clients={clients}
-          workspaceUsers={workspaceUsers || []}
+          workspaceUsers={allUsers}
           statuses={statuses}
           customFields={customFields}
         />
@@ -2732,7 +2738,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
       {showArchived && (
         <ArchivedTasksPanel
-          workspaceUsers={workspaceUsers || []}
+          workspaceUsers={allUsers}
           clients={clients || []}
           spaces={spaces}
           statuses={statuses}
