@@ -987,8 +987,10 @@ function ClientCard({ client, accesses, onClick }) {
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.boxShadow = 'none' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${cardColor}, transparent)`, borderRadius: '16px 16px 0 0' }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 11, background: iconColor + '22', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className={`bx ${icon}`} style={{ fontSize: 22, color: iconColor }} />
+        <div style={{ width: 42, height: 42, borderRadius: 11, background: iconColor + '22', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {client?.logoUrl
+            ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <i className={`bx ${icon}`} style={{ fontSize: 22, color: iconColor }} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client?.name || 'Cliente'}</div>
