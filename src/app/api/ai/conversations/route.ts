@@ -15,7 +15,6 @@ export async function GET() {
       error,
     } = await supabase.auth.getUser()
 
-    if (error) throw error
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
@@ -51,7 +50,6 @@ export async function POST() {
       error,
     } = await supabase.auth.getUser()
 
-    if (error) throw error
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }

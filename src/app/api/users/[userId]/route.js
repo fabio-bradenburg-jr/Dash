@@ -64,7 +64,6 @@ async function getAuthorizedContext() {
     error,
   } = await supabase.auth.getUser()
 
-  if (error) throw error
   if (!user) {
     return { errorResponse: NextResponse.json({ error: 'Não autenticado.' }, { status: 401 }) }
   }

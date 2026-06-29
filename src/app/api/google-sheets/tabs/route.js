@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { resolveAuthContext } from '@/lib/server/auth-context'
 
 function extractSheetId(input) {
   const s = String(input || '').trim()
@@ -64,13 +62,9 @@ async function fetchSheetTabs(sheetId) {
 
 export async function GET(request) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
-    if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
-
-    const adminSupabase = createAdminClient()
-    const accessContext = await getAccessContext(supabase, user, { adminSupabase })
+    const authCtx = await resolveAuthContext()
+    if (authCtx.errorResponse) return authCtx.errorResponse
+    const { accessContext } = authCtx
     if (!accessContext.canViewDashboard) return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 })
 
     const { searchParams } = new URL(request.url)
