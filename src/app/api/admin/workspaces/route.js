@@ -19,8 +19,6 @@ async function getAdminContext() {
     error,
   } = await supabase.auth.getUser()
 
-  if (error) throw error
-
   let userId = user?.id || ''
   let email = String(user?.email || '').trim().toLowerCase()
 

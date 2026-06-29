@@ -20,8 +20,6 @@ async function getDashboardAccessContext() {
     error,
   } = await supabase.auth.getUser()
 
-  if (error) throw error
-
   const adminSupabase = createAdminClient()
   if (user) {
     return {

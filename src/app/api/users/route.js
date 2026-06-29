@@ -144,7 +144,6 @@ async function getAuthorizedContext(options = {}) {
     error,
   } = await supabase.auth.getUser()
 
-  if (error) throw error
   const adminSupabase = createAdminClient()
   let accessContext = null
 
