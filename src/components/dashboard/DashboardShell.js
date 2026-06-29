@@ -41733,6 +41733,72 @@ export default function DashboardShell({
           padding: 16px 28px;
           border-top: 1px solid rgba(255,255,255,0.05);
         }
+
+        /* ── Responsive: tabs adapt to screen width ── */
+        .dashboard-container .main-content {
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        /* Controle da Operação — compact header matching new tab style */
+        .dashboard-container .weekly-dashboard-panel .weekly-command-center {
+          grid-template-columns: 1fr !important;
+          background:
+            radial-gradient(circle at top right, rgba(38,194,129,0.09) 0%, transparent 45%),
+            linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.02) 100%) !important;
+          border: 1px solid rgba(38,194,129,0.18) !important;
+          border-radius: 18px !important;
+          box-shadow: none !important;
+        }
+
+        .dashboard-container .weekly-dashboard-panel .weekly-command-heading {
+          border-right: none !important;
+          border-bottom: 1px solid rgba(38,194,129,0.1) !important;
+          padding: 22px 24px !important;
+          gap: 14px !important;
+        }
+
+        .dashboard-container .weekly-dashboard-panel .weekly-command-heading h2 {
+          font-size: clamp(1.3rem, 2.2vw, 1.8rem) !important;
+          font-weight: 900 !important;
+          letter-spacing: -0.02em !important;
+          line-height: 1.15 !important;
+        }
+
+        .dashboard-container .weekly-dashboard-panel .weekly-command-heading p {
+          font-size: 0.84rem !important;
+          opacity: 0.5 !important;
+        }
+
+        .dashboard-container .weekly-dashboard-panel .weekly-command-grid {
+          grid-column: auto !important;
+          padding: 16px 24px !important;
+        }
+
+        /* Onboarding/Offboarding: ensure content fits screen */
+        .dashboard-container .weekly-dashboard-panel {
+          min-width: 0;
+          box-sizing: border-box;
+          width: 100%;
+        }
+
+        /* Clientes panel: responsive */
+        .dashboard-container .clients-panel,
+        .dashboard-container section[class*='weekly-dashboard-panel'],
+        .dashboard-container .clients-layout {
+          min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 900px) {
+          .dashboard-container .weekly-dashboard-panel .weekly-command-heading {
+            padding: 18px 16px !important;
+          }
+          .dashboard-container .weekly-dashboard-panel .weekly-command-grid {
+            padding: 14px 16px !important;
+          }
+        }
       `}</style>
 
       {/* CPR Benchmark Panel */}

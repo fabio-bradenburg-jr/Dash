@@ -3886,6 +3886,8 @@ textarea:focus {
 }
 .dashboard-container .main-content:not(.main-content-expanded) {
     margin-left: 200px !important;
+    max-width: calc(100vw - 200px) !important;
+    overflow-x: hidden !important;
 }
 
 /* Collapsed sidebar — compact */
@@ -3895,6 +3897,8 @@ textarea:focus {
 }
 .dashboard-container .main-content-expanded {
     margin-left: 72px !important;
+    max-width: calc(100vw - 72px) !important;
+    overflow-x: hidden !important;
 }
 .dashboard-container .sidebar-collapsed .nav-item {
     width: 48px !important;
