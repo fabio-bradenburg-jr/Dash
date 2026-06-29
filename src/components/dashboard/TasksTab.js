@@ -1948,21 +1948,21 @@ const WEEK_DAYS = [
   { key: 0, label: 'Domingo', short: 'Dom' },
 ]
 
-function getThisWeekDates() {
+function getWeekDates(offsetWeeks = 0) {
   const today = new Date()
+  const todayIso = today.toISOString().split('T')[0]
   const dow = today.getDay()
   const monday = new Date(today)
-  monday.setDate(today.getDate() - dow + (dow === 0 ? -6 : 1))
-  const OFFSETS = [0, 1, 2, 3, 4, 5, 6] // Mon=0, Tue=1, ..., Sat=5, Sun=6
+  monday.setDate(today.getDate() - dow + (dow === 0 ? -6 : 1) + offsetWeeks * 7)
   return WEEK_DAYS.slice(0, 7).map((d, i) => {
     const date = new Date(monday)
-    date.setDate(monday.getDate() + OFFSETS[i])
+    date.setDate(monday.getDate() + i)
     const iso = date.toISOString().split('T')[0]
     return {
       ...d,
       date: iso,
       dateDisplay: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-      isToday: iso === today.toISOString().split('T')[0],
+      isToday: iso === todayIso,
     }
   })
 }
@@ -2024,9 +2024,19 @@ function WeekDayTaskRow({ task, statuses, onOpenPanel, onQuickUpdate }) {
 }
 
 function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTask, spaceId }) {
-  const weekDays = getThisWeekDates()
+  const [weekOffset, setWeekOffset] = useState(0)
+  const weekDays = getWeekDates(weekOffset)
   const [addingDay, setAddingDay] = useState(null)
   const [newTitle, setNewTitle] = useState('')
+
+  const weekLabel = (() => {
+    const first = weekDays[0]
+    const last = weekDays[6]
+    if (weekOffset === 0) return 'Esta semana'
+    if (weekOffset === -1) return 'Semana passada'
+    if (weekOffset === 1) return 'Próxima semana'
+    return `${first.dateDisplay} – ${last.dateDisplay}`
+  })()
 
   function getTasksForDay(dayKey) {
     return spaceTasks.filter(t => t.dia_semana === dayKey)
@@ -2049,6 +2059,35 @@ function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTa
   }
 
   return (
+    <div>
+      {/* Week navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => setWeekOffset(o => o - 1)}
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#94a3b8', cursor: 'pointer', padding: '5px 10px', display: 'flex', alignItems: 'center' }}
+        >
+          <i className="bx bx-chevron-left" style={{ fontSize: 16 }} />
+        </button>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', minWidth: 140, textAlign: 'center' }}>{weekLabel}</span>
+        <button
+          type="button"
+          onClick={() => setWeekOffset(o => o + 1)}
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#94a3b8', cursor: 'pointer', padding: '5px 10px', display: 'flex', alignItems: 'center' }}
+        >
+          <i className="bx bx-chevron-right" style={{ fontSize: 16 }} />
+        </button>
+        {weekOffset !== 0 && (
+          <button
+            type="button"
+            onClick={() => setWeekOffset(0)}
+            style={{ background: 'none', border: '1px solid rgba(38,194,129,0.3)', borderRadius: 7, color: '#26c281', cursor: 'pointer', padding: '5px 12px', fontSize: 11, fontWeight: 700 }}
+          >
+            Hoje
+          </button>
+        )}
+      </div>
+
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10, paddingTop: 8 }}>
       {weekDays.map(day => {
         const dayTasks = getTasksForDay(day.key)
@@ -2146,6 +2185,7 @@ function WeekDayView({ spaceTasks, statuses, onOpenPanel, onQuickUpdate, onAddTa
           </div>
         )
       })}
+    </div>
     </div>
   )
 }
