@@ -253,7 +253,7 @@ function ProdBar({ pct, color = '#26c281' }) {
 }
 
 // ---- Add/Edit Task Modal for Rotinas ----
-function RotinasTaskModal({ spaceId, members, statuses, initialDia, initialMemberId, onClose, onSave, existing }) {
+function RotinasTaskModal({ spaceId, members, workspaceUsers, statuses, initialDia, initialMemberId, onClose, onSave, existing }) {
   const [form, setForm] = useState({
     title: existing?.title || '',
     dia_semana: existing?.dia_semana ?? initialDia ?? 1,
@@ -356,7 +356,13 @@ function RotinasTaskModal({ spaceId, members, statuses, initialDia, initialMembe
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Responsável</label>
             <CustomSelect
-              options={[{ value: '', label: 'Sem responsável' }, ...members.map(m => ({ value: m.user_id || m.id, label: m.name + (m.cargo ? ` — ${m.cargo}` : '') }))]}
+              options={[
+                { value: '', label: 'Sem responsável' },
+                ...(members.length > 0
+                  ? members.map(m => ({ value: m.user_id || m.id, label: m.name + (m.cargo ? ` — ${m.cargo}` : '') }))
+                  : (workspaceUsers || []).map(u => ({ value: u.id, label: u.full_name || u.email || u.id }))
+                ),
+              ]}
               value={form.assignee_id}
               onChange={v => setForm(f => ({ ...f, assignee_id: v }))}
               placeholder="Sem responsável"
@@ -1086,6 +1092,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
         <RotinasTaskModal
           spaceId={space.id}
           members={members}
+          workspaceUsers={workspaceUsers}
           statuses={statuses}
           initialDia={taskModal.dia}
           initialMemberId={taskModal.memberId}
@@ -1098,6 +1105,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
         <RotinasTaskModal
           spaceId={space.id}
           members={members}
+          workspaceUsers={workspaceUsers}
           statuses={statuses}
           onClose={() => setEditTask(null)}
           onSave={(task, type) => { onTaskSaved(task, type); setEditTask(null) }}
