@@ -3279,7 +3279,7 @@ export default function DashboardShell({
   const [weeklyMonthFilter, setWeeklyMonthFilter] = useState(() => getCurrentMonthInputValue())
   const [weeklyFilledWeekStart, setWeeklyFilledWeekStart] = useState('')
   const [weeklyTableHealthFilter, setWeeklyTableHealthFilter] = useState('all')
-  const [weeklyTableSort, setWeeklyTableSort] = useState({ key: 'health', direction: 'asc' })
+  const [weeklyTableSort, setWeeklyTableSort] = useState({ key: 'date', direction: 'asc' })
   const [isWeeklyDeleteMode, setIsWeeklyDeleteMode] = useState(false)
   const [selectedWeeklyRecordIds, setSelectedWeeklyRecordIds] = useState([])
   const [isDeletingWeeklyRecords, setIsDeletingWeeklyRecords] = useState(false)
@@ -15443,7 +15443,29 @@ export default function DashboardShell({
             <h2><i className="bx bx-table"></i>Tabela de Acompanhamento</h2>
             <p className="chart-subtitle">Visualize exatamente o que foi imputado no período selecionado, com filtro por cliente e saúde.</p>
           </div>
-          <span className="weekly-updated-pill"><i className="bx bx-time-five"></i>Atualizado há 15 min</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setWeeklyTableSort(current =>
+                current.key === 'date'
+                  ? { key: 'date', direction: current.direction === 'asc' ? 'desc' : 'asc' }
+                  : { key: 'date', direction: 'asc' }
+              )}
+              title={weeklyTableSort.key === 'date' && weeklyTableSort.direction === 'desc' ? 'Mais recente → Mais antigo' : 'Mais antigo → Mais recente'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 8, border: '1px solid',
+                borderColor: weeklyTableSort.key === 'date' ? 'rgba(38,194,129,0.5)' : 'rgba(255,255,255,0.12)',
+                background: weeklyTableSort.key === 'date' ? 'rgba(38,194,129,0.1)' : 'transparent',
+                color: weeklyTableSort.key === 'date' ? '#26c281' : '#94a3b8',
+                cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}
+            >
+              <i className={`bx ${weeklyTableSort.key === 'date' && weeklyTableSort.direction === 'desc' ? 'bx-sort-down' : 'bx-sort-up'}`} style={{ fontSize: 16 }} />
+              {weeklyTableSort.key === 'date' && weeklyTableSort.direction === 'desc' ? 'Mais recente' : 'Mais antigo'}
+            </button>
+            <span className="weekly-updated-pill"><i className="bx bx-time-five"></i>Atualizado há 15 min</span>
+          </div>
         </div>
         {weeklyTableRecords.length ? (
           <div className="weekly-table-scroll">
