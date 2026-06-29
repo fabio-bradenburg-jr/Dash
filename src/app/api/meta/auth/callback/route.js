@@ -65,16 +65,14 @@ export async function GET(request) {
         : null,
     })
 
-    if (supabase) {
-      const dashboardState = await getDashboardState(supabase, accessContext)
-      await saveDashboardState(supabase, accessContext, {
-        ...dashboardState,
-        globalIntegrations: {
-          ...(dashboardState.globalIntegrations || {}),
-          metaConnectionMode: 'oauth',
-        },
-      })
-    }
+    const dashboardState = await getDashboardState(adminSupabase, accessContext)
+    await saveDashboardState(adminSupabase, accessContext, {
+      ...dashboardState,
+      globalIntegrations: {
+        ...(dashboardState.globalIntegrations || {}),
+        metaConnectionMode: 'oauth',
+      },
+    })
 
     redirectUrl = buildMetaReturnUrl(request, oauthCookie.returnTo)
     redirectUrl.searchParams.set('meta_connected', '1')
