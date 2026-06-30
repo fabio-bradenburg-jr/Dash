@@ -3827,41 +3827,66 @@ textarea:focus {
     overflow-x: hidden !important;
 }
 
-/* Collapsed sidebar — always render as expanded (labels always visible) */
+/* Collapsed sidebar — compact (default state) */
 .dashboard-container .sidebar-collapsed {
-    padding: 18px 12px 16px !important;
-    width: 224px !important;
+    padding: 12px 10px !important;
+    width: 92px !important;
 }
 .dashboard-container .main-content-expanded {
     overflow-x: hidden !important;
 }
-/* Override collapsed nav-item to expanded layout */
+/* Collapsed nav-item: icon only */
 .dashboard-container .sidebar-collapsed .nav-item {
-    width: auto !important;
-    height: 38px !important;
-    border-radius: 10px !important;
+    width: 48px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
     margin-bottom: 2px !important;
     display: flex !important;
     align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    gap: 0 !important;
+}
+.dashboard-container .sidebar-collapsed .nav-item i {
+    font-size: 20px !important;
+    min-width: unset !important;
+}
+/* Hide labels when collapsed */
+.dashboard-container .sidebar-collapsed .nav-label,
+.dashboard-container .sidebar-collapsed .sidebar-reveal {
+    opacity: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+/* Expand on hover: show labels */
+.dashboard-container .sidebar-collapsed:hover {
+    width: 224px !important;
+    padding: 18px 12px 16px !important;
+}
+.dashboard-container .sidebar-collapsed:hover .nav-item {
+    width: auto !important;
+    height: 38px !important;
+    border-radius: 10px !important;
     justify-content: flex-start !important;
     padding: 0 10px !important;
     gap: 10px !important;
 }
-.dashboard-container .sidebar-collapsed .nav-item i {
+.dashboard-container .sidebar-collapsed:hover .nav-item i {
     font-size: 18px !important;
     min-width: 20px !important;
 }
-/* Always show nav labels */
-.dashboard-container .sidebar-collapsed .nav-label,
-.dashboard-container .sidebar-collapsed .sidebar-reveal {
+.dashboard-container .sidebar-collapsed:hover .nav-label,
+.dashboard-container .sidebar-collapsed:hover .sidebar-reveal {
     opacity: 1 !important;
     max-width: 200px !important;
     overflow: visible !important;
+    pointer-events: auto !important;
 }
-/* Main content offset for always-expanded sidebar */
+/* Main content: fixed offset from collapsed sidebar */
 .dashboard-container .main-content {
-    margin-left: 234px !important;
-    width: calc(100% - 234px) !important;
+    margin-left: 102px !important;
+    width: calc(100% - 102px) !important;
 }
 
 /* Nav items spacing in expanded mode */
