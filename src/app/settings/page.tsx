@@ -71,7 +71,7 @@ interface GoogleAdsConnectionState {
   managerCustomerId: string
 }
 
-type SettingsTab = 'panel' | 'general' | 'ai' | 'operation' | 'clients'
+type SettingsTab = 'panel' | 'general' | 'ai' | 'operation'
 
 const SETTINGS_TAB_STORAGE_KEY = 'dash_settings_active_tab'
 
@@ -863,7 +863,7 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
     if ((connected === '1' || googleAdsConnected === '1') && canEditIntegrations) {
       setActiveSettingsTab('general')
     } else if (tab === 'ai' && canEditIntegrations) {
-      setActiveSettingsTab('general')
+      setActiveSettingsTab('ai')
     } else if (tab === 'general' && canEditIntegrations) {
       setActiveSettingsTab('general')
     } else if (tab === 'operation' && canManageClients) {
@@ -1985,6 +1985,17 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
                 </div>
               </div>
               <div className="settings-section-content">
+              <div className="settings-popup-tab-label">
+                <i className={`bx ${
+                  activeSettingsTab === 'panel' ? 'bx-palette' :
+                  activeSettingsTab === 'general' ? 'bx-link-alt' :
+                  activeSettingsTab === 'ai' ? 'bx-bot' : 'bx-pulse'
+                }`}></i>
+                {activeSettingsTab === 'panel' && 'Interface'}
+                {activeSettingsTab === 'general' && 'Integrações'}
+                {activeSettingsTab === 'ai' && 'Inteligência Artificial'}
+                {activeSettingsTab === 'operation' && 'Operação'}
+              </div>
               {activeSettingsTab === 'panel' && (
                 <div className="settings-panel-layout settings-panel-layout-obsidian">
                   <div className={`glass-item settings-block settings-block-full settings-block-hero settings-collapsible ${expandedSections.has('interface') ? 'expanded' : ''}`}>
