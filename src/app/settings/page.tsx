@@ -1985,7 +1985,7 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
                 </div>
               </div>
               <div className="settings-section-content">
-              <div className="settings-popup-tab-label">
+              <div className="settings-popup-tab-label settings-popup-tab-label-static">
                 <i className={`bx ${
                   activeSettingsTab === 'panel' ? 'bx-palette' :
                   activeSettingsTab === 'general' ? 'bx-link-alt' :
@@ -3180,6 +3180,7 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
           flex: 1;
         }
         .settings-popup-tab-label i { font-size: 20px; color: var(--button-primary, #26c281); }
+        .settings-popup-tab-label-static { flex: 0 0 auto; }
         .settings-popup-feedback {
           padding: 10px 22px;
           font-size: 13px;
