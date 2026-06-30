@@ -652,7 +652,7 @@ body {
 /* Main Content */
 .main-content {
     flex: 1;
-    margin-left: calc(var(--sidebar-width) + 20px);
+    min-width: 0;
     padding: 16px 20px 32px;
     max-width: none;
     position: relative;
@@ -3726,11 +3726,9 @@ textarea:focus {
     margin-bottom: 16px !important;
     padding: 0 4px !important;
 }
-.dashboard-container .main-content {
-    margin-left: 220px !important;
-}
 .dashboard-container .main-content-expanded {
     margin-left: 0 !important;
+    width: 100% !important;
 }
 
 /* Nav items — tighter, smaller radius */
@@ -3829,24 +3827,41 @@ textarea:focus {
     overflow-x: hidden !important;
 }
 
-/* Collapsed sidebar — compact */
+/* Collapsed sidebar — always render as expanded (labels always visible) */
 .dashboard-container .sidebar-collapsed {
-    padding: 12px 10px !important;
+    padding: 18px 12px 16px !important;
+    width: 224px !important;
 }
 .dashboard-container .main-content-expanded {
     overflow-x: hidden !important;
 }
+/* Override collapsed nav-item to expanded layout */
 .dashboard-container .sidebar-collapsed .nav-item {
-    width: 48px !important;
-    height: 44px !important;
-    border-radius: 12px !important;
+    width: auto !important;
+    height: 38px !important;
+    border-radius: 10px !important;
     margin-bottom: 2px !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
+    padding: 0 10px !important;
+    gap: 10px !important;
 }
 .dashboard-container .sidebar-collapsed .nav-item i {
-    font-size: 20px !important;
+    font-size: 18px !important;
+    min-width: 20px !important;
+}
+/* Always show nav labels */
+.dashboard-container .sidebar-collapsed .nav-label,
+.dashboard-container .sidebar-collapsed .sidebar-reveal {
+    opacity: 1 !important;
+    max-width: 200px !important;
+    overflow: visible !important;
+}
+/* Main content offset for always-expanded sidebar */
+.dashboard-container .main-content {
+    margin-left: 234px !important;
+    width: calc(100% - 234px) !important;
 }
 
 /* Nav items spacing in expanded mode */
