@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Brand Kit | Assessoria LP - Kinetic Emerald</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#bbcabe",
+                        "surface-bright": "#3a3939",
+                        "primary": "#4fdf9b",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed": "#e2e2e2",
+                        "on-primary-fixed-variant": "#005233",
+                        "background": "#131313",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "surface-tint": "#4fdf9b",
+                        "secondary": "#c8c6c5",
+                        "primary-fixed-dim": "#4fdf9b",
+                        "surface-glass": "rgba(28, 28, 28, 0.4)",
+                        "on-primary-container": "#00492d",
+                        "surface-container-low": "#1c1b1b",
+                        "on-error": "#690005",
+                        "inverse-on-surface": "#313030",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "outline-variant": "#3d4a41",
+                        "status-warning": "#FFB800",
+                        "status-error": "#FF4B4B",
+                        "status-info": "#4B8BFF",
+                        "status-success": "#4fdf9b",
+                        "border-white-low": "rgba(255, 255, 255, 0.05)",
+                        "emerald-glow": "rgba(38, 194, 129, 0.1)",
+                        "on-primary-fixed": "#002112",
+                        "on-background": "#e5e2e1",
+                        "surface-variant": "#353534",
+                        "surface-container-highest": "#353534",
+                        "surface": "#131313",
+                        "tertiary-fixed-dim": "#c6c6c6",
+                        "secondary-container": "#4a4949",
+                        "surface-container-high": "#2a2a2a",
+                        "outline": "#869489",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary-container": "#aaabab",
+                        "secondary-fixed": "#e5e2e1",
+                        "on-secondary-container": "#bab8b7",
+                        "primary-fixed": "#6ffcb5",
+                        "inverse-surface": "#e5e2e1",
+                        "surface-dim": "#131313",
+                        "inverse-primary": "#006c44",
+                        "on-secondary-fixed-variant": "#474646",
+                        "on-secondary": "#313030",
+                        "on-tertiary": "#2f3131",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "tertiary": "#c6c6c6",
+                        "on-primary": "#003821",
+                        "on-tertiary-container": "#3e3f40",
+                        "primary-container": "#26c281",
+                        "on-surface": "#e5e2e1",
+                        "surface-container": "#201f1f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "max-content-width": "1440px",
+                        "section-gap": "96px",
+                        "gutter": "20px",
+                        "container-padding-md": "24px",
+                        "container-padding-sm": "16px",
+                        "base-unit": "4px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "label-sm": ["10px", {"lineHeight": "12px", "letterSpacing": "0.1em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131313;
+            color: #e5e2e1;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(28, 28, 28, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+        .emerald-glow {
+            box-shadow: 0 0 30px rgba(79, 223, 155, 0.1);
+        }
+        .gradient-stroke {
+            position: relative;
+        }
+        .gradient-stroke::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(79, 223, 155, 0.4), rgba(75, 139, 255, 0.4));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #4fdf9b 0%, #4b8bff 50%, #8b4bff 100%);
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md">
+<main class="min-h-screen">
+<header class="flex justify-between items-center w-full px-container-padding-md max-w-max-content-width mx-auto h-20 sticky top-0 bg-surface-glass backdrop-blur-xl border-b border-white/5 z-40">
+<div class="font-headline-md text-headline-md font-bold text-primary">Assessoria LP</div>
+<div class="font-label-md text-label-md tracking-widest uppercase opacity-60">Manual de Identidade Visual v2.0</div>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-full font-label-md text-label-md font-semibold hover:opacity-80 transition-all hover:scale-105">Download PDF</button>
+</header>
+<div class="p-container-padding-md lg:p-12 max-w-max-content-width mx-auto">
+<!-- Hero Section -->
+<section class="mb-24">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div>
+<span class="text-primary font-label-md text-label-md tracking-widest uppercase mb-4 block">Design System Evolution</span>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-6 leading-tight">Assessoria LP:<br/><span class="text-primary">Kinetic Emerald</span></h2>
+<p class="text-on-surface-variant font-body-lg text-body-lg max-w-lg mb-10">Refining precision and high-tech performance through an expanded color language and superior visual depth. A visual framework for the next generation of sales intelligence.</p>
+<div class="inline-flex items-center gap-6 p-5 rounded-xl border border-white/10 bg-surface-container-low shadow-lg">
+<div>
+<p class="text-[10px] uppercase text-on-surface-variant font-bold mb-1">Manual Version</p>
+<p class="font-headline-md text-headline-md text-primary font-bold">2.0 / 2024</p>
+</div>
+<div class="w-px h-8 bg-white/10"></div>
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-status-info"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-status-warning"></div>
+</div>
+</div>
+</div>
+<div class="relative group">
+<div class="absolute -inset-1 kinetic-gradient rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition duration-1000"></div>
+<div class="relative glass-card rounded-2xl p-8 flex items-center justify-center overflow-hidden aspect-[1.88] gradient-stroke">
+                        https://lh3.googleusercontent.com/aida-public/AB6AXuALLTw5tHo0p9J241AaqfAyBf9PD-ldYqXmZ57bpPPfklUAGMNZIVf9m2W2Ocn5V_FiEU__KD1ME7kj9SAP7UFgEeS67lqiD7kk9TxpMuPgBqb0IoGQoIX04zq_EUQFpJANkUZqZ-az-Z3Np4wkl274wvJTvJ1LVESSBEwXOBOjNQV9-R2YqHsAK11UkGDA8YQzTkG91ph1FObK0XkoyUQenY8FVI7Z42_AoCb0LMKmUa9OWt0bDvQwpGwXovKbVVPFwwFoyZi_ZHpW
+                    </div>
+</div>
+</div>
+</section>
+<!-- Expanded Color Palette & Data Contrast -->
+<section class="mb-24">
+<h3 class="font-headline-lg text-headline-lg mb-8">Color Intelligence</h3>
+<div class="bento-grid">
+<!-- Main Palette -->
+<div class="col-span-12 lg:col-span-8 glass-card p-8 rounded-2xl border-t-2 border-primary/40">
+<h4 class="font-label-md text-label-md uppercase tracking-widest text-primary mb-8">Brand Core &amp; Accents</h4>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+<div class="space-y-3">
+<div class="h-28 w-full rounded-xl bg-primary border border-white/10 emerald-glow"></div>
+<div><p class="font-label-md text-label-md text-on-surface">Emerald Green</p><p class="text-[10px] text-on-surface-variant">HEX: #4FDF9B</p></div>
+</div>
+<div class="space-y-3">
+<div class="h-28 w-full rounded-xl bg-background border border-white/10"></div>
+<div><p class="font-label-md text-label-md text-on-surface">Deep Graphite</p><p class="text-[10px] text-on-surface-variant">HEX: #131313</p></div>
+</div>
+<div class="space-y-3">
+<div class="h-28 w-full rounded-xl bg-status-info border border-white/10"></div>
+<div><p class="font-label-md text-label-md text-on-surface">Precision Blue</p><p class="text-[10px] text-on-surface-variant">HEX: #4B8BFF</p></div>
+</div>
+<div class="space-y-3">
+<div class="h-28 w-full rounded-xl bg-status-warning border border-white/10"></div>
+<div><p class="font-label-md text-label-md text-on-surface">Action Gold</p><p class="text-[10px] text-on-surface-variant">HEX: #FFB800</p></div>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-white/5">
+<h4 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant mb-4">Gradients</h4>
+<div class="h-16 w-full rounded-xl kinetic-gradient flex items-center px-6">
+<span class="text-white font-bold text-sm tracking-widest">KINETIC GRADIENT (Emerald to Blue to Purple)</span>
+</div>
+</div>
+</div>
+<!-- Data Contrast Usage -->
+<div class="col-span-12 lg:col-span-4 glass-card p-8 rounded-2xl">
+<h4 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant mb-6">Data Contrast System</h4>
+<div class="space-y-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="trending_up">trending_up</span>
+</div>
+<div>
+<p class="text-sm font-bold">Growth / Active</p>
+<p class="text-xs text-on-surface-variant">Utilizes Emerald Green for positive KPIs</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-status-warning/20 border border-status-warning/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-status-warning" data-icon="pending_actions">pending_actions</span>
+</div>
+<div>
+<p class="text-sm font-bold">Pending / Attention</p>
+<p class="text-xs text-on-surface-variant">Gold used for alerts and in-review items</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-status-info/20 border border-status-info/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-status-info" data-icon="category">category</span>
+</div>
+<div>
+<p class="text-sm font-bold">Segment / System</p>
+<p class="text-xs text-on-surface-variant">Blue defines categories and structural info</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-status-error/20 border border-status-error/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-status-error" data-icon="emergency_home">emergency_home</span>
+</div>
+<div>
+<p class="text-sm font-bold">Critical / Risk</p>
+<p class="text-xs text-on-surface-variant">Red highlighting errors and churn risks</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Visual Style & Depth -->
+<section class="mb-24">
+<h3 class="font-headline-lg text-headline-lg mb-8">Visual Language &amp; Style</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="glass-card rounded-2xl overflow-hidden group">
+<div class="p-8 pb-0">
+<span class="text-[10px] uppercase text-primary font-bold tracking-widest mb-2 block">Core Concept 01</span>
+<h4 class="font-headline-md text-headline-md mb-2">Glassmorphism</h4>
+<p class="text-on-surface-variant text-sm mb-6">Layered transparency with high-intensity blur creates hierarchical depth without visual clutter.</p>
+</div>
+<div class="bg-surface-container-highest/50 h-48 flex items-center justify-center relative overflow-hidden">
+<div class="absolute w-32 h-32 rounded-full kinetic-gradient blur-3xl opacity-40"></div>
+<div class="glass-card w-40 h-24 rounded-xl z-10 flex items-center justify-center shadow-2xl scale-110">
+<div class="w-12 h-1 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="glass-card rounded-2xl overflow-hidden group">
+<div class="p-8 pb-0">
+<span class="text-[10px] uppercase text-status-info font-bold tracking-widest mb-2 block">Core Concept 02</span>
+<h4 class="font-headline-md text-headline-md mb-2">Gradient Strokes</h4>
+<p class="text-on-surface-variant text-sm mb-6">Polished UI edges using directional light and multi-stop gradients for a high-tech finish.</p>
+</div>
+<div class="bg-surface-container-highest/50 h-48 flex items-center justify-center">
+<div class="w-56 h-32 rounded-xl gradient-stroke bg-surface-container flex flex-col p-4 gap-2">
+<div class="w-full h-2 bg-white/5 rounded"></div>
+<div class="w-3/4 h-2 bg-white/5 rounded"></div>
+<div class="mt-auto flex justify-between">
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/30"></div>
+<div class="w-16 h-8 rounded-lg bg-status-info"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Typography & Pillars -->
+<section class="mb-24">
+<div class="bento-grid">
+<div class="col-span-12 lg:col-span-4 glass-card p-8 rounded-2xl">
+<h3 class="font-headline-lg text-headline-lg mb-8">Typography</h3>
+<div class="space-y-10">
+<div>
+<span class="text-[10px] uppercase text-on-surface-variant mb-2 block font-bold">Display</span>
+<h4 class="font-headline-lg text-headline-lg text-on-surface mb-1">Plus Jakarta Sans</h4>
+<p class="text-primary italic font-label-md text-label-md mb-4">Precision. Flow. Authority.</p>
+<div class="text-3xl font-extrabold tracking-tight text-white/20">ABCDEFGHIJK</div>
+</div>
+<div class="border-t border-white/5 pt-6">
+<span class="text-[10px] uppercase text-on-surface-variant mb-2 block font-bold">System UI</span>
+<p class="font-body-md text-body-md text-on-surface mb-2">Inter / Plus Jakarta Sans</p>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                                Optimized for high-frequency data consumption and complex analytical dashboards.
+                            </p>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="glass-card p-8 rounded-2xl hover:bg-surface-container-high transition-all group">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="precision_manufacturing">precision_manufacturing</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-3 uppercase tracking-widest text-primary">Precision</h4>
+<p class="text-on-surface-variant font-body-md text-body-md">Executing strategies with mathematical accuracy to ensure scalable growth.</p>
+</div>
+<div class="glass-card p-8 rounded-2xl hover:bg-surface-container-high transition-all group">
+<div class="w-14 h-14 rounded-full bg-status-info/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-status-info/20">
+<span class="material-symbols-outlined text-status-info text-3xl" data-icon="memory">memory</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-3 uppercase tracking-widest text-status-info">Technology</h4>
+<p class="text-on-surface-variant font-body-md text-body-md">Leveraging AI-driven automation to outpace competitors in real-time markets.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Brand Assets -->
+<section class="mb-24">
+<h3 class="font-headline-lg text-headline-lg mb-8">Brand Assets</h3>
+<div class="bento-grid">
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-8">
+<div class="glass-card p-8 rounded-2xl flex-grow gradient-stroke">
+<h4 class="font-headline-md text-headline-md mb-4">Visual Philosophy</h4>
+<p class="text-on-surface-variant mb-8 leading-relaxed">Photography focuses on tactile textures like brushed metal and glass, combined with chiaroscuro lighting to emphasize technical depth.</p>
+<ul class="space-y-4">
+<li class="flex items-center gap-3 text-primary font-label-md text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> HIGH-CONTRAST LIGHTING</li>
+<li class="flex items-center gap-3 text-primary font-label-md text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> MINIMALIST COMPOSITIONS</li>
+<li class="flex items-center gap-3 text-primary font-label-md text-label-md"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span> INDUSTRIAL METRICS</li>
+</ul>
+</div>
+<div class="h-64 rounded-2xl overflow-hidden relative border border-white/5 group">
+                        https://lh3.googleusercontent.com/aida/AP1WRLvvy9zz39WVvXZWMKZ-8rfUurxtS6LEuzDiIs6BA9Ah4Uf5fXzX5FHWtPEOhxPaCRcm0N0y_GHdAq4mub0FI4H4eUpsRJeRC-Fs-V2BWfPNTfBIa3rZ-ntwDZXsMqSFGkvmKJlxadwHCAeFBNxVcmMs25eYY9jF2pjdsRqvvxt0W4ys4D7b7-g_q95mTKjGvc93tav023JuCYqgJFgxCoycOQW_FpsHSJ12azeBsY-IKg1DLUFV8QgUhR1P
+                        <div class="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
+<div class="absolute bottom-4 left-4 p-2 bg-surface-glass backdrop-blur-md rounded-lg border border-white/10">
+<p class="text-[10px] font-bold text-primary tracking-widest uppercase">Asset: Strategy Funnel</p>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-8">
+<div class="h-[600px] rounded-2xl overflow-hidden relative border border-white/5 group">
+                        https://lh3.googleusercontent.com/aida/AP1WRLusGtVcbyCheNoHGxcseaPCnjkuJ-hZH6IsD1wS20vOuN28LIhhxfdzW0HJMuZsGDO2VXgdiBNndA5gdm-kRJKMkJlVYxVAKvXQFVkzyzeBjzTZZVAZzlZETp3mlkb-0FqC9YjMMirbttXBvU86rjjXfJuPbW8vdQ3Z4FfFmDlcAmty6UajpBzQ5D4Fq5v530znG_RGwTVMqXv67j8XZ0hvXJuPf00DxFL4EhlFOT06REG8ocbgx3MxXnGN
+                        <div class="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-10 left-10">
+<p class="text-primary font-label-md text-label-md uppercase tracking-widest mb-3">Team &amp; Leadership</p>
+<h4 class="font-display-lg text-4xl text-white mb-2">The Human Component of Technology</h4>
+<p class="text-on-surface-variant max-w-lg">Defining leadership through precision, clarity, and industrial-grade intelligence.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<footer class="w-full py-16 px-container-padding-md border-t border-white/5 bg-surface-container-lowest">
+<div class="max-w-max-content-width mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+<div class="text-center md:text-left">
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Assessoria LP</h2>
+<p class="text-on-surface-variant font-body-md text-body-md mt-2">© 2024 Assessoria LP. Kinetic Emerald Visual Standards.</p>
+</div>
+<div class="flex gap-10">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md uppercase tracking-widest" href="#">Privacy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md uppercase tracking-widest" href="#">Terms</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-md text-label-md uppercase tracking-widest" href="#">Support</a>
+</div>
+</div>
+</footer>
+</main>
+<div class="fixed inset-0 pointer-events-none z-[-1] opacity-40">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(79,223,155,0.08)_0%,_transparent_70%)]"></div>
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_100%_100%,_rgba(75,139,255,0.08)_0%,_transparent_70%)]"></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-10');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+            observer.observe(section);
+        });
+    });
+</script>
+</body></html>
