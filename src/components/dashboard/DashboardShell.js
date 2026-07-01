@@ -15113,10 +15113,11 @@ export default function DashboardShell({
   const renderWeeklyClientPanel = () => (
     <section className="weekly-dashboard-panel">
       <div className="weekly-command-center glass-panel">
-        <div className="weekly-command-heading">
-          <span className="eyebrow weekly-icon-label"><i className="bx bx-pulse"></i>Operação semanal</span>
-          <h2>Controle da Operação</h2>
-          <p>Leitura executiva da semana, saúde da carteira e custos de aquisição por cliente em uma rotina de segunda a domingo.</p>
+        <div className="weekly-command-heading" style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <span className="management-hero-kicker"><i className="bx bx-pulse" style={{ marginRight: 5 }}></i>Operação semanal</span>
+          <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Controle da Operação</h2>
+          <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Leitura executiva da semana, saúde da carteira e custos de aquisição por cliente em uma rotina de segunda a domingo.</p>
         </div>
 
         {/* Churn card — grid-column 1, grid-row 2, aligns with weekly-command-grid */}
@@ -19467,9 +19468,11 @@ export default function DashboardShell({
         {activeTab === 'operacao' && (
           <section className="clients-layout operations-module">
             <div className="operation-stellar-shell">
-              <div className="operation-stellar-hero">
+              <div className="operation-stellar-hero" style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div className="operation-stellar-hero-copy">
-                  <h2 style={isLightAppMode ? { color: '#0f172a' } : undefined}>Operations Board</h2>
+                  <span className="management-hero-kicker"><i className="bx bx-grid-alt" style={{ marginRight: 5 }}></i>Operação</span>
+                  <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900, ...(isLightAppMode ? { color: '#0f172a' } : {}) }}>Operations Board</h2>
                   <div className="operation-stellar-tabs">
                     <button
                       type="button"
@@ -19725,11 +19728,12 @@ export default function DashboardShell({
 
         {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <section className="campaign-overview-page ads-overview-page">
-            <div className="ads-overview-hero campaign-overview-hero glass-panel">
-              <div className="ads-overview-hero-copy">
-                <span className="management-card-kicker">Mapa de mídia</span>
-                <h2>Campanhas por cliente</h2>
-                <p>Clientes ordenados pela saúde do input semanal, com campanhas, conjuntos e anúncios ativos dentro do período selecionado.</p>
+            <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div>
+                <span className="management-hero-kicker"><i className="bx bx-broadcast" style={{ marginRight: 5 }}></i>Mapa de mídia</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Campanhas por cliente</h2>
+                <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Clientes ordenados pela saúde do input semanal, com campanhas, conjuntos e anúncios ativos dentro do período selecionado.</p>
               </div>
               <div className="ads-overview-hero-actions">
                 {draftDateRange === 'custom' && (
@@ -20352,11 +20356,12 @@ export default function DashboardShell({
 
         {activeTab === 'anuncios' && (isMaster || hasNavAccess('anuncios')) && (
           <section className="ads-overview-page">
-            <div className="ads-overview-hero glass-panel">
-              <div className="ads-overview-hero-copy">
-                <span className="management-card-kicker">Criativos em veiculação</span>
-                <h2>Top 5 anúncios por cliente</h2>
-                <p>Anúncios com investimento dentro do período selecionado, ordenados pela saúde da carteira para priorizar leitura.</p>
+            <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div>
+                <span className="management-hero-kicker"><i className="bx bx-image-alt" style={{ marginRight: 5 }}></i>Criativos em veiculação</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Top 5 anúncios por cliente</h2>
+                <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Anúncios com investimento dentro do período selecionado, ordenados pela saúde da carteira para priorizar leitura.</p>
               </div>
               <div className="ads-overview-hero-actions">
                 {draftDateRange === 'custom' && (
@@ -20549,11 +20554,12 @@ export default function DashboardShell({
 
         {activeTab === 'saldos' && (isMaster || hasNavAccess('saldos')) && (
           <section className="ad-balance-page">
-            <div className="ad-balance-hero glass-panel">
-              <div className="ad-balance-hero-copy">
-                <span className="management-card-kicker">Controle financeiro de mídia</span>
-                <h2>Saldo das contas de anúncio</h2>
-                <p>Separe contas pré-pagas por fundos disponíveis e contas pós-pagas por saldo devedor e forma de pagamento.</p>
+            <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div>
+                <span className="management-hero-kicker"><i className="bx bx-wallet" style={{ marginRight: 5 }}></i>Controle financeiro de mídia</span>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Saldo das contas de anúncio</h2>
+                <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Separe contas pré-pagas por fundos disponíveis e contas pós-pagas por saldo devedor e forma de pagamento.</p>
               </div>
               <button
                 type="button"
@@ -22196,17 +22202,18 @@ export default function DashboardShell({
 
         {activeTab === 'apresentacao' && (isMaster || hasNavAccess('apresentacao')) && (
           <div ref={dashboardRef} className="dashboard-pdf-export-area" data-dashboard-pdf-area="true">
-            <section className="glass-panel hero-panel">
+            <section className="glass-panel hero-panel" style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
               <div className="hero-copy">
                 {activeClient?.logoUrl && (
                   <div className="hero-logo-wrap">
                     <img src={activeClient.logoUrl} alt={`Logo ${activeClient.name}`} className="hero-logo" />
                   </div>
                 )}
-                <span className="hero-badge" style={{ color: currentTheme.main, borderColor: currentTheme.main }}>
-                  {`Dashboard ${activeClient?.name || 'do cliente'}`}
+                <span className="management-hero-kicker" style={{ color: currentTheme.main, borderColor: currentTheme.main }}>
+                  <i className="bx bx-layout" style={{ marginRight: 5 }}></i>{`Dashboard ${activeClient?.name || 'do cliente'}`}
                 </span>
-                <h2>{activeClient?.name || 'Selecione um cliente'}</h2>
+                <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>{activeClient?.name || 'Selecione um cliente'}</h2>
               </div>
               {!activeClientUsesManualCrm && (
                 <div className="hero-meta">
