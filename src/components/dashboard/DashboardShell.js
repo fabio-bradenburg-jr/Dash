@@ -21473,7 +21473,7 @@ export default function DashboardShell({
                     </div>
                   </div>
 
-                  <div className="integration-block">
+                  <div className="integration-block leads-sheet-integration-block">
                     <div className="integration-heading">
                       <div className="integration-icon" style={{ color: '#22c55e', borderColor: '#22c55e33' }}>
                         <i className="bx bx-table"></i>
@@ -37523,7 +37523,8 @@ export default function DashboardShell({
         }
         .simple-client-modal .client-identity-block,
         .simple-client-modal .manual-crm-toggle-block,
-        .simple-client-modal .agendor-integration-block {
+        .simple-client-modal .agendor-integration-block,
+        .simple-client-modal .leads-sheet-integration-block {
           grid-column: 1 / -1;
         }
         .simple-client-modal .integration-block {

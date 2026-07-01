@@ -82,15 +82,24 @@ async function fetchSheetText(url, gidOverride) {
 }
 
 async function fetchAllTabGids(sheetId) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`
-  const res = await fetch(url, { cache: 'no-store', headers: { 'User-Agent': 'Mozilla/5.0' } })
-  if (!res.ok) return []
-  const html = await res.text()
-  const gids = new Set()
-  const p = /"sheetId"\s*:\s*(\d+)/g
-  let m
-  while ((m = p.exec(html)) !== null) gids.add(m[1])
-  return Array.from(gids)
+  // Google sometimes embeds the sheet metadata as an escaped JSON string inside a <script> tag
+  // (\"sheetId\":0 — with backslashes before the quotes), so tolerate an optional backslash here
+  // too, and fall back to pubhtml when htmlview doesn't surface any tab metadata at all.
+  const tryUrl = async (path) => {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/${path}`
+    const res = await fetch(url, { cache: 'no-store', headers: { 'User-Agent': 'Mozilla/5.0' } })
+    if (!res.ok) return []
+    const html = await res.text()
+    const gids = new Set()
+    const p = /\\?"sheetId\\?"\s*:\s*(\d+)/g
+    let m
+    while ((m = p.exec(html)) !== null) gids.add(m[1])
+    return Array.from(gids)
+  }
+
+  const fromHtmlview = await tryUrl('htmlview')
+  if (fromHtmlview.length) return fromHtmlview
+  return tryUrl('pubhtml')
 }
 
 function mergeAnalytics(results) {
