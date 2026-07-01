@@ -3317,17 +3317,20 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
                   {isMapped && <i className="bx bx-check-circle leads-column-map-badge is-mapped" title="Mapeado manualmente"></i>}
                   {isAuto && <i className="bx bx-magic-wand leads-column-map-badge is-auto" title="Detectado automaticamente"></i>}
                 </span>
-                <select
-                  className="client-select-input"
-                  value={columnMap[field.key] || ''}
-                  onChange={(event) => onFieldChange('leadsSheetColumnMap', { ...columnMap, [field.key]: event.target.value })}
-                  disabled={disabled || !headers.length}
-                >
-                  <option value="">{detected[field.key] ? `Auto: ${detected[field.key]}` : 'Não mapear'}</option>
-                  {headers.map((header) => (
-                    <option key={header} value={header}>{header}</option>
-                  ))}
-                </select>
+                <div className={'leads-column-map-select-wrap' + (isMapped ? ' is-mapped' : '')}>
+                  <select
+                    className="client-select-input leads-column-map-select"
+                    value={columnMap[field.key] || ''}
+                    onChange={(event) => onFieldChange('leadsSheetColumnMap', { ...columnMap, [field.key]: event.target.value })}
+                    disabled={disabled || !headers.length}
+                  >
+                    <option value="">{detected[field.key] ? `Auto: ${detected[field.key]}` : 'Não mapear'}</option>
+                    {headers.map((header) => (
+                      <option key={header} value={header}>{header}</option>
+                    ))}
+                  </select>
+                  <i className="bx bx-chevron-down leads-column-map-select-chevron"></i>
+                </div>
               </div>
             )
           })}
@@ -34992,11 +34995,54 @@ export default function DashboardShell({
           color: #60a5fa;
         }
 
-        .leads-column-map-field .client-select-input {
+        .leads-column-map-select-wrap {
+          position: relative;
+          display: flex;
+        }
+
+        .leads-column-map-select {
           min-height: 40px;
-          padding: 0 10px;
+          padding: 0 30px 0 10px;
           font-size: 12.5px;
           border-radius: 10px;
+          appearance: none;
+          cursor: pointer;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .leads-column-map-select:hover {
+          border-color: rgba(38, 194, 129, 0.35);
+        }
+
+        .leads-column-map-select:focus {
+          outline: none;
+          border-color: rgba(38, 194, 129, 0.55);
+          box-shadow: 0 0 0 3px rgba(38, 194, 129, 0.14);
+        }
+
+        .leads-column-map-select:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .leads-column-map-select-chevron {
+          position: absolute;
+          right: 9px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 16px;
+          color: rgba(241, 241, 241, 0.4);
+          pointer-events: none;
+        }
+
+        .leads-column-map-select-wrap.is-mapped .leads-column-map-select {
+          border-color: rgba(38, 194, 129, 0.4);
+          background: rgba(38, 194, 129, 0.06);
+          color: #6ffcb5;
+        }
+
+        .leads-column-map-select-wrap.is-mapped .leads-column-map-select-chevron {
+          color: #26c281;
         }
 
         .form-alert {
