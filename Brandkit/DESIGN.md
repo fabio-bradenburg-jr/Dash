@@ -99,12 +99,14 @@ typography:
     lineHeight: 12px
     letterSpacing: 0.1em
 rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
-  full: 9999px
+  sm: 0.25rem         # badge / chip pequeno
+  DEFAULT: 0.5rem     # elementos inline
+  md: 0.625rem        # input / select / filtro chip → 10px
+  lg: 0.75rem         # stat card / avatar → 12px
+  xl: 1rem            # glass-panel / cards → 16px
+  2xl: 1.25rem        # modais / hero cards → 20px
+  3xl: 1.5rem         # modal principal → 24px
+  full: 9999px        # botões pill / badges
 spacing:
   base-unit: 4px
   gutter: 20px
@@ -112,6 +114,16 @@ spacing:
   container-padding-md: 24px
   max-content-width: 1440px
   section-gap: 96px
+---
+
+## Fonte Oficial de Identidade Visual
+
+> A aba **Dados** (seção Clientes → tab Dados, incluindo o modal de edição de cliente) é o **Design System oficial da plataforma**. Toda nova tela, funcionalidade ou componente deve replicar exatamente a linguagem visual observada ali.
+>
+> Antes de criar qualquer componente: verifique se já existe um equivalente na aba Dados e reutilize sua estrutura, proporções e comportamento. **Consistência visual acima de inovação estética.**
+>
+> Referência detalhada de implementação: [`DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md)
+
 ---
 
 ## Brand & Style
@@ -153,6 +165,85 @@ Borders are critical for structure; use ultra-thin (1px) white borders at 5% opa
 The shape language is **Refined and Rounded**. Standard containers and glass cards use a 1rem (16px) radius to soften the industrial aesthetic. 
 
 Interactive elements like buttons and "Manual Version" tags use a **Pill-shaped (Full)** radius, creating a distinct visual contrast between structural containers and actionable items. The "Accent Border" (3px solid emerald top-border) is used on primary content blocks to ground the floating glass cards.
+
+## Componentes Oficiais (Dados como Referência)
+
+Os tokens abaixo foram extraídos diretamente do código da aba Dados e são os valores canônicos a usar.
+
+### Hero Header de Seção
+```
+background: linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)
+border-bottom: 1px solid rgba(38,194,129,0.12)
+padding: 28px 28px 20px
+decoração radial: top:-50px right:-50px; 200×200px; rgba(38,194,129,0.08)
+```
+
+### Kicker (label de seção)
+```
+font-size: 0.62rem | font-weight: 700 | text-transform: uppercase
+letter-spacing: 0.08em | color: #26c281 | opacity: 0.85
+```
+
+### Título de seção
+```
+font-size: clamp(1.4rem, 2.5vw, 1.9rem) | font-weight: 900
+```
+
+### Subtítulo
+```
+font-size: 0.88rem | opacity: 0.48
+```
+
+### Stat Card
+```
+padding: 12px 16px | border-radius: 12px
+background: rgba(23,25,35,0.8) | border: 1px solid rgba(255,255,255,0.07)
+label: 0.65rem / 700 / uppercase / opacity 0.50
+valor: 1.5rem / 900 / color #26c281
+```
+
+### Input de Busca
+```
+padding: 8px 12px 8px 42px | border-radius: 10px
+border: 1px solid rgba(129,216,167,0.18) | background: rgba(255,255,255,0.05)
+font-size: 0.88rem | ícone bx-search absoluto: left 14px, opacity 0.4
+```
+
+### Chip de Filtro
+```
+padding: 7px 12px | border-radius: 9px | font-size: 0.78rem | font-weight: 700
+inativo:  border rgba(255,255,255,0.08) | bg transparent | color rgba(255,255,255,0.5)
+ativo:    border rgba(38,194,129,0.4)   | bg rgba(38,194,129,0.15) | color #26c281
+```
+
+### Header de Tabela
+```
+font-size: 0.68rem | font-weight: 700 | text-transform: uppercase
+letter-spacing: 0.08em | opacity: 0.35
+border-bottom: 1px solid rgba(255,255,255,0.05) | padding: 12px 24px 8px
+```
+
+### Linha de Tabela
+```
+padding: 14px 24px | border-bottom: 1px solid rgba(255,255,255,0.04)
+hover background: rgba(255,255,255,0.025) | transition: background 0.15s
+```
+
+### Avatar / Ícone de Item
+```
+width: 40px | height: 40px | border-radius: 10px
+background: rgba(38,194,129,0.12) | border: 1px solid rgba(38,194,129,0.25)
+```
+
+### Header de Modal
+```
+background: linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)
+border-bottom: 1px solid rgba(38,194,129,0.12) | padding: 20px 24px 16px
+decoração radial: top:-30px right:-30px; 120×120px
+título: 1.1rem / 900 | subtítulo: 0.8rem / opacity 0.45
+```
+
+---
 
 ## Components
 

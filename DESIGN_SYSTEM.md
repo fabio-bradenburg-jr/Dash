@@ -1,26 +1,24 @@
 # Design System — Dash
+## Fonte oficial: Aba Dados (Clientes → tab Dados)
 
-Diretrizes visuais do app. Use como referência ao criar ou modificar componentes.
+> **REGRA INEGOCIÁVEL:** Antes de criar qualquer componente, verifique se já existe um equivalente na aba Dados. Reutilize sua estrutura, proporções e comportamento. Consistência acima de inovação.
 
----
-
-## Identidade Visual
-
-O design é baseado no padrão estabelecido no checklist de onboarding: **dark, gradientes sutis, acento emerald (#26c281), nuvem radial no topo dos cards e bordas coloridas semi-transparentes.**
+A aba **Dados** (renderizada como `clientRegistryView === 'dados'` em `DashboardShell.js`, junto com o modal de edição de cliente em `isEditClientModalOpen`) é a fonte oficial de identidade visual. Toda nova tela ou componente deve seguir exatamente a linguagem visual observada ali.
 
 ---
 
 ## Tokens de Cor
 
 ```css
---saas-primary:   #26c281   /* Emerald principal — botões, borders, kickers */
---saas-accent:    #4fdf9b   /* Emerald claro */
---accent-rgb:     38,194,129
-
 /* Backgrounds */
 --bg-dark:        #050506
 --bg-panel:       #111113
 --shell-sidebar:  rgba(8,8,10,0.95)
+
+/* Accent / Brand */
+--saas-primary:   #26c281   /* Emerald — botões, borders, kickers, highlights */
+--saas-accent:    #4fdf9b   /* Emerald claro — primary token */
+--accent-rgb:     38,194,129
 
 /* Texto */
 --text-primary:   #f5f5f7
@@ -28,7 +26,13 @@ O design é baseado no padrão estabelecido no checklist de onboarding: **dark, 
 --text-muted:     rgba(245,245,247,0.44)
 
 /* Bordas */
---border-color:   rgba(255,255,255,0.07)
+--border-color:      rgba(255,255,255,0.07)
+--border-color-soft: rgba(255,255,255,0.04)   /* linhas de tabela / separadores */
+--border-emerald:    rgba(38,194,129,0.12)     /* bordas com identidade */
+--border-emerald-md: rgba(38,194,129,0.18)     /* inputs de busca */
+--border-emerald-hi: rgba(38,194,129,0.40)     /* filtro ativo */
+
+/* Radii */
 --panel-radius:   20px
 ```
 
@@ -42,7 +46,21 @@ O design é baseado no padrão estabelecido no checklist de onboarding: **dark, 
 
 ---
 
-## Gradientes de Fundo (Background Globals)
+## Hierarquia de Border Radius
+
+| Elemento                       | Raio       |
+|--------------------------------|------------|
+| Modal / card principal         | `24px`     |
+| Hero de seção / header         | `16–24px`  |
+| Stat card / glass-panel        | `12–16px`  |
+| Avatar / ícone de client       | `10px`     |
+| Input / select / filtro chip   | `9–10px`   |
+| Badge / chip / pill / botão    | `9999px`   |
+| Barra de progresso             | `6px`      |
+
+---
+
+## Gradientes de Fundo
 
 ### Dashboard global (`.dashboard-container::before`)
 ```css
@@ -53,7 +71,7 @@ background:
   radial-gradient(circle at 55% 100%, rgba(255,255,255,0.03), transparent 30%);
 ```
 
-### Sidebar (`.sidebar`)
+### Sidebar
 ```css
 background:
   radial-gradient(ellipse 160% 40% at 50% 0%, rgba(38,194,129,0.12) 0%, transparent 60%),
@@ -64,95 +82,122 @@ background:
 
 ---
 
-## Padrão de Hero Header (Seção / Aba)
+## Padrão de Hero Header — Fonte: Aba Dados
 
-Toda aba deve ter um bloco hero no topo com:
-- Fundo com gradiente escuro + nuvem radial emerald no canto superior esquerdo
-- Borda emerald semi-transparente
-- Decoração radial absoluta no canto superior direito
-- Kicker (label) uppercase emerald
-- Título bold grande
-- Subtítulo com opacidade reduzida
+Todo header de seção replica este padrão extraído da aba Dados:
 
-### CSS base
+```jsx
+// Estrutura JSX padrão
+<div style={{
+  padding: '28px 28px 20px',
+  borderBottom: '1px solid rgba(38,194,129,0.12)',
+  background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)',
+  position: 'relative',
+  overflow: 'hidden',
+}}>
+  {/* Decoração radial no canto */}
+  <div style={{
+    position: 'absolute', top: -50, right: -50,
+    width: 200, height: 200, borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)',
+    pointerEvents: 'none',
+  }} />
+
+  <span className="management-hero-kicker">
+    <i className="bx bx-[icon]" style={{ marginRight: 5 }}></i>LABEL
+  </span>
+  <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>
+    Título da seção
+  </h2>
+  <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>
+    Subtítulo descritivo.
+  </p>
+</div>
+```
+
+### CSS base (alternativa com classes)
 ```css
-.minha-hero {
-  padding: 28px;
-  border-radius: 24px;
-  border: 1px solid rgba(38,194,129,0.2);
-  background:
-    radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.13) 0%, transparent 60%),
-    linear-gradient(145deg, rgba(13,17,16,0.97), rgba(7,9,8,0.93));
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(38,194,129,0.06);
+.section-hero {
+  padding: 28px 28px 20px;
+  border-bottom: 1px solid rgba(38,194,129,0.12);
+  background: linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%);
   position: relative;
   overflow: hidden;
 }
-
-/* Decoração radial no canto direito */
-.minha-hero::after {
+.section-hero::after {
   content: '';
   position: absolute;
-  top: -60px; right: -60px;
-  width: 220px; height: 220px;
+  top: -50px; right: -50px;
+  width: 200px; height: 200px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 ```
 
-### Kicker (label acima do título)
+### Classes prontas (globals.css)
+- `.management-hero` — hero com gradiente emerald
+- `.management-header-row` — header com título + botão de ação
+- `.management-hero-kicker` — label kicker emerald uppercase
+
+---
+
+## Kicker (Label de Seção)
+
 ```css
 .kicker {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   color: var(--saas-primary);
-  opacity: 0.9;
+  opacity: 0.85;
   margin-bottom: 6px;
 }
 ```
 
-### Classes prontas disponíveis (globals.css)
-- `.management-hero` — hero com gradiente emerald (usado em Usuários)
-- `.management-header-row` — header com título + botão de ação (usado em Clientes)
-- `.management-card-kicker` — label kicker emerald uppercase
-
 ---
 
-## Cards de Estatística
+## Cards de Estatística — Fonte: Aba Dados
 
-### Padrão emerald (`.management-stat-card`)
+```jsx
+// Grid de stat cards (padrão Dados)
+<div style={{
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+  gap: 12,
+  margin: '20px 0 4px',
+}}>
+  <div className="management-stat-card" style={{ gap: 6 }}>
+    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5 }}>
+      <i className="bx bx-[icon]" style={{ color: '#26c281', fontSize: 13 }}></i>
+      Label
+    </span>
+    <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#26c281', lineHeight: 1 }}>
+      {value}
+    </span>
+  </div>
+</div>
+```
+
 ```css
+/* globals.css — já disponível */
 .management-stat-card {
   padding: 12px 16px;
   border-radius: 12px;
-  background: rgba(38,194,129,0.06);
-  border: 1px solid rgba(38,194,129,0.14);
+  background: var(--bg-secondary, rgba(23,25,35,0.8));
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 4px;
   transition: border-color 0.2s;
 }
-.management-stat-card:hover {
-  border-color: rgba(38,194,129,0.28);
-}
-.management-stat-card small {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  opacity: 0.45;
-}
-.management-stat-card strong {
-  font-size: 1.55rem;
-  font-weight: 900;
-  color: var(--saas-primary);
-  line-height: 1;
-}
+.management-stat-card:hover { border-color: rgba(255,255,255,0.1); }
+.management-stat-card small  { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.45; }
+.management-stat-card strong { font-size: 1.55rem; font-weight: 900; color: var(--saas-primary); line-height: 1; }
 ```
 
 ### Card com nuvem radial (padrão completo)
@@ -172,44 +217,171 @@ Toda aba deve ter um bloco hero no topo com:
 }
 ```
 
-### Cards coloridos por estado (ex: saldos)
-Adicione `danger`, `warning` ou `success` como classe extra:
-```css
-/* Perigo — vermelho */
-.card.danger {
-  background:
-    radial-gradient(ellipse 140% 65% at 50% -10%, rgba(239,68,68,0.18) 0%, transparent 65%),
-    rgba(239,68,68,0.05);
-  border-color: rgba(239,68,68,0.28);
-}
-/* Atenção — laranja */
-.card.warning {
-  background:
-    radial-gradient(ellipse 140% 65% at 50% -10%, rgba(245,158,11,0.18) 0%, transparent 65%),
-    rgba(245,158,11,0.05);
-  border-color: rgba(245,158,11,0.28);
-}
-/* Sucesso — verde */
-.card.success {
-  background:
-    radial-gradient(ellipse 140% 65% at 50% -10%, rgba(38,194,129,0.18) 0%, transparent 65%),
-    rgba(38,194,129,0.05);
-  border-color: rgba(38,194,129,0.28);
-}
+---
+
+## Barra de Filtros — Fonte: Aba Dados
+
+```jsx
+<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 18 }}>
+
+  {/* Input de busca */}
+  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
+    <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
+    <input
+      type="text"
+      placeholder="Buscar..."
+      style={{
+        width: '100%',
+        padding: '8px 12px 8px 42px',
+        borderRadius: 10,
+        border: '1px solid rgba(129,216,167,0.18)',
+        background: 'rgba(255,255,255,0.05)',
+        color: 'inherit',
+        fontSize: '0.88rem',
+        outline: 'none',
+        boxSizing: 'border-box',
+      }}
+    />
+  </div>
+
+  {/* Chips de filtro */}
+  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+    {filters.map((f) => (
+      <button
+        key={f.id}
+        type="button"
+        onClick={() => setFilter(f.id)}
+        style={{
+          padding: '7px 12px',
+          borderRadius: 9,
+          border: `1px solid ${active === f.id ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.08)'}`,
+          background: active === f.id ? 'rgba(38,194,129,0.15)' : 'transparent',
+          color: active === f.id ? '#26c281' : 'rgba(255,255,255,0.5)',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {f.label} <span style={{ opacity: 0.6 }}>({f.count})</span>
+      </button>
+    ))}
+  </div>
+</div>
+```
+
+---
+
+## Tabela de Dados — Fonte: Aba Dados
+
+```jsx
+{/* Header da tabela */}
+<div style={{
+  display: 'grid',
+  gridTemplateColumns: '1fr 160px 160px 120px 130px', /* ajuste conforme colunas */
+  gap: 12,
+  padding: '12px 24px 8px',
+  borderBottom: '1px solid rgba(255,255,255,0.05)',
+}}>
+  {['Coluna A', 'Coluna B', 'Coluna C'].map(h => (
+    <span key={h} style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.35 }}>
+      {h}
+    </span>
+  ))}
+</div>
+
+{/* Linha de tabela */}
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 160px 160px 120px 130px',
+    gap: 12,
+    padding: '14px 24px',
+    borderBottom: '1px solid rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    transition: 'background 0.15s',
+  }}
+  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+>
+  {/* conteúdo das células */}
+</div>
+```
+
+### Avatar / ícone de item
+```jsx
+<span style={{
+  width: 40, height: 40, borderRadius: 10,
+  background: 'rgba(38,194,129,0.12)',
+  border: '1px solid rgba(38,194,129,0.25)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0, overflow: 'hidden',
+}}>
+  <i className="bx bx-building-house" style={{ fontSize: 18, color: '#26c281', opacity: 0.8 }}></i>
+</span>
+```
+
+---
+
+## Modal de Cadastro / Edição — Fonte: Modal Dados
+
+### Estrutura do header do modal
+```jsx
+<div className="modal-header" style={{
+  background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)',
+  borderBottom: '1px solid rgba(38,194,129,0.12)',
+  padding: '20px 24px 16px',
+  position: 'relative',
+  overflow: 'hidden',
+}}>
+  <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 36 }}>
+    {/* avatar */}
+    <div>
+      <span className="management-hero-kicker" style={{ fontSize: '0.68rem', marginBottom: 2 }}>
+        <i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar item
+      </span>
+      <h3 style={{ margin: '2px 0 3px', fontSize: '1.1rem', fontWeight: 900 }}>Título</h3>
+      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.45 }}>Subtítulo descritivo.</p>
+    </div>
+  </div>
+</div>
+```
+
+### Bloco de integração (seção dentro do form)
+Usa `.integration-block` + `.integration-heading` + `.integration-icon` (classes já definidas em globals.css):
+```jsx
+<div className="integration-block">
+  <div className="integration-heading">
+    <div className="integration-icon" style={{ color: '#26c281', borderColor: 'rgba(38,194,129,0.2)' }}>
+      <i className="bx bx-[icon]"></i>
+    </div>
+    <div>
+      <h3>Título do bloco</h3>
+      <p>Descrição breve.</p>
+    </div>
+  </div>
+  <div className="input-group">
+    <label>Campo</label>
+    <input type="text" placeholder="..." />
+  </div>
+</div>
 ```
 
 ---
 
 ## Glass Panel
 
-O `.glass-panel` é o card genérico. No dark mode:
 ```css
-background: var(--bg-panel);          /* #111113 */
-border: 1px solid var(--border-color); /* rgba(255,255,255,0.07) */
-border-radius: var(--panel-radius);    /* 20px */
+.glass-panel {
+  background: var(--bg-panel);           /* #111113 */
+  border: 1px solid var(--border-color); /* rgba(255,255,255,0.07) */
+  border-radius: var(--panel-radius);    /* 20px */
+}
 ```
 
-Para dar identidade, adicione classes como `.management-directory-card`:
+Com identidade emerald:
 ```css
 .management-directory-card {
   border: 1px solid rgba(38,194,129,0.12) !important;
@@ -219,9 +391,50 @@ Para dar identidade, adicione classes como `.management-directory-card`:
 
 ---
 
-## Nuvem Radial — Receita
+## Botões
 
-A "nuvem" é sempre um `radial-gradient` elíptico no topo do elemento:
+```css
+/* Primário */
+.btn-primary {
+  background: var(--saas-primary);   /* #26c281 */
+  color: #003821;
+  border-radius: 9999px;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  border: none;
+}
+.btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+
+/* Secundário / ghost */
+.btn-secondary {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9999px;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.12); }
+```
+
+---
+
+## Tipografia de Interface
+
+| Elemento        | Tamanho             | Peso | Observação                            |
+|-----------------|---------------------|------|---------------------------------------|
+| Kicker          | `0.62rem`           | 700  | uppercase, `letter-spacing: 0.08em`   |
+| Título hero     | `clamp(1.4rem,2.5vw,1.9rem)` | 900 | responsivo                  |
+| Título modal    | `1.1rem`            | 900  |                                       |
+| Subtítulo       | `0.80–0.88rem`      | 400  | `opacity: 0.45–0.48`                  |
+| Header tabela   | `0.68rem`           | 700  | uppercase, `opacity: 0.35`            |
+| Label stat      | `0.65rem`           | 700  | uppercase, `opacity: 0.45–0.50`       |
+| Número stat     | `1.5–1.55rem`       | 900  | `color: var(--saas-primary)`          |
+| Body / input    | `0.85–0.90rem`      | 400  |                                       |
+| Chip filtro     | `0.78rem`           | 700  |                                       |
+
+---
+
+## Nuvem Radial — Receita
 
 ```css
 /* Topo centralizado (headers de seção) */
@@ -230,32 +443,27 @@ radial-gradient(ellipse 100% 55% at 50% -10%, rgba(38,194,129,0.13) 0%, transpar
 /* Topo esquerdo (hero cards) */
 radial-gradient(ellipse 100% 55% at 15% -10%, rgba(38,194,129,0.13) 0%, transparent 60%)
 
-/* Decoração de canto (absoluta, via ::after) */
-position: absolute; top: -60px; right: -60px;
-width: 220px; height: 220px; border-radius: 50%;
+/* Decoração de canto (div absoluta) */
+position: absolute; top: -50px; right: -50px;
+width: 200px; height: 200px; border-radius: 50%;
 background: radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%);
 ```
 
 **Intensidades:**
-- Headers principais: `0.13–0.14` (mais visível)
-- Cards de stat: `0.10–0.12` (médio)
-- Shells / painéis grandes: `0.06–0.08` (sutil)
+- Headers principais: `0.13–0.14`
+- Cards de stat: `0.10–0.12`
+- Shells / painéis grandes: `0.06–0.08`
 
 ---
 
-## Botões de Ação (Barra colorida no topo)
+## Cards de Estado (danger / warning / success)
 
-Para cards com indicador de estado visual, use `::before`:
 ```css
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 16px 16px 0 0;
-  background: transparent;
-  transition: background 0.2s;
-}
+.card.danger  { background: radial-gradient(ellipse 140% 65% at 50% -10%, rgba(239,68,68,0.18) 0%, transparent 65%), rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.28); }
+.card.warning { background: radial-gradient(ellipse 140% 65% at 50% -10%, rgba(245,158,11,0.18) 0%, transparent 65%), rgba(245,158,11,0.05); border-color: rgba(245,158,11,0.28); }
+.card.success { background: radial-gradient(ellipse 140% 65% at 50% -10%, rgba(38,194,129,0.18) 0%, transparent 65%), rgba(38,194,129,0.05); border-color: rgba(38,194,129,0.28); }
+/* Barra de cor no topo */
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
 .card.danger::before  { background: rgba(248,113,113,0.9); }
 .card.warning::before { background: rgba(245,158,11,0.9); }
 .card.success::before { background: rgba(38,194,129,0.9); }
@@ -265,41 +473,33 @@ Para cards com indicador de estado visual, use `::before`:
 
 ## Light Mode
 
-Todas as classes com gradientes escuros têm override no light mode via:
 ```css
-:root[data-ui-mode='light'] .minha-hero {
+:root[data-ui-mode='light'] .section-hero {
   background: linear-gradient(135deg, rgba(38,194,129,0.05) 0%, rgba(255,255,255,0.97) 100%) !important;
   border-color: rgba(38,194,129,0.2) !important;
 }
 ```
 
-Regra geral: no light mode, o fundo fica branco/quase-branco, a borda emerald fica levemente mais forte, e o gradiente escuro some.
+Regra geral: fundo branco/quase-branco, borda emerald levemente mais forte, gradiente escuro some.
 
 ---
 
-## Hierarquia de Border Radius
+## Inventário de Componentes Existentes (Não Recriar)
 
-| Elemento                  | Raio      |
-|---------------------------|-----------|
-| Modal / card principal    | `24px`    |
-| Hero de seção             | `24–28px` |
-| Stat card / glass-panel   | `16–20px` |
-| Item de lista / input     | `10–12px` |
-| Badge / chip / pill       | `999px`   |
-| Barra de progresso        | `6px`     |
-
----
-
-## Tipografia de Interface
-
-| Elemento     | Tamanho        | Peso | Observação                        |
-|--------------|----------------|------|-----------------------------------|
-| Kicker       | `0.62rem`      | 800  | uppercase, `letter-spacing: 0.12em` |
-| Título hero  | `1.4–1.9rem`   | 900  | `clamp()` responsivo              |
-| Subtítulo    | `0.82–0.92rem` | 400  | `opacity: 0.48`                   |
-| Label stat   | `0.65rem`      | 700  | uppercase, `opacity: 0.45`        |
-| Número stat  | `1.55rem`      | 900  | `color: var(--saas-primary)`      |
-| Body         | `0.85–0.9rem`  | 400  | —                                 |
+| Componente                   | Classe / local                              | Onde é usado              |
+|------------------------------|---------------------------------------------|---------------------------|
+| Hero header                  | `.management-hero`, `.management-header-row` | Clientes, Usuários        |
+| Stat card                    | `.management-stat-card`                     | Clientes, Onboarding      |
+| Kicker label                 | `.management-hero-kicker`                   | Global                    |
+| Glass card                   | `.glass-panel`                              | Modais, cards             |
+| Bloco de integração          | `.integration-block` + `.integration-heading` + `.integration-icon` | Modal Dados |
+| Input group                  | `.input-group`                              | Formulários               |
+| Botão primário               | `.btn.btn-primary`                          | Global                    |
+| Botão secundário             | `.btn.btn-secondary`                        | Global                    |
+| Chip de filtro               | inline style (padrão Dados)                 | Clientes, Campanhas       |
+| Linha de tabela com hover    | inline style (padrão Dados)                 | Clientes                  |
+| Avatar 40×40 borderRadius 10 | inline style (padrão Dados)                 | Clientes                  |
+| Modal overlay                | `.modal-overlay` + `.modal-card`            | Global                    |
 
 ---
 
@@ -307,17 +507,15 @@ Regra geral: no light mode, o fundo fica branco/quase-branco, a borda emerald fi
 
 | Aba                   | Arquivo                          | Classe principal                      |
 |-----------------------|----------------------------------|---------------------------------------|
+| **Dados (referência)**| `DashboardShell.js` (clientes)   | inline + `.management-stat-card`      |
 | Clientes              | `DashboardShell.js` + globals    | `.management-header-row`              |
 | Usuários              | `DashboardShell.js` + globals    | `.management-hero`                    |
-| Onboarding            | `DashboardShell.js`              | inline styles + `.management-stat-card` |
-| Offboarding           | `DashboardShell.js`              | inline styles + `.management-stat-card` |
-| Controle da Operação  | `globals.css`                    | `.weekly-command-center`, `.weekly-client-result-card` |
-| Campanhas / Anúncios  | `DashboardShell.js` (embedded)   | `.ads-overview-hero`                  |
-| Saldos                | `DashboardShell.js` (embedded)   | `.ad-balance-hero`, `.ad-balance-account-card` |
-| Dash (cliente)        | `DashboardShell.js` (embedded)   | `.hero-panel`, `.hero-stat`           |
-| Social Media          | `EditorialCalendar.js`           | `.editorial-header`, `.editorial-stat-card` |
-| PAC                   | `PACCalendar.js`                 | `.pac-card`, `.pac-summary-card`      |
-| G.R — Tarefas         | `DashboardShell.js`              | inline header (indigo theme)          |
-| Configurações         | `settings/page.tsx`              | `.settings-block-hero`, `.settings-hero-kicker` |
-| Notas                 | `ClientNotesPanel.js`            | `.ios-notes-shell`, `.ios-notes-list-header` |
-| Busca                 | `assistant/page.tsx`             | `.assistant-shell`, `.assistant-empty` |
+| Onboarding            | `DashboardShell.js`              | inline + `.management-stat-card`      |
+| Controle da Operação  | `globals.css`                    | `.weekly-command-center`              |
+| Campanhas / Anúncios  | `DashboardShell.js`              | `.ads-overview-hero`                  |
+| Saldos                | `DashboardShell.js`              | `.ad-balance-hero`                    |
+| Dash (cliente)        | `DashboardShell.js`              | `.hero-panel`, `.hero-stat`           |
+| Social Media          | `EditorialCalendar.js`           | `.editorial-header`                   |
+| PAC                   | `PACCalendar.js`                 | `.pac-card`                           |
+| Configurações         | `settings/page.tsx`              | `.settings-block-hero`                |
+| Notas                 | `ClientNotesPanel.js`            | `.ios-notes-shell`                    |
