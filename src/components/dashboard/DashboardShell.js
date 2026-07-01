@@ -13460,8 +13460,13 @@ export default function DashboardShell({
     [campaigns]
   )
   const metaResultPreviewSeries = useMemo(
-    () => buildMetaResultComparisonSeries(dailyCampaignData, activeMetaResultPreviewConfig.resultMetricKey, metaResultGrouping, metaCampaignObjectiveMap, currentMetaResultWindow),
-    [activeMetaResultPreviewConfig, dailyCampaignData, metaCampaignObjectiveMap, metaResultGrouping, currentMetaResultWindow]
+    () => {
+      const filteredDaily = activeMetaCampaignIds.length > 0
+        ? dailyCampaignData.filter((item) => activeMetaCampaignIds.includes(item.campaign_id))
+        : dailyCampaignData
+      return buildMetaResultComparisonSeries(filteredDaily, activeMetaResultPreviewConfig.resultMetricKey, metaResultGrouping, metaCampaignObjectiveMap, currentMetaResultWindow)
+    },
+    [activeMetaResultPreviewConfig, dailyCampaignData, metaCampaignObjectiveMap, metaResultGrouping, currentMetaResultWindow, activeMetaCampaignIds]
   )
   const metaResultPreviewChartData = useMemo(
     () => ({
