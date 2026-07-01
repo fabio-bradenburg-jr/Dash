@@ -3,9 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
-import AssistantPage from '@/app/assistant/page'
 import SettingsPage from '@/app/settings/page'
-import ClientNotesPanel from '@/components/dashboard/ClientNotesPanel'
 import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
@@ -3341,7 +3339,7 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
 }
 
 export default function DashboardShell({
-  initialTab = 'assistant',
+  initialTab = 'clientes',
   initialActiveClientId = '',
   initialClientRecord = null,
   initialClientsOverride = null,
@@ -3352,7 +3350,7 @@ export default function DashboardShell({
   externalAppPanelColor = '',
   externalAppTextColor = '',
 }) {
-  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday', 'operacao'])
+  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday', 'operacao', 'assistant', 'notas'])
   const { user, profile, access, appearance, updateAppearance, loading: userLoading } = useUser()
   const supabase = createClient()
   const dashboardRef = useRef(null)
@@ -3376,7 +3374,7 @@ export default function DashboardShell({
 
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [activeTab, setActiveTab] = useState(REMOVED_TABS.has(initialTab) ? 'assistant' : initialTab)
+  const [activeTab, setActiveTab] = useState(REMOVED_TABS.has(initialTab) ? 'clientes' : initialTab)
   const [teamSubTab, setTeamSubTab] = useState('usuarios') // 'usuarios' | 'funcoes'
   const [dateRange, setDateRange] = useState('last_7d')
   const [draftDateRange, setDraftDateRange] = useState('last_7d')
@@ -3486,12 +3484,9 @@ export default function DashboardShell({
   const [isFunnelSectionOpen, setIsFunnelSectionOpen] = useState(false)
   const [isRdDiagnosticsOpen, setIsRdDiagnosticsOpen] = useState(false)
   const [isRdSourceFilterOpen, setIsRdSourceFilterOpen] = useState(false)
-  const currentAppMode = externalAppMode === 'light' || externalAppMode === 'dark'
-    ? externalAppMode
-    : appearance?.mode === 'light'
-      ? 'light'
-      : 'dark'
-  const isLightAppMode = currentAppMode === 'light'
+  // Light/dark switching was removed — the internal app is always dark. White-label tenants can
+  // still force light via externalAppMode, but internal users have no toggle anymore.
+  const isLightAppMode = externalAppMode === 'light'
   const [clients, setClients] = useState([])
   const [clientGroups, setClientGroups] = useState([])
   const [products, setProducts] = useState([])
@@ -3805,12 +3800,12 @@ export default function DashboardShell({
   const canEditActiveClient = activeClientId ? canEditClientRecord(activeClientId) : canManageClients
 
   useEffect(() => {
-    setActiveTab(REMOVED_TABS.has(initialTab) ? 'assistant' : initialTab)
+    setActiveTab(REMOVED_TABS.has(initialTab) ? 'clientes' : initialTab)
   }, [initialTab])
 
   useEffect(() => {
     if (REMOVED_TABS.has(activeTab)) {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
   }, [activeTab])
 
@@ -5011,7 +5006,6 @@ export default function DashboardShell({
   )
   const homeToolsMenuItems = useMemo(() => {
     const items = [
-      { key: 'assistant', label: 'AI Search', helper: 'Copiloto da operação', onClick: () => setActiveTab('assistant') },
       { key: 'apresentacao', label: 'Pitch Deck', helper: activeClient ? activeClient.name : 'Leitura executiva', onClick: () => setActiveTab('apresentacao') },
     ]
 
@@ -6899,23 +6893,23 @@ export default function DashboardShell({
 
   useEffect(() => {
     if ((activeTab === 'clientes' || activeTab === 'operacao') && !canAccessClientsTab) {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
 
     if (['operacao', 'clickup', 'calendar'].includes(activeTab)) {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
 
     if (activeTab === 'produtos' && !canManageClients) {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
 
     if (activeTab === 'usuarios' && !canAccessTeamTab) {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
 
     if (activeTab === 'integracoes') {
-      setActiveTab('assistant')
+      setActiveTab('clientes')
     }
   }, [activeTab, canAccessClientsTab, canManageClients, canAccessTeamTab])
 
@@ -12686,41 +12680,6 @@ export default function DashboardShell({
     previousInsights,
     previousCustomMetrics,
   ])
-  const handleGenerateAiInsights = async () => {
-    if (!isAiInsightsConfigured) {
-      setAiInsightsError('Configure provider, chave, endpoint e modelo na aba IA antes de gerar insights.')
-      setAiInsightsResult(null)
-      setIsAiInsightsModalOpen(true)
-      return
-    }
-
-    try {
-      setIsAiInsightsModalOpen(true)
-      setIsAiInsightsLoading(true)
-      setAiInsightsError('')
-      setAiInsightsResult(null)
-
-      const response = await fetch('/api/ai/dashboard-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dashboardAiInsightsPayload),
-      })
-
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Não foi possível gerar os insights da dashboard agora.')
-      }
-
-      setAiInsightsResult(data)
-    } catch (error) {
-      setAiInsightsError(error.message || 'Não foi possível gerar os insights da dashboard agora.')
-    } finally {
-      setIsAiInsightsLoading(false)
-    }
-  }
   const aiInsightsDateLabel = `${dashboardAiInsightsPayload.period?.since || '--'} ate ${dashboardAiInsightsPayload.period?.until || '--'}`
   const aiInsightsFilterLabel = (dashboardAiInsightsPayload.filters?.resultLabels || []).join(', ') || 'Todos os resultados'
   const aiHighlights = useMemo(
@@ -15863,7 +15822,7 @@ export default function DashboardShell({
         accent: 'blue',
         helper: activeClient ? `Fale sobre ${activeClient.name} ou use foco geral para cruzar o app inteiro.` : 'Use a IA como camada principal de leitura e direcionamento.',
         actionLabel: 'Semantic query',
-        onClick: () => setActiveTab('assistant'),
+        onClick: () => setActiveTab('clientes'),
       },
       {
         key: 'apresentacao',
@@ -15950,7 +15909,7 @@ export default function DashboardShell({
 
         <section className="home-hub-section-head">
           <h3>Tools & integrations</h3>
-          <button type="button" className="home-hub-manage-link" onClick={() => setActiveTab('assistant')}>
+          <button type="button" className="home-hub-manage-link" onClick={() => setActiveTab('clientes')}>
             Ir para o copiloto
           </button>
         </section>
@@ -16033,7 +15992,7 @@ export default function DashboardShell({
             <div className="glass-panel home-hub-reports-card">
               <div className="home-hub-reports-head">
                 <h3>Recent reports</h3>
-                <button type="button" className="home-hub-manage-link" onClick={() => setActiveTab('assistant')}>
+                <button type="button" className="home-hub-manage-link" onClick={() => setActiveTab('clientes')}>
                   Ver tudo
                 </button>
               </div>
@@ -16945,7 +16904,7 @@ export default function DashboardShell({
   }
 
   const handleHomeToolsLauncher = () => {
-    setActiveTab('assistant')
+    setActiveTab('clientes')
 
     if (isSidebarCollapsed) {
       setIsSidebarCollapsed(false)
@@ -16954,13 +16913,6 @@ export default function DashboardShell({
     }
 
     setIsHomeToolsExpanded((current) => !current)
-  }
-
-  const handleToggleAppMode = () => {
-    updateAppearance({
-      ...(appearance || {}),
-      mode: isLightAppMode ? 'dark' : 'light',
-    })
   }
 
   return (
@@ -17005,18 +16957,6 @@ export default function DashboardShell({
         </div>
 
         <nav className="nav-menu">
-          {(isMaster || hasNavAccess('assistant')) && (
-          <button type="button" data-tooltip="Busca" aria-label="Busca" className={`nav-item nav-button ${activeTab === 'assistant' ? 'active' : ''}`} onClick={() => setActiveTab('assistant')}>
-            <i className="bx bx-search-alt"></i>
-            <span className="nav-label">Busca</span>
-          </button>
-          )}
-          {(isMaster || hasNavAccess('notas')) && (
-            <button type="button" data-tooltip="Notas" aria-label="Notas" className={`nav-item nav-button ${activeTab === 'notas' ? 'active' : ''}`} onClick={() => setActiveTab('notas')}>
-              <i className="bx bx-note"></i>
-              <span className="nav-label">Notas</span>
-            </button>
-          )}
           {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('offboarding')) && (
             <>
               <button
@@ -17229,16 +17169,6 @@ export default function DashboardShell({
 
         <div className="sidebar-bottom-actions">
           <NotificationBell isLight={isLightAppMode} inSidebar />
-          <button
-            type="button"
-            data-tooltip={isLightAppMode ? 'Modo noturno' : 'Modo claro'}
-            className="nav-item nav-button sidebar-theme-button"
-            onClick={handleToggleAppMode}
-            aria-label={isLightAppMode ? 'Ativar modo noturno' : 'Ativar modo claro'}
-          >
-            <i className={`bx ${isLightAppMode ? 'bx-moon' : 'bx-sun'}`}></i>
-            <span className="nav-label">{isLightAppMode ? 'Modo noturno' : 'Modo claro'}</span>
-          </button>
 
           <button
             type="button"
@@ -17378,16 +17308,6 @@ export default function DashboardShell({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleGenerateAiInsights}
-                  disabled={!hasMetaConfigured || !isAiInsightsConfigured || isAiInsightsLoading}
-                  className="btn btn-secondary"
-                >
-                  <i className={isAiInsightsLoading ? 'bx bx-loader-alt bx-spin' : 'bx bx-bulb'}></i>
-                  {isAiInsightsLoading ? 'Gerando insights...' : 'Insights'}
-                </button>
-
                 <button type="button" onClick={() => handleExportDashboard('csv')} disabled={!dashboardExportRows.length} className="btn btn-secondary">
                   <i className="bx bx-download"></i>
                   Exportar CSV
@@ -17490,11 +17410,6 @@ export default function DashboardShell({
         )}
 
 
-        {activeTab === 'assistant' && (isMaster || hasNavAccess('assistant')) && (
-          <section style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <AssistantPage embeddedOverride={true} />
-          </section>
-        )}
 
         {activeTab === 'settings' && (isMaster || hasNavAccess('settings')) && (
           <section style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -20918,17 +20833,6 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'notas' && (isMaster || hasNavAccess('notas')) && (
-          <section style={{ padding: '16px 20px', height: '100%', boxSizing: 'border-box' }}>
-            <ClientNotesPanel
-              clientId={activeClient?.id || null}
-              clientName={activeClient?.name || null}
-              clients={clients}
-              onSelectClient={(client) => setActiveClient(client)}
-            />
-          </section>
-        )}
-
         {activeTab === 'acessos' && (isMaster || hasNavAccess('acessos')) && (
           <section style={{ height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <ClientAccessesTab
@@ -22173,7 +22077,6 @@ export default function DashboardShell({
               {/* Page Permissions Manager */}
               {isMaster && usersList.filter(u => u.role !== 'master').length > 0 && (() => {
                 const PAGE_DEFS = [
-                  { key: 'notas', label: 'Notas', group: 'Geral' },
                   { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
                   { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
                   { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
@@ -22193,7 +22096,6 @@ export default function DashboardShell({
                   { key: 'pac-dash', label: 'Painel', group: 'PAC' },
                   { key: 'pac-calendario', label: 'Calendário', group: 'PAC' },
                   { key: 'pac-tipos', label: 'Tipos', group: 'PAC' },
-                  { key: 'assistant', label: 'Busca', group: 'Geral' },
                   { key: 'settings', label: 'Configurações', group: 'Geral' },
                 ]
                 const groups = [...new Set(PAGE_DEFS.map(p => p.group))]
@@ -23649,251 +23551,6 @@ export default function DashboardShell({
                   </button>
                 </div>
               </form>
-            </div>
-          </div>,
-          document.body
-        )}
-
-        {activeTab === 'apresentacao' && isAiInsightsModalOpen && typeof document !== 'undefined' && createPortal(
-          <div className="modal-overlay" onClick={() => setIsAiInsightsModalOpen(false)}>
-            <div className="modal-card glass-panel ai-insights-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div>
-                  <h3>Insights da dashboard</h3>
-                  <p>Análise resumida dos números ativos da apresentação, usando a configuração da aba IA.</p>
-                </div>
-                <button type="button" className="modal-close" onClick={() => setIsAiInsightsModalOpen(false)} aria-label="Fechar insights da dashboard">
-                  <i className="bx bx-x"></i>
-                </button>
-              </div>
-
-              {isAiInsightsLoading ? (
-                <div className="glass-item ai-insights-state">
-                  <i className="bx bx-loader-alt bx-spin"></i>
-                  <strong>Gerando insights...</strong>
-                  <p>A IA está analisando os números do dashboard com base no período e nos filtros ativos.</p>
-                </div>
-              ) : aiInsightsError ? (
-                <div className="glass-item ai-insights-state ai-insights-state-error">
-                  <i className="bx bx-error-circle"></i>
-                  <strong>Não foi possível gerar insights agora.</strong>
-                  <p>{aiInsightsError}</p>
-                </div>
-              ) : aiInsightsResult?.structured ? (
-                <>
-                  <div className="glass-item ai-insights-summary-shell">
-                    <div className="ai-insights-summary-hero">
-                      <div className="ai-insights-summary-copy">
-                        <span className="ai-insights-kicker">Leitura executiva</span>
-                        <strong className="ai-insights-headline">{aiStructuredHeadline}</strong>
-                        <p className="ai-insights-summary">
-                          {aiStructuredSummary || 'A IA respondeu com um formato parcial. Ajuste o prompt JSON para separar headline, resumo, insights e próximos passos.'}
-                        </p>
-                      </div>
-                      <div className="ai-insights-context ai-insights-context-hero">
-                        <span>{aiInsightsDateLabel}</span>
-                        <span>{aiInsightsFilterLabel}</span>
-                        <span>{aiInsightsResult.provider || globalIntegrations.aiProvider || 'IA configurada'} · {aiInsightsResult.model || globalIntegrations.aiModel || 'modelo não informado'}</span>
-                      </div>
-                    </div>
-                    {aiHasStructuredResponse ? (
-                      <div className="ai-insights-highlight-grid">
-                        {aiHighlights.map((item) => (
-                          <div key={item.label} className={`ai-insights-highlight-card ai-insights-highlight-${item.tone}`}>
-                            <small>{item.label}</small>
-                            <strong>{item.value}</strong>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="ai-insights-fallback-banner">
-                        <span className="ai-insight-chip">Leitura livre</span>
-                        <p>A resposta veio mais narrativa do que estruturada. Organizamos abaixo os principais pontos já identificados no resumo.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {aiInsightGroups.length ? (
-                    <div className="ai-insights-sections">
-                      {aiInsightGroups.map((group) => (
-                        <section key={group.key} className="ai-insights-section">
-                          <div className="ai-insights-section-head">
-                            <div className="ai-insights-section-title-wrap">
-                              <span className={`ai-insight-chip ai-insight-chip-${group.key}`}>{group.title}</span>
-                              <strong>{group.title}</strong>
-                            </div>
-                            <small>{group.items.length} leitura(s)</small>
-                          </div>
-                          <div className="ai-insights-grid">
-                            {group.items.map((item, index) => {
-                              const typeKey = String(item.type || 'insight').trim().toLowerCase()
-                              const typeLabel = AI_INSIGHT_TYPE_LABELS[typeKey] || 'Insight'
-
-                              return (
-                                <div key={`${group.key}-${index}`} className="glass-item ai-insight-card">
-                                  <div className="ai-insight-card-head">
-                                    <span className={`ai-insight-chip ai-insight-chip-${typeKey}`}>{typeLabel}</span>
-                                    <span className="ai-insight-index">{String(index + 1).padStart(2, '0')}</span>
-                                  </div>
-                                  <strong>{item.title || 'Leitura do período'}</strong>
-                                  {item.evidence ? (
-                                    <div className="ai-insight-block">
-                                      <small>Evidência</small>
-                                      <p>{item.evidence}</p>
-                                    </div>
-                                  ) : null}
-                                  {item.action ? (
-                                    <div className="ai-insight-block ai-insight-block-action">
-                                      <small>Ação sugerida</small>
-                                      <p className="ai-insight-action">{item.action}</p>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  ) : aiFallbackTakeaways.length ? (
-                    <div className="ai-insights-sections">
-                      <section className="ai-insights-section">
-                        <div className="ai-insights-section-head">
-                          <div className="ai-insights-section-title-wrap">
-                            <span className="ai-insight-chip">Leitura guiada</span>
-                            <strong>Principais pontos do resumo</strong>
-                          </div>
-                          <small>{aiFallbackTakeaways.length} bloco(s)</small>
-                        </div>
-                        <div className="ai-insights-grid ai-insights-grid-fallback">
-                          {aiFallbackTakeaways.map((item, index) => (
-                            <div key={`${item.title}-${index}`} className="glass-item ai-insight-card ai-insight-card-fallback">
-                              <div className="ai-insight-card-head">
-                                <span className="ai-insight-chip ai-insight-chip-insight">{item.title}</span>
-                                <span className="ai-insight-index">{String(index + 1).padStart(2, '0')}</span>
-                              </div>
-                              <p>{item.text}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-                  ) : (
-                    <div className="glass-item ai-insight-card ai-insight-card-empty">
-                      <span className="ai-insight-chip">Formato livre</span>
-                      <strong>Sem cards estruturados neste retorno</strong>
-                      <p>O provider respondeu, mas não separou a análise em blocos de oportunidade, alerta ou anomalia.</p>
-                    </div>
-                  )}
-
-                  {aiCampaignAnalyses.length ? (
-                    <div className="ai-insights-sections">
-                      <section className="ai-insights-section">
-                        <div className="ai-insights-section-head">
-                          <div className="ai-insights-section-title-wrap">
-                            <span className="ai-insight-chip">Campanhas</span>
-                            <strong>Leitura por campanha</strong>
-                          </div>
-                          <small>{aiCampaignAnalyses.length} campanha(s)</small>
-                        </div>
-                        <div className="ai-insights-grid">
-                          {aiCampaignAnalyses.map((item, index) => (
-                            <div key={`${item.campaignName}-${index}`} className="glass-item ai-insight-card">
-                              <div className="ai-insight-card-head">
-                                <span className={`ai-insight-chip ai-insight-chip-${item.status || 'attention'}`}>
-                                  {AI_CAMPAIGN_STATUS_LABELS[item.status] || 'Atenção'}
-                                </span>
-                                <span className="ai-insight-index">{String(index + 1).padStart(2, '0')}</span>
-                              </div>
-                              <strong>{item.campaignName}</strong>
-                              {item.summary ? (
-                                <div className="ai-insight-block">
-                                  <small>Leitura</small>
-                                  <p>{item.summary}</p>
-                                </div>
-                              ) : null}
-                              {item.evidence ? (
-                                <div className="ai-insight-block">
-                                  <small>Evidência</small>
-                                  <p>{item.evidence}</p>
-                                </div>
-                              ) : null}
-                              {item.action ? (
-                                <div className="ai-insight-block ai-insight-block-action">
-                                  <small>Ação sugerida</small>
-                                  <p className="ai-insight-action">{item.action}</p>
-                                </div>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-                  ) : null}
-
-                  {aiFocusGroups.length ? (
-                    <div className="ai-insights-sections">
-                      <section className="ai-insights-section">
-                        <div className="ai-insights-section-head">
-                          <div className="ai-insights-section-title-wrap">
-                            <span className="ai-insight-chip">Síntese final</span>
-                            <strong>Positivos, atenção e urgência</strong>
-                          </div>
-                          <small>{aiFocusGroups.reduce((total, group) => total + group.items.length, 0)} ponto(s)</small>
-                        </div>
-                        <div className="ai-insights-grid">
-                          {aiFocusGroups.map((group) => (
-                            <div key={group.key} className="glass-item ai-insight-card ai-insight-card-focus">
-                              <div className="ai-insight-card-head">
-                                <span className={`ai-insight-chip ai-insight-chip-${group.tone}`}>{group.title}</span>
-                              </div>
-                              <ul className="ai-insight-bullet-list">
-                                {group.items.map((item, index) => (
-                                  <li key={`${group.key}-${index}`}>{item}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-                  ) : null}
-
-                  {aiHasNextActions ? (
-                    <div className="glass-item ai-insights-actions-shell">
-                      <div className="ai-insights-actions-head">
-                        <div>
-                          <span className="ai-insights-kicker">Próximos passos</span>
-                          <strong className="ai-insights-section-title">Ações recomendadas pela IA</strong>
-                        </div>
-                        <span className="ai-insights-actions-badge">
-                          {(aiInsightsResult.structured.nextActions || []).length} item(ns)
-                        </span>
-                      </div>
-                      <ul className="ai-insights-actions-list">
-                        {aiInsightsResult.structured.nextActions.map((item, index) => (
-                          <li key={`${item}-${index}`}>
-                            <span className="ai-insights-actions-step">{index + 1}</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  <div className="ai-insights-meta">
-                    <span>Provider: {aiInsightsResult.provider || globalIntegrations.aiProvider || 'IA configurada'}</span>
-                    <span>Modelo: {aiInsightsResult.model || globalIntegrations.aiModel || 'não informado'}</span>
-                  </div>
-                </>
-              ) : (
-                <div className="glass-item ai-insights-state">
-                  <i className="bx bx-bulb"></i>
-                  <strong>Pronto para analisar</strong>
-                  <p>Clique em <strong>Insights</strong> no topo da dashboard para gerar uma leitura guiada dos números ativos.</p>
-                </div>
-              )}
             </div>
           </div>,
           document.body

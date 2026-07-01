@@ -862,8 +862,6 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
 
     if ((connected === '1' || googleAdsConnected === '1') && canEditIntegrations) {
       setActiveSettingsTab('general')
-    } else if (tab === 'ai' && canEditIntegrations) {
-      setActiveSettingsTab('ai')
     } else if (tab === 'general' && canEditIntegrations) {
       setActiveSettingsTab('general')
     } else if (tab === 'operation' && canManageClients) {
@@ -1962,12 +1960,6 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
                       <span>Integrações</span>
                     </button>
                   )}
-                  {canEditIntegrations && (
-                    <button type="button" className={`settings-popup-nav-item ${activeSettingsTab === 'ai' ? 'active' : ''}`} onClick={() => handleSettingsTabChange('ai')}>
-                      <i className="bx bx-bot"></i>
-                      <span>Inteligência Artificial</span>
-                    </button>
-                  )}
                   {canManageClients && (
                     <button type="button" className={`settings-popup-nav-item ${activeSettingsTab === 'operation' ? 'active' : ''}`} onClick={() => handleSettingsTabChange('operation')}>
                       <i className="bx bx-pulse"></i>
@@ -1988,12 +1980,10 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
               <div className="settings-popup-tab-label settings-popup-tab-label-static">
                 <i className={`bx ${
                   activeSettingsTab === 'panel' ? 'bx-palette' :
-                  activeSettingsTab === 'general' ? 'bx-link-alt' :
-                  activeSettingsTab === 'ai' ? 'bx-bot' : 'bx-pulse'
+                  activeSettingsTab === 'general' ? 'bx-link-alt' : 'bx-pulse'
                 }`}></i>
                 {activeSettingsTab === 'panel' && 'Interface'}
                 {activeSettingsTab === 'general' && 'Integrações'}
-                {activeSettingsTab === 'ai' && 'Inteligência Artificial'}
                 {activeSettingsTab === 'operation' && 'Operação'}
               </div>
               {activeSettingsTab === 'panel' && (
@@ -2012,7 +2002,6 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
                     <div className="settings-preset-grid">
                       {[
                         { mode: 'dark', label: 'Modo escuro', description: 'Contraste premium', icon: 'bx-moon' },
-                        { mode: 'light', label: 'Modo claro', description: 'Leitura luminosa', icon: 'bx-sun' },
                         { mode: 'custom', label: 'Personalizado', description: 'Cores sob medida', icon: 'bx-palette' },
                       ].map((option) => (
                         <button
@@ -2635,290 +2624,6 @@ export default function SettingsPage({ embeddedOverride = false, onGlobalIntegra
                 </div>
               )}
 
-              {canEditIntegrations && activeSettingsTab === 'ai' && (
-                <div className={`glass-item settings-block settings-block-full settings-collapsible ${expandedSections.has('ia') ? 'expanded' : ''}`}>
-                  <button type="button" className="settings-collapsible-trigger" onClick={() => toggleSection('ia')}>
-                    <div>
-                      <h2>Inteligência Artificial</h2>
-                      <p>Configure os provedores de IA, o prompt global do dashboard e os agentes usados no chat.</p>
-                    </div>
-                    <i className={`bx ${expandedSections.has('ia') ? 'bx-chevron-up' : 'bx-chevron-down'}`}></i>
-                  </button>
-                  {expandedSections.has('ia') && (
-                  <div className="settings-collapsible-body">
-                  <div className="settings-general-layout">
-                    <section className="settings-integration-family settings-integration-family-ai">
-                      <div className="settings-category-head settings-integration-family-head">
-                        <span className="settings-category-kicker">Integração de IA</span>
-                        <h3>Provider, prompts e agentes</h3>
-                        <p>Defina a IA ativa, o prompt global do dashboard e os agentes usados no chat.</p>
-                      </div>
-
-                      <section className="settings-category-shell">
-                        <div className="settings-category-head">
-                          <span className="settings-category-kicker">IA</span>
-                          <h3>Configuração da IA</h3>
-                          <p>A área de uso da IA fica na Home, mas a configuração do provider e do prompt continua centralizada aqui.</p>
-                        </div>
-
-                      <div className="settings-integrations-grid settings-category-grid">
-                        <div className="integration-block integration-block-meta">
-                          <div className="integration-heading">
-                            <div className="integration-icon" style={{ color: '#8b5cf6', borderColor: '#8b5cf633' }}>
-                              <i className="bx bx-bot"></i>
-                            </div>
-                            <div>
-                              <h3>Provedores de IA</h3>
-                              <p>Configure quantos provedores quiser. O selecionado como ativo é usado por padrão — mas você pode trocar por sessão no chat.</p>
-                            </div>
-                          </div>
-
-                          {/* Enable/disable toggle */}
-                          <div className="settings-choice-row settings-choice-row-compact">
-                            <button
-                              type="button"
-                              className={`settings-choice ${globalIntegrations.aiAnalysisEnabled ? 'active' : ''}`}
-                              onClick={() => handleGlobalIntegrationChange('aiAnalysisEnabled', true)}
-                            >
-                              <i className="bx bx-check-circle"></i>
-                              Ativar IA
-                            </button>
-                            <button
-                              type="button"
-                              className={`settings-choice ${!globalIntegrations.aiAnalysisEnabled ? 'active' : ''}`}
-                              onClick={() => handleGlobalIntegrationChange('aiAnalysisEnabled', false)}
-                            >
-                              <i className="bx bx-x-circle"></i>
-                              Pausar IA
-                            </button>
-                          </div>
-
-                          {/* Provider cards */}
-                          <div className="ai-provider-cards">
-                            {AI_PROVIDER_OPTIONS.map((option) => {
-                              const cfg = globalIntegrations.aiProviders?.[option.value] as { apiKey?: string; model?: string; baseUrl?: string } | undefined
-                              const isActive = (globalIntegrations.aiProvider || selectedAiProvider.value) === option.value
-                              const hasKey = Boolean(cfg?.apiKey)
-                              const apiKeyLinks: Record<string, string> = {
-                                openai: 'https://platform.openai.com/api-keys',
-                                anthropic: 'https://console.anthropic.com/settings/keys',
-                                gemini: 'https://aistudio.google.com/app/apikey',
-                                openrouter: 'https://openrouter.ai/keys',
-                                groq: 'https://console.groq.com/keys',
-                              }
-                              const keyLink = apiKeyLinks[option.value]
-                              return (
-                                <div
-                                  key={option.value}
-                                  className={`ai-provider-card ${isActive ? 'ai-provider-card-active' : ''}`}
-                                >
-                                  <div className="ai-provider-card-header">
-                                    <div className="ai-provider-card-title">
-                                      <span className="ai-provider-card-name">{option.label}</span>
-                                      {hasKey && <span className="ai-provider-card-badge">Configurado</span>}
-                                    </div>
-                                    <div className="ai-provider-card-actions">
-                                      {keyLink && (
-                                        <a href={keyLink} target="_blank" rel="noopener noreferrer" className="ai-provider-key-link">
-                                          <i className="bx bx-link-external"></i> Obter chave
-                                        </a>
-                                      )}
-                                      {!isActive && (
-                                        <button
-                                          type="button"
-                                          className="ai-provider-set-active"
-                                          onClick={() => handleAiProviderChange(option.value)}
-                                        >
-                                          Usar como ativo
-                                        </button>
-                                      )}
-                                      {isActive && (
-                                        <span className="ai-provider-active-label"><i className="bx bx-check"></i> Ativo</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <p className="ai-provider-card-desc">{option.description}</p>
-                                  <div className="ai-provider-card-fields">
-                                    <div className="input-group">
-                                      <label>Chave da API</label>
-                                      <input
-                                        type="password"
-                                        value={cfg?.apiKey || ''}
-                                        onChange={(e) => handleAiProviderCardFieldChange(option.value, 'apiKey', e.target.value)}
-                                        placeholder={keyLink ? `Cole a chave de ${option.label}` : 'Cole a chave da API'}
-                                      />
-                                    </div>
-                                    <div className="input-group">
-                                      <label>Modelo</label>
-                                      <input
-                                        type="text"
-                                        value={cfg?.model || ''}
-                                        onChange={(e) => handleAiProviderCardFieldChange(option.value, 'model', e.target.value)}
-                                        placeholder={option.modelPlaceholder}
-                                      />
-                                    </div>
-                                    {(!option.baseUrl || option.value === 'custom' || option.value === 'manus') && (
-                                      <div className="input-group">
-                                        <label>Base URL</label>
-                                        <input
-                                          type="text"
-                                          value={cfg?.baseUrl || option.baseUrl || ''}
-                                          onChange={(e) => handleAiProviderCardFieldChange(option.value, 'baseUrl', e.target.value)}
-                                          placeholder="https://..."
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-
-                          <div className="settings-callout info">
-                            <i className="bx bx-info-circle"></i>
-                            As chaves ficam salvas por provider. Trocar o ativo não apaga as demais. A IA roda sempre no servidor — sua chave nunca aparece no navegador.
-                          </div>
-                        </div>
-
-                        <div className="integration-block integration-block-meta">
-                          <div className="input-group">
-                            <label>Prompt do dashboard</label>
-                            <div className="settings-choice-row settings-choice-row-compact">
-                              <button
-                                type="button"
-                                className="settings-choice"
-                                onClick={() => handleApplyPromptTemplate('text')}
-                              >
-                                <i className="bx bx-text"></i>
-                                Modelo texto
-                              </button>
-                              <button
-                                type="button"
-                                className={`settings-choice ${aiPromptInspection.isJson ? 'active' : ''}`}
-                                onClick={() => handleApplyPromptTemplate('json')}
-                              >
-                                <i className="bx bx-code-curly"></i>
-                                Modelo JSON
-                              </button>
-                              <button
-                                type="button"
-                                className="settings-choice"
-                                onClick={handleFormatJsonPrompt}
-                                disabled={!aiPromptInspection.isJson || !aiPromptInspection.isValid}
-                              >
-                                <i className="bx bx-magic-wand"></i>
-                                Formatar JSON
-                              </button>
-                            </div>
-                            <textarea
-                              value={globalIntegrations.aiDashboardPrompt || ''}
-                              onChange={(event) => handleGlobalIntegrationChange('aiDashboardPrompt', event.target.value)}
-                              placeholder='Descreva como a IA deve analisar os números da dashboard, ou cole um JSON como {"role":"...","rules":["..."],"output":{...}}.'
-                              rows={18}
-                            />
-                            <small>
-                              {aiPromptInspection.isJson
-                                ? aiPromptInspection.isValid
-                                  ? 'JSON válido. O app vai converter esse objeto em instruções de sistema antes de chamar a IA.'
-                                  : `JSON inválido: ${aiPromptInspection.error}`
-                                : 'Texto livre também continua funcionando normalmente.'}
-                            </small>
-                            <small>
-                              Dica: no modo JSON, você pode usar chaves como `role`, `objective`, `instructions`, `rules`, `style`, `context`, `output` ou `outputSchema`.
-                            </small>
-                          </div>
-                        </div>
-
-                        <div className="integration-block integration-block-meta">
-                          <div className="integration-heading">
-                            <div className="integration-icon" style={{ color: 'var(--accent-blue)', borderColor: 'color-mix(in srgb, var(--accent-blue) 30%, transparent)' }}>
-                              <i className="bx bx-cog"></i>
-                            </div>
-                            <div>
-                              <h3>Agentes do chat</h3>
-                              <p>Crie agentes com prompts próprios para copy, mídia, análise ou qualquer outro papel que você queira usar no chat.</p>
-                            </div>
-                          </div>
-
-                          <div className="settings-choice-row settings-choice-row-compact">
-                            {availableAiAgents.map((agent) => (
-                              <button
-                                key={agent.id}
-                                type="button"
-                                className={`settings-choice ${selectedAiAgentId === agent.id ? 'active' : ''}`}
-                                onClick={() => setSelectedAiAgentId(agent.id)}
-                              >
-                                <i className="bx bx-bot"></i>
-                                {agent.name}
-                              </button>
-                            ))}
-                            <button type="button" className="settings-choice" onClick={handleCreateAiAgent}>
-                              <i className="bx bx-plus"></i>
-                              Novo agente
-                            </button>
-                          </div>
-
-                          {selectedAiAgent ? (
-                            <div className="settings-ai-grid">
-                              <div className="input-group">
-                                <label>Nome do agente</label>
-                                <input
-                                  type="text"
-                                  value={selectedAiAgent.name}
-                                  onChange={(event) =>
-                                    handleAiAgentFieldChange(selectedAiAgent.id, 'name', event.target.value)
-                                  }
-                                  placeholder="Ex.: Copywriter"
-                                />
-                              </div>
-
-                              <div className="input-group">
-                                <label>Descrição curta</label>
-                                <input
-                                  type="text"
-                                  value={selectedAiAgent.description}
-                                  onChange={(event) =>
-                                    handleAiAgentFieldChange(selectedAiAgent.id, 'description', event.target.value)
-                                  }
-                                  placeholder="Ex.: Headlines, copies e CTAs"
-                                />
-                              </div>
-
-                              <div className="input-group settings-ai-grid-full">
-                                <label>Prompt do agente</label>
-                                <textarea
-                                  value={selectedAiAgent.prompt}
-                                  onChange={(event) =>
-                                    handleAiAgentFieldChange(selectedAiAgent.id, 'prompt', event.target.value)
-                                  }
-                                  placeholder="Descreva como esse agente deve se comportar."
-                                  rows={10}
-                                />
-                                <small>Esse prompt será somado ao prompt global da IA quando o agente for escolhido no chat.</small>
-                              </div>
-                            </div>
-                          ) : null}
-
-                          <div className="settings-choice-row settings-choice-row-compact">
-                            <button
-                              type="button"
-                              className="settings-choice"
-                              onClick={() => handleRemoveAiAgent(selectedAiAgent?.id || '')}
-                              disabled={availableAiAgents.length <= 1 || !selectedAiAgent}
-                            >
-                              <i className="bx bx-trash"></i>
-                              Remover agente
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      </section>
-                    </section>
-                  </div>
-                  </div>
-                  )}
-                </div>
-              )}
 
 
 
