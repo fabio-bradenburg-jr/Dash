@@ -299,6 +299,8 @@ export default function FunnelTab({ clients }) {
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaError, setMetaError] = useState('')
   const [metaPeriod, setMetaPeriod] = useState('last_30d')
+  const [metaCustomSince, setMetaCustomSince] = useState('')
+  const [metaCustomUntil, setMetaCustomUntil] = useState('')
 
   // Cascade filters (by id) — Sets for multi-select
   const [selCampaign, setSelCampaign] = useState(new Set())
@@ -341,26 +343,40 @@ export default function FunnelTab({ clients }) {
   // Reset cascade when client changes
   useEffect(() => { setSelCampaign(new Set()); setSelAdset(new Set()); setSelAd(new Set()) }, [selectedClientId])
 
+  const isMetaCustomPeriod = metaPeriod === 'custom'
+  const metaCustomRangeReady = !isMetaCustomPeriod || Boolean(metaCustomSince && metaCustomUntil)
+
   const loadMeta = useCallback(async () => {
     if (!activeClient) return
+    if (isMetaCustomPeriod && !metaCustomRangeReady) return
     setMetaLoading(true); setMetaError(''); setMetaRow(null)
     try {
-      const params = new URLSearchParams({ date_preset: metaPeriod })
+      const params = new URLSearchParams(
+        isMetaCustomPeriod
+          ? { date_preset: 'custom', since: metaCustomSince, until: metaCustomUntil }
+          : { date_preset: metaPeriod }
+      )
       const res = await fetch(`/api/meta/campaigns-overview?${params}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erro ao carregar dados do Meta.')
       setMetaRow((json.rows || []).find(r => r.clientId === activeClient.id) || null)
     } catch (e) { setMetaError(e.message) }
     finally { setMetaLoading(false) }
-  }, [activeClient, metaPeriod])
+  }, [activeClient, metaPeriod, isMetaCustomPeriod, metaCustomRangeReady, metaCustomSince, metaCustomUntil])
 
   useEffect(() => { loadMeta() }, [loadMeta])
 
   const loadBreakdowns = useCallback(async () => {
     if (!activeClient?.metaAdAccountId) { setBreakdownsData(null); return }
+    if (isMetaCustomPeriod && !metaCustomRangeReady) return
     setBreakdownsLoading(true); setBreakdownsError('')
     try {
-      const params = new URLSearchParams({ ad_account_id: activeClient.metaAdAccountId, date_preset: metaPeriod })
+      const params = new URLSearchParams({
+        ad_account_id: activeClient.metaAdAccountId,
+        ...(isMetaCustomPeriod
+          ? { date_preset: 'custom', since: metaCustomSince, until: metaCustomUntil }
+          : { date_preset: metaPeriod }),
+      })
       if (selAd.size) params.set('ad_ids', Array.from(selAd).join(','))
       else if (selAdset.size) params.set('adset_ids', Array.from(selAdset).join(','))
       else if (selCampaign.size) params.set('campaign_ids', Array.from(selCampaign).join(','))
@@ -370,7 +386,7 @@ export default function FunnelTab({ clients }) {
       setBreakdownsData(json)
     } catch (e) { setBreakdownsError(e.message) }
     finally { setBreakdownsLoading(false) }
-  }, [activeClient, metaPeriod, selCampaign, selAdset, selAd])
+  }, [activeClient, metaPeriod, isMetaCustomPeriod, metaCustomRangeReady, metaCustomSince, metaCustomUntil, selCampaign, selAdset, selAd])
 
   useEffect(() => { loadBreakdowns() }, [loadBreakdowns])
 
@@ -785,11 +801,18 @@ export default function FunnelTab({ clients }) {
             { id: 'last_14d', label: '14 dias' },
             { id: 'last_30d', label: '30 dias' },
             { id: 'last_90d', label: '90 dias' },
+            { id: 'custom',   label: 'Personalizado' },
           ].map(p => (
             <button key={p.id} type="button"
               className={`fn-period-btn${metaPeriod === p.id ? ' active' : ''}`}
               onClick={() => setMetaPeriod(p.id)}>{p.label}</button>
           ))}
+          {isMetaCustomPeriod && (<>
+            <input type="date" className="fn-date-input" value={metaCustomSince} onChange={e => setMetaCustomSince(e.target.value)} />
+            <span style={{ color: 'rgba(241,241,241,0.3)', fontSize: 12 }}>→</span>
+            <input type="date" className="fn-date-input" value={metaCustomUntil} onChange={e => setMetaCustomUntil(e.target.value)} />
+            <button type="button" className="fn-apply-btn" onClick={() => { loadMeta(); loadBreakdowns() }} disabled={!metaCustomSince || !metaCustomUntil}>Aplicar</button>
+          </>)}
           {metaError && <span className="fn-inline-error"><i className="bx bx-error-circle" /> {metaError}</span>}
         </div>
 
@@ -843,7 +866,8 @@ export default function FunnelTab({ clients }) {
         {/* Body: campaign tree LEFT + funnel RIGHT */}
         <div className="fn-body">
 
-          {/* Left: campaign tree */}
+          {/* Left column: campaign tree + top breakdowns */}
+          <div className="fn-left-col">
           <div className="fn-tree-panel">
             <CampaignTree
               metaRow={metaRow}
@@ -875,6 +899,113 @@ export default function FunnelTab({ clients }) {
                 })
               }}
             />
+          </div>
+
+          {/* Top breakdowns: Criativos, Estados, Idades, Gênero */}
+          <div className="fn-breakdowns-row">
+            {/* Top 5 Criativos */}
+            <div className="fn-bd-card fn-bd-creatives">
+              <div className="fn-bd-title">
+                <span><i className="bx bx-images" /> Top 5 Criativos</span>
+                {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+              </div>
+              {breakdownsError && <div className="fn-bd-error"><i className="bx bx-error-circle" /> {breakdownsError}</div>}
+              {!breakdownsError && topCreatives.length === 0 && !breakdownsLoading && (
+                <div className="fn-bd-empty">Nenhum criativo com investimento no período.</div>
+              )}
+              {topCreatives.map((c, i) => (
+                <button type="button" key={c.adId || i} className="fn-bd-creative-item" onClick={() => openCreativePreview(c)}>
+                  <span className="fn-bd-rank">{i + 1}</span>
+                  <span className="fn-bd-creative-thumb">
+                    <img src={c.imageUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                  </span>
+                  <span className="fn-bd-creative-info">
+                    <strong title={c.label}>{c.label}</strong>
+                    <span className="fn-bd-creative-metrics">
+                      <span>Resultado: <b>{fmt(c.custom_metrics?.totalConversions || 0)}</b></span>
+                      {c.custom_metrics?.cpa > 0 && <span>Custo/res.: <b>{fmtMoney(c.custom_metrics.cpa)}</b></span>}
+                      <span>Invest.: <b>{fmtMoney(c.spend)}</b></span>
+                      {c.custom_metrics?.ctr > 0 && <span>CTR: <b>{c.custom_metrics.ctr.toFixed(2)}%</b></span>}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Top 5 Estados */}
+            <div className="fn-bd-card">
+              <div className="fn-bd-title">
+                <span><i className="bx bx-map" /> Top 5 Estados</span>
+                {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+              </div>
+              {!breakdownsError && topStates.length === 0 && !breakdownsLoading && (
+                <div className="fn-bd-empty">Sem dados de estado no período.</div>
+              )}
+              {topStates.map((s, i) => {
+                const val = s.custom_metrics?.totalConversions || 0
+                const barPct = statesTotal ? Math.max(4, (val / statesTotal) * 100) : 4
+                return (
+                  <div className="fn-bd-rank-item" key={s.label + i}>
+                    <span className="fn-bd-rank">{i + 1}</span>
+                    <span className="fn-bd-rank-info">
+                      <span className="fn-bd-rank-label" title={s.label}>{s.label}</span>
+                      <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%` }} /></span>
+                    </span>
+                    <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, statesTotal)}</small></span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Top Idades */}
+            <div className="fn-bd-card">
+              <div className="fn-bd-title">
+                <span><i className="bx bx-group" /> Top Idades</span>
+                {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+              </div>
+              {!breakdownsError && topAges.length === 0 && !breakdownsLoading && (
+                <div className="fn-bd-empty">Sem dados de idade no período.</div>
+              )}
+              {topAges.map((a, i) => {
+                const val = a.custom_metrics?.totalConversions || 0
+                const barPct = agesTotal ? Math.max(4, (val / agesTotal) * 100) : 4
+                return (
+                  <div className="fn-bd-rank-item" key={a.label + i}>
+                    <span className="fn-bd-rank">{i + 1}</span>
+                    <span className="fn-bd-rank-info">
+                      <span className="fn-bd-rank-label">{a.label}</span>
+                      <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#a78bfa' }} /></span>
+                    </span>
+                    <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, agesTotal)}</small></span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Gênero (compacto) */}
+            <div className="fn-bd-card fn-bd-gender">
+              <div className="fn-bd-title">
+                <span><i className="bx bx-male-female" /> Gênero</span>
+                {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+              </div>
+              {!breakdownsError && genderBreakdown.length === 0 && !breakdownsLoading && (
+                <div className="fn-bd-empty">Sem dados de gênero.</div>
+              )}
+              {genderBreakdown.map((g) => {
+                const val = g.custom_metrics?.totalConversions || 0
+                const barPct = gendersTotal ? Math.max(4, (val / gendersTotal) * 100) : 4
+                return (
+                  <div className="fn-bd-gender-item" key={g.label}>
+                    <div className="fn-bd-gender-row">
+                      <span>{GENDER_LABELS[g.label] || g.label || 'Não informado'}</span>
+                      <span>{fmt(val)} <small>{pct(val, gendersTotal)}</small></span>
+                    </div>
+                    <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#38bdf8' }} /></span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
           </div>
 
           {/* Right: funnel */}
@@ -948,112 +1079,6 @@ export default function FunnelTab({ clients }) {
                 </ResponsiveContainer>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Top breakdowns: Criativos, Estados, Idades, Gênero */}
-        <div className="fn-breakdowns-row">
-          {/* Top 5 Criativos */}
-          <div className="fn-bd-card fn-bd-creatives">
-            <div className="fn-bd-title">
-              <span><i className="bx bx-images" /> Top 5 Criativos</span>
-              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
-            </div>
-            {breakdownsError && <div className="fn-bd-error"><i className="bx bx-error-circle" /> {breakdownsError}</div>}
-            {!breakdownsError && topCreatives.length === 0 && !breakdownsLoading && (
-              <div className="fn-bd-empty">Nenhum criativo com investimento no período.</div>
-            )}
-            {topCreatives.map((c, i) => (
-              <button type="button" key={c.adId || i} className="fn-bd-creative-item" onClick={() => openCreativePreview(c)}>
-                <span className="fn-bd-rank">{i + 1}</span>
-                <span className="fn-bd-creative-thumb">
-                  <img src={c.imageUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                </span>
-                <span className="fn-bd-creative-info">
-                  <strong title={c.label}>{c.label}</strong>
-                  <span className="fn-bd-creative-metrics">
-                    <span>Resultado: <b>{fmt(c.custom_metrics?.totalConversions || 0)}</b></span>
-                    {c.custom_metrics?.cpa > 0 && <span>Custo/res.: <b>{fmtMoney(c.custom_metrics.cpa)}</b></span>}
-                    <span>Invest.: <b>{fmtMoney(c.spend)}</b></span>
-                    {c.custom_metrics?.ctr > 0 && <span>CTR: <b>{c.custom_metrics.ctr.toFixed(2)}%</b></span>}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Top 5 Estados */}
-          <div className="fn-bd-card">
-            <div className="fn-bd-title">
-              <span><i className="bx bx-map" /> Top 5 Estados</span>
-              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
-            </div>
-            {!breakdownsError && topStates.length === 0 && !breakdownsLoading && (
-              <div className="fn-bd-empty">Sem dados de estado no período.</div>
-            )}
-            {topStates.map((s, i) => {
-              const val = s.custom_metrics?.totalConversions || 0
-              const barPct = statesTotal ? Math.max(4, (val / statesTotal) * 100) : 4
-              return (
-                <div className="fn-bd-rank-item" key={s.label + i}>
-                  <span className="fn-bd-rank">{i + 1}</span>
-                  <span className="fn-bd-rank-info">
-                    <span className="fn-bd-rank-label" title={s.label}>{s.label}</span>
-                    <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%` }} /></span>
-                  </span>
-                  <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, statesTotal)}</small></span>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Top Idades */}
-          <div className="fn-bd-card">
-            <div className="fn-bd-title">
-              <span><i className="bx bx-group" /> Top Idades</span>
-              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
-            </div>
-            {!breakdownsError && topAges.length === 0 && !breakdownsLoading && (
-              <div className="fn-bd-empty">Sem dados de idade no período.</div>
-            )}
-            {topAges.map((a, i) => {
-              const val = a.custom_metrics?.totalConversions || 0
-              const barPct = agesTotal ? Math.max(4, (val / agesTotal) * 100) : 4
-              return (
-                <div className="fn-bd-rank-item" key={a.label + i}>
-                  <span className="fn-bd-rank">{i + 1}</span>
-                  <span className="fn-bd-rank-info">
-                    <span className="fn-bd-rank-label">{a.label}</span>
-                    <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#a78bfa' }} /></span>
-                  </span>
-                  <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, agesTotal)}</small></span>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Gênero (compacto) */}
-          <div className="fn-bd-card fn-bd-gender">
-            <div className="fn-bd-title">
-              <span><i className="bx bx-male-female" /> Gênero</span>
-              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
-            </div>
-            {!breakdownsError && genderBreakdown.length === 0 && !breakdownsLoading && (
-              <div className="fn-bd-empty">Sem dados de gênero.</div>
-            )}
-            {genderBreakdown.map((g) => {
-              const val = g.custom_metrics?.totalConversions || 0
-              const barPct = gendersTotal ? Math.max(4, (val / gendersTotal) * 100) : 4
-              return (
-                <div className="fn-bd-gender-item" key={g.label}>
-                  <div className="fn-bd-gender-row">
-                    <span>{GENDER_LABELS[g.label] || g.label || 'Não informado'}</span>
-                    <span>{fmt(val)} <small>{pct(val, gendersTotal)}</small></span>
-                  </div>
-                  <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#38bdf8' }} /></span>
-                </div>
-              )
-            })}
           </div>
         </div>
       </div>
@@ -1178,6 +1203,7 @@ export default function FunnelTab({ clients }) {
 
         /* ─── Body: tree + funnel ─── */
         .fn-body { display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start; }
+        .fn-left-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
         /* ─── Campaign Tree ─── */
         .fn-tree-panel { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; overflow: hidden; min-width: 0; }
@@ -1274,7 +1300,8 @@ export default function FunnelTab({ clients }) {
         .fn-tooltip-row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.6; }
 
         /* ─── Top breakdowns ─── */
-        .fn-breakdowns-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 0.9fr; gap: 14px; margin-top: 14px; align-items: start; }
+        .fn-breakdowns-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+        .fn-bd-creatives { grid-column: 1 / -1; }
         .fn-bd-card { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
         .fn-bd-title { font-size: 12px; font-weight: 700; color: #f1f1f1; display: flex; align-items: center; justify-content: space-between; }
         .fn-bd-title span:first-child { display: flex; align-items: center; gap: 6px; }
@@ -1336,7 +1363,7 @@ export default function FunnelTab({ clients }) {
           .fn-body { grid-template-columns: 1fr; }
           .fn-funnel-col { position: static; order: -1; }
         }
-        @media (max-width: 1180px) {
+        @media (max-width: 1400px) {
           .fn-breakdowns-row { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 640px) {
