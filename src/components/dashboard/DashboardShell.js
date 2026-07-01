@@ -3213,6 +3213,33 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
   const [headers, setHeaders] = useState([])
   const [detected, setDetected] = useState({})
   const [headersLoading, setHeadersLoading] = useState(false)
+  const [tabsDropdownOpen, setTabsDropdownOpen] = useState(false)
+
+  const isAllTabsMode = !gid || gid === 'all'
+  const selectedGidSet = useMemo(
+    () => (isAllTabsMode ? new Set() : new Set(String(gid).split(',').map((g) => g.trim()).filter(Boolean))),
+    [gid, isAllTabsMode]
+  )
+
+  const tabsSummaryLabel = useMemo(() => {
+    if (isAllTabsMode) return 'Todas as abas (mesclar)'
+    if (!selectedGidSet.size) return 'Nenhuma aba selecionada'
+    if (selectedGidSet.size === 1) {
+      const only = tabs.find((tab) => selectedGidSet.has(tab.gid))
+      return only ? only.name : '1 aba selecionada'
+    }
+    return `${selectedGidSet.size} abas selecionadas`
+  }, [isAllTabsMode, selectedGidSet, tabs])
+
+  const handleSelectAllTabs = () => onFieldChange('leadsSheetGid', 'all')
+
+  const handleToggleTab = (tabGid) => {
+    const next = new Set(isAllTabsMode ? tabs.map((tab) => tab.gid) : selectedGidSet)
+    if (next.has(tabGid)) next.delete(tabGid)
+    else next.add(tabGid)
+    if (!next.size || next.size === tabs.length) onFieldChange('leadsSheetGid', 'all')
+    else onFieldChange('leadsSheetGid', Array.from(next).join(','))
+  }
 
   useEffect(() => {
     if (!sheetUrl) { setTabs([]); return }
@@ -3253,19 +3280,42 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
     <div className="leads-sheet-config">
       <div className="leads-sheet-config-row">
         <span className="leads-sheet-config-label">
-          <i className="bx bx-layer"></i> Aba da planilha
+          <i className="bx bx-layer"></i> Abas da planilha
         </span>
-        <select
-          className="client-select-input"
-          value={gid}
-          onChange={(event) => onFieldChange('leadsSheetGid', event.target.value)}
-          disabled={disabled || tabsLoading}
-        >
-          <option value="all">Todas as abas (mesclar)</option>
-          {tabs.map((tab) => (
-            <option key={tab.gid} value={tab.gid}>{tab.name}</option>
-          ))}
-        </select>
+        <div className="leads-sheet-tabs-picker">
+          <button
+            type="button"
+            className="leads-sheet-tabs-trigger"
+            onClick={() => setTabsDropdownOpen((open) => !open)}
+            disabled={disabled || tabsLoading}
+          >
+            <span>{tabsSummaryLabel}</span>
+            <i className={`bx bx-chevron-down${tabsDropdownOpen ? ' is-open' : ''}`}></i>
+          </button>
+          {tabsDropdownOpen && (
+            <>
+              <div className="leads-sheet-tabs-backdrop" onClick={() => setTabsDropdownOpen(false)} />
+              <div className="leads-sheet-tabs-panel">
+                <label className="leads-sheet-tabs-option is-all">
+                  <input type="checkbox" checked={isAllTabsMode} onChange={handleSelectAllTabs} />
+                  <span>Todas as abas (mesclar)</span>
+                </label>
+                <div className="leads-sheet-tabs-divider"></div>
+                {tabs.map((tab) => (
+                  <label key={tab.gid} className="leads-sheet-tabs-option">
+                    <input
+                      type="checkbox"
+                      checked={isAllTabsMode || selectedGidSet.has(tab.gid)}
+                      onChange={() => handleToggleTab(tab.gid)}
+                    />
+                    <span>{tab.name}</span>
+                  </label>
+                ))}
+                {!tabs.length && <div className="leads-sheet-tabs-empty">Nenhuma aba encontrada.</div>}
+              </div>
+            </>
+          )}
+        </div>
         {tabsLoading && <i className="bx bx-loader-alt bx-spin leads-sheet-config-spinner"></i>}
         {tabsError && <small className="leads-sheet-config-error">{tabsError}</small>}
       </div>
@@ -34933,10 +34983,114 @@ export default function DashboardShell({
           font-size: 14px;
         }
 
-        .leads-sheet-config-row .client-select-input {
+        .leads-sheet-tabs-picker {
+          position: relative;
           flex: 1 1 220px;
           min-width: 180px;
-          width: auto;
+        }
+
+        .leads-sheet-tabs-trigger {
+          width: 100%;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 0 12px;
+          border-radius: 10px;
+          background: rgba(0, 0, 0, 0.18);
+          border: 1px solid var(--border-color);
+          color: var(--text-primary, #fff);
+          font-family: inherit;
+          font-size: 13px;
+          cursor: pointer;
+        }
+
+        .leads-sheet-tabs-trigger:hover {
+          border-color: rgba(38, 194, 129, 0.3);
+        }
+
+        .leads-sheet-tabs-trigger:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .leads-sheet-tabs-trigger span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .leads-sheet-tabs-trigger i {
+          flex-shrink: 0;
+          font-size: 16px;
+          opacity: 0.6;
+          transition: transform 0.15s;
+        }
+
+        .leads-sheet-tabs-trigger i.is-open {
+          transform: rotate(180deg);
+        }
+
+        .leads-sheet-tabs-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 300;
+        }
+
+        .leads-sheet-tabs-panel {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 301;
+          background: #1a1f2e;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 12px;
+          padding: 6px;
+          max-height: 260px;
+          overflow-y: auto;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .leads-sheet-tabs-option {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 13px;
+          color: rgba(241, 241, 241, 0.85);
+          cursor: pointer;
+        }
+
+        .leads-sheet-tabs-option:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .leads-sheet-tabs-option.is-all {
+          font-weight: 700;
+          color: #26c281;
+        }
+
+        .leads-sheet-tabs-option input {
+          accent-color: #26c281;
+          width: 15px;
+          height: 15px;
+          flex-shrink: 0;
+        }
+
+        .leads-sheet-tabs-divider {
+          height: 1px;
+          background: rgba(255, 255, 255, 0.08);
+          margin: 4px 4px 6px;
+        }
+
+        .leads-sheet-tabs-empty {
+          padding: 10px;
+          font-size: 12.5px;
+          color: rgba(241, 241, 241, 0.35);
+          text-align: center;
         }
 
         .leads-sheet-config-spinner {

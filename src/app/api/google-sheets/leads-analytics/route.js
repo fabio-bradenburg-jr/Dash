@@ -612,7 +612,11 @@ export async function GET(request) {
 
     let analytics, totalRows
 
-    if (gid === 'all' && sheetId) {
+    // `gid` can be: null/'all' (every tab), a single gid, or a comma-separated list of gids
+    // (the client picked a subset of tabs in the registration screen).
+    const requestedGids = gid && gid !== 'all' ? gid.split(',').map((g) => g.trim()).filter(Boolean) : []
+
+    if ((!gid || gid === 'all') && sheetId) {
       const gids = await fetchAllTabGids(sheetId)
       const validGids = gids.length > 0 ? gids : ['0']
       const results = await Promise.all(validGids.map(g => analyzeGid(g).catch(() => null)))
@@ -620,8 +624,14 @@ export async function GET(request) {
       if (!validResults.length) throw new Error('Não foi possível carregar nenhuma aba.')
       analytics = mergeAnalytics(validResults)
       totalRows = validResults.reduce((s, r) => s + r.overview.total, 0)
+    } else if (requestedGids.length > 1) {
+      const results = await Promise.all(requestedGids.map(g => analyzeGid(g).catch(() => null)))
+      const validResults = results.filter(Boolean)
+      if (!validResults.length) throw new Error('Não foi possível carregar as abas selecionadas.')
+      analytics = mergeAnalytics(validResults)
+      totalRows = validResults.reduce((s, r) => s + r.overview.total, 0)
     } else {
-      analytics = await analyzeGid(gid)
+      analytics = await analyzeGid(requestedGids[0] || gid)
       totalRows = analytics.overview.total
     }
 
