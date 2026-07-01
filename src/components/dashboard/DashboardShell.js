@@ -17539,22 +17539,21 @@ export default function DashboardShell({
             const st = String(c?.status || '').trim().toLowerCase()
             return c?.id && st !== 'churn' && st !== 'pausado'
           })
+          // General metrics
+          const allValidTaskIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
+          const getValidDone = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter(id => allValidTaskIds.has(id)).length
           const filteredOnboardingClients = onboardingClients.filter((c) => {
             if (onboardingClientFilter && c.id !== onboardingClientFilter) return false
             if (onboardingSearch && !String(c.name || '').toLowerCase().includes(onboardingSearch.toLowerCase())) return false
             if (onboardingStatusFilter !== 'all') {
               const rec = onboardingRecords.find((r) => r.client_id === c.id)
-              const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+              const done = getValidDone(rec)
               if (onboardingStatusFilter === 'complete' && done < totalTasks) return false
               if (onboardingStatusFilter === 'in_progress' && (done === 0 || done >= totalTasks)) return false
               if (onboardingStatusFilter === 'not_started' && done > 0) return false
             }
             return true
           })
-
-          // General metrics
-          const allValidTaskIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
-          const getValidDone = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter(id => allValidTaskIds.has(id)).length
           const totalClients = onboardingClients.length
           const completedClients = onboardingClients.filter((c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
