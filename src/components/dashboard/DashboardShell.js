@@ -3213,23 +3213,12 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
   const [headers, setHeaders] = useState([])
   const [detected, setDetected] = useState({})
   const [headersLoading, setHeadersLoading] = useState(false)
-  const [tabsDropdownOpen, setTabsDropdownOpen] = useState(false)
 
   const isAllTabsMode = !gid || gid === 'all'
   const selectedGidSet = useMemo(
     () => (isAllTabsMode ? new Set() : new Set(String(gid).split(',').map((g) => g.trim()).filter(Boolean))),
     [gid, isAllTabsMode]
   )
-
-  const tabsSummaryLabel = useMemo(() => {
-    if (isAllTabsMode) return 'Todas as abas (mesclar)'
-    if (!selectedGidSet.size) return 'Nenhuma aba selecionada'
-    if (selectedGidSet.size === 1) {
-      const only = tabs.find((tab) => selectedGidSet.has(tab.gid))
-      return only ? only.name : '1 aba selecionada'
-    }
-    return `${selectedGidSet.size} abas selecionadas`
-  }, [isAllTabsMode, selectedGidSet, tabs])
 
   const handleSelectAllTabs = () => onFieldChange('leadsSheetGid', 'all')
 
@@ -3278,46 +3267,35 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
 
   return (
     <div className="leads-sheet-config">
-      <div className="leads-sheet-config-row">
-        <span className="leads-sheet-config-label">
-          <i className="bx bx-layer"></i> Abas da planilha
-        </span>
-        <div className="leads-sheet-tabs-picker">
-          <button
-            type="button"
-            className="leads-sheet-tabs-trigger"
-            onClick={() => setTabsDropdownOpen((open) => !open)}
-            disabled={disabled || tabsLoading}
-          >
-            <span>{tabsSummaryLabel}</span>
-            <i className={`bx bx-chevron-down${tabsDropdownOpen ? ' is-open' : ''}`}></i>
-          </button>
-          {tabsDropdownOpen && (
-            <>
-              <div className="leads-sheet-tabs-backdrop" onClick={() => setTabsDropdownOpen(false)} />
-              <div className="leads-sheet-tabs-panel">
-                <label className="leads-sheet-tabs-option is-all">
-                  <input type="checkbox" checked={isAllTabsMode} onChange={handleSelectAllTabs} />
-                  <span>Todas as abas (mesclar)</span>
-                </label>
-                <div className="leads-sheet-tabs-divider"></div>
-                {tabs.map((tab) => (
-                  <label key={tab.gid} className="leads-sheet-tabs-option">
-                    <input
-                      type="checkbox"
-                      checked={isAllTabsMode || selectedGidSet.has(tab.gid)}
-                      onChange={() => handleToggleTab(tab.gid)}
-                    />
-                    <span>{tab.name}</span>
-                  </label>
-                ))}
-                {!tabs.length && <div className="leads-sheet-tabs-empty">Nenhuma aba encontrada.</div>}
-              </div>
-            </>
+      <div className="agendor-selection-block">
+        <div className="agendor-selection-head">
+          <label>Abas da planilha</label>
+          <span>
+            Escolha quais abas o app deve ler. Marque &quot;Todas as abas&quot; para mesclar tudo, ou selecione
+            só as abas que quiser.
+            {tabsLoading && <i className="bx bx-loader-alt bx-spin" style={{ marginLeft: 6, opacity: 0.6 }}></i>}
+          </span>
+        </div>
+        <div className="stage-selector agendor-chip-list">
+          <label className={'stage-chip ' + (isAllTabsMode ? 'active' : '')}>
+            <input type="checkbox" checked={isAllTabsMode} onChange={handleSelectAllTabs} disabled={disabled} />
+            <span>Todas as abas (mesclar)</span>
+          </label>
+          {tabs.map((tab) => {
+            const checked = isAllTabsMode || selectedGidSet.has(tab.gid)
+            return (
+              <label key={tab.gid} className={'stage-chip ' + (checked ? 'active' : '')}>
+                <input type="checkbox" checked={checked} onChange={() => handleToggleTab(tab.gid)} disabled={disabled} />
+                <span>{tab.name}</span>
+              </label>
+            )
+          })}
+          {!tabsLoading && !tabs.length && (
+            <div className="stage-empty">
+              {tabsError || 'Nenhuma aba encontrada. Verifique se a planilha está compartilhada como "Qualquer pessoa com o link".'}
+            </div>
           )}
         </div>
-        {tabsLoading && <i className="bx bx-loader-alt bx-spin leads-sheet-config-spinner"></i>}
-        {tabsError && <small className="leads-sheet-config-error">{tabsError}</small>}
       </div>
 
       <div className="leads-column-map">
@@ -34955,153 +34933,8 @@ export default function DashboardShell({
         .leads-sheet-config {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
           margin-top: 4px;
-        }
-
-        .leads-sheet-config-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .leads-sheet-config-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: var(--text-muted);
-          flex-shrink: 0;
-        }
-
-        .leads-sheet-config-label i {
-          color: #26c281;
-          font-size: 14px;
-        }
-
-        .leads-sheet-tabs-picker {
-          position: relative;
-          flex: 1 1 220px;
-          min-width: 180px;
-        }
-
-        .leads-sheet-tabs-trigger {
-          width: 100%;
-          min-height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          padding: 0 12px;
-          border-radius: 10px;
-          background: rgba(0, 0, 0, 0.18);
-          border: 1px solid var(--border-color);
-          color: var(--text-primary, #fff);
-          font-family: inherit;
-          font-size: 13px;
-          cursor: pointer;
-        }
-
-        .leads-sheet-tabs-trigger:hover {
-          border-color: rgba(38, 194, 129, 0.3);
-        }
-
-        .leads-sheet-tabs-trigger:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .leads-sheet-tabs-trigger span {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .leads-sheet-tabs-trigger i {
-          flex-shrink: 0;
-          font-size: 16px;
-          opacity: 0.6;
-          transition: transform 0.15s;
-        }
-
-        .leads-sheet-tabs-trigger i.is-open {
-          transform: rotate(180deg);
-        }
-
-        .leads-sheet-tabs-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 300;
-        }
-
-        .leads-sheet-tabs-panel {
-          position: absolute;
-          top: calc(100% + 6px);
-          left: 0;
-          right: 0;
-          z-index: 301;
-          background: #1a1f2e;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          padding: 6px;
-          max-height: 260px;
-          overflow-y: auto;
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .leads-sheet-tabs-option {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 10px;
-          border-radius: 8px;
-          font-size: 13px;
-          color: rgba(241, 241, 241, 0.85);
-          cursor: pointer;
-        }
-
-        .leads-sheet-tabs-option:hover {
-          background: rgba(255, 255, 255, 0.06);
-        }
-
-        .leads-sheet-tabs-option.is-all {
-          font-weight: 700;
-          color: #26c281;
-        }
-
-        .leads-sheet-tabs-option input {
-          accent-color: #26c281;
-          width: 15px;
-          height: 15px;
-          flex-shrink: 0;
-        }
-
-        .leads-sheet-tabs-divider {
-          height: 1px;
-          background: rgba(255, 255, 255, 0.08);
-          margin: 4px 4px 6px;
-        }
-
-        .leads-sheet-tabs-empty {
-          padding: 10px;
-          font-size: 12.5px;
-          color: rgba(241, 241, 241, 0.35);
-          text-align: center;
-        }
-
-        .leads-sheet-config-spinner {
-          opacity: 0.55;
-          font-size: 15px;
-        }
-
-        .leads-sheet-config-error {
-          flex-basis: 100%;
-          color: #ef4444;
-          font-size: 12px;
         }
 
         .leads-column-map {
