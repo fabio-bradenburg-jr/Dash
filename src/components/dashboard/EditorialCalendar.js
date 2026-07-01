@@ -426,8 +426,11 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       <div className="editorial-header" style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="editorial-header-left">
-          <span className="management-hero-kicker"><i className={`bx ${defaultView === 'dash' ? 'bx-bar-chart-alt-2' : 'bx-calendar'}`} style={{ marginRight: 5 }}></i>Editorial</span>
-          <h2 className="editorial-title" style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>
+          <span className="management-hero-kicker" style={{ marginBottom: 6, display: 'block' }}>
+            <i className={`bx ${defaultView === 'dash' ? 'bx-bar-chart-square' : defaultView === 'plans' ? 'bx-spreadsheet' : 'bx-calendar'}`} style={{ marginRight: 5 }}></i>
+            {defaultView === 'dash' ? 'Social Media' : defaultView === 'plans' ? 'Planejamentos' : 'Editorial'}
+          </span>
+          <h2 className="editorial-title" style={{ margin: '0 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>
             {defaultView === 'dash' ? 'Painel Social Media' : defaultView === 'plans' ? 'Planejamentos' : 'Calendário Editorial'}
           </h2>
           <p className="editorial-subtitle" style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>

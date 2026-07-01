@@ -15112,9 +15112,9 @@ export default function DashboardShell({
 
   const renderWeeklyClientPanel = () => (
     <section className="weekly-dashboard-panel">
-      <div className="weekly-command-center glass-panel">
-        <div className="weekly-command-heading" style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div className="weekly-command-center glass-panel" style={{ borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div className="weekly-command-heading">
           <span className="management-hero-kicker"><i className="bx bx-pulse" style={{ marginRight: 5 }}></i>Operação semanal</span>
           <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Controle da Operação</h2>
           <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Leitura executiva da semana, saúde da carteira e custos de aquisição por cliente em uma rotina de segunda a domingo.</p>
@@ -18858,7 +18858,8 @@ export default function DashboardShell({
         {activeTab === 'operacao' && isOperationCreateModalOpen && canPersistClientChanges && (
           <div className="modal-overlay" onClick={() => setIsOperationCreateModalOpen(false)}>
             <div className="modal-card glass-panel" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div>
                   <h3>Novo card operacional</h3>
                   <p>Crie um card vinculado a um cliente para acompanhar setup, fase e execução da conta.</p>
@@ -19006,7 +19007,7 @@ export default function DashboardShell({
                   <>
                     <div
                       className="modal-header operation-modal-header"
-                      style={isLightAppMode ? { borderBottom: '1px solid rgba(15, 23, 42, 0.08)' } : undefined}
+                      style={isLightAppMode ? { borderBottom: '1px solid rgba(15, 23, 42, 0.08)' } : { background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', position: 'relative', overflow: 'hidden' }}
                     >
                       <div
                         className="operation-modal-breadcrumbs"
@@ -23459,7 +23460,8 @@ export default function DashboardShell({
         {activeTab === 'apresentacao' && isManualCrmModalOpen && activeClientUsesManualCrm && typeof document !== 'undefined' && createPortal(
           <div className="modal-overlay" onClick={() => setIsManualCrmModalOpen(false)}>
             <div className="modal-card glass-panel" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div>
                   <h3>Dados manuais do CRM</h3>
                   <p>Preencha os números comerciais para este cliente quando o Agendor não estiver conectado.</p>
@@ -23509,7 +23511,8 @@ export default function DashboardShell({
         {activeTab === 'apresentacao' && isAiInsightsModalOpen && typeof document !== 'undefined' && createPortal(
           <div className="modal-overlay" onClick={() => setIsAiInsightsModalOpen(false)}>
             <div className="modal-card glass-panel ai-insights-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)', padding: '20px 24px 16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div>
                   <h3>Insights da dashboard</h3>
                   <p>Análise resumida dos números ativos da apresentação, usando a configuração da aba IA.</p>
