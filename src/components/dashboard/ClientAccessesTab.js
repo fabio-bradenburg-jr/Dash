@@ -1348,19 +1348,25 @@ export default function ClientAccessesTab({ clients = [] }) {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ padding: '22px 24px 16px', borderBottom: `1px solid ${BORDER}`, flexShrink: 0 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: TEXT }}>Dados dos Clientes</h2>
-        <p style={{ margin: '4px 0 16px', fontSize: 13, color: SUB }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-            <i className="bx bx-search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: SUB, fontSize: 15 }} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ ...iStyle(), paddingLeft: 32 }} />
+      {/* Hero header */}
+      <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(167,139,250,0.12)', background: 'linear-gradient(135deg, rgba(139,92,246,0.07) 0%, rgba(139,92,246,0.01) 100%)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a78bfa', opacity: 0.85, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <i className="bx bx-data" style={{ fontSize: 13 }}></i>Dados
+            </span>
+            <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900, color: TEXT }}>Dados dos Clientes</h2>
+            <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.48, color: TEXT }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
           </div>
           <button type="button" onClick={() => setShowExportModal(true)}
-            style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 9, color: '#ef4444', padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ flexShrink: 0, background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 9999, color: '#ef4444', padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <i className="bx bx-file-pdf" style={{ fontSize: 15 }} /> Exportar dados
           </button>
+        </div>
+        <div style={{ marginTop: 16, position: 'relative' }}>
+          <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ ...iStyle(), paddingLeft: 42, width: '100%', boxSizing: 'border-box', maxWidth: 400 }} />
         </div>
       </div>
 

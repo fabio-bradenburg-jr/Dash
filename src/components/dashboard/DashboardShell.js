@@ -25152,6 +25152,13 @@ export default function DashboardShell({
           overflow: hidden;
         }
 
+        .dashboard-container[data-active-tab='clientes'] .main-content,
+        .dashboard-container[data-active-tab='onboarding'] .main-content,
+        .dashboard-container[data-active-tab='offboarding'] .main-content,
+        .dashboard-container[data-active-tab='acessos'] .main-content {
+          padding: 0 !important;
+        }
+
         .dashboard-container .main-content-expanded {
           margin-left: 92px;
           width: calc(100% - 92px);
