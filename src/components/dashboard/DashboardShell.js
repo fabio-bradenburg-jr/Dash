@@ -17589,7 +17589,7 @@ export default function DashboardShell({
                 <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist do processo de integração de novos clientes, baseado no playbook operacional.</p>
 
                 {/* Metrics panel */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
                   {[
                     { icon: 'bx-group', label: 'Total de clientes', value: totalClients, color: '#94a3b8' },
                     { icon: 'bx-check-circle', label: 'Concluídos', value: completedClients, color: '#22c55e' },
@@ -18380,7 +18380,7 @@ export default function DashboardShell({
                 )}
 
                 {/* Metrics */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12, marginTop: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginTop: 20 }}>
                   {[
                     { label: 'Clientes em Churn', value: churnClients.length, icon: 'bx-user-x', color: '#ef4444' },
                     { label: 'Concluídos', value: completeCount, icon: 'bx-check-circle', color: '#22c55e' },
@@ -20908,7 +20908,7 @@ export default function DashboardShell({
                 </div>
 
                 {/* Stat cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
                   {[
                     { icon: 'bx-group', label: 'Total de clientes', value: nonArchivedClients.length, color: '#94a3b8' },
                     { icon: 'bx-check-circle', label: 'Ativos', value: ativosCount, color: '#22c55e' },
