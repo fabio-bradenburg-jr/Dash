@@ -780,6 +780,10 @@ function normalizeClientRecord(client: LooseRecord): ClientRecord {
     tiktokAdsAccountId: payload.tiktokAdsAccountId || '',
     linkedInAdsAccountId: payload.linkedInAdsAccountId || '',
     leadsSheetUrl: payload.leadsSheetUrl || '',
+    leadsSheetGid: String(payload.leadsSheetGid || 'all').trim() || 'all',
+    leadsSheetColumnMap: (payload.leadsSheetColumnMap && typeof payload.leadsSheetColumnMap === 'object')
+      ? payload.leadsSheetColumnMap
+      : {},
     googleSheetsUrl: payload.googleSheetsUrl || '',
     googleSheetsHeaderRow: Number.isFinite(Number(payload.googleSheetsHeaderRow)) && Number(payload.googleSheetsHeaderRow) > 0
       ? Number(payload.googleSheetsHeaderRow)

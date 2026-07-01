@@ -953,6 +953,10 @@ export function createClientRecord(overrides: ClientRecordOverrides = {}): Clien
       ? Number(overrides.googleSheetsHeaderRow)
       : 1,
     googleSheetsStatusColumn: String(overrides.googleSheetsStatusColumn || '').trim(),
+    leadsSheetGid: String(overrides.leadsSheetGid || 'all').trim() || 'all',
+    leadsSheetColumnMap: (overrides.leadsSheetColumnMap && typeof overrides.leadsSheetColumnMap === 'object')
+      ? overrides.leadsSheetColumnMap
+      : {},
     crmProvider,
     manualCrmSummary: overrides.manualCrmSummary || {},
     integrations: {

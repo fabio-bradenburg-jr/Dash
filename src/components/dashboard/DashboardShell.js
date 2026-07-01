@@ -3188,6 +3188,117 @@ function mergeInitialClientRecord(currentClients, initialClientRecord) {
   )
 }
 
+// Aba + mapeamento de colunas da planilha de leads de um cliente. Fica ao lado do campo de link
+// (bloco "Planilha de Leads" do cadastro) e alimenta a leitura em /api/google-sheets/leads-analytics
+// usada pela aba Funil — ver leadsSheetGid / leadsSheetColumnMap em ClientRecord.
+const LEADS_SHEET_MAP_FIELDS = [
+  { key: 'name', label: 'Nome' },
+  { key: 'phone', label: 'Telefone' },
+  { key: 'qualification', label: 'Qualificação' },
+  { key: 'city', label: 'Cidade' },
+  { key: 'state', label: 'Estado' },
+  { key: 'date', label: 'Data de chegada' },
+  { key: 'counter', label: 'Contabilizador' },
+]
+
+function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
+  const sheetUrl = String(client?.leadsSheetUrl || '').trim()
+  const gid = client?.leadsSheetGid || 'all'
+  const columnMap = client?.leadsSheetColumnMap || {}
+  const headerRow = client?.googleSheetsHeaderRow || 1
+
+  const [tabs, setTabs] = useState([])
+  const [tabsLoading, setTabsLoading] = useState(false)
+  const [tabsError, setTabsError] = useState('')
+  const [headers, setHeaders] = useState([])
+  const [detected, setDetected] = useState({})
+  const [headersLoading, setHeadersLoading] = useState(false)
+
+  useEffect(() => {
+    if (!sheetUrl) { setTabs([]); return }
+    let cancelled = false
+    setTabsLoading(true); setTabsError('')
+    fetch(`/api/google-sheets/tabs?url=${encodeURIComponent(sheetUrl)}`)
+      .then((res) => res.json().then((json) => ({ ok: res.ok, json })))
+      .then(({ ok, json }) => {
+        if (cancelled) return
+        if (!ok) throw new Error(json.error || 'Não foi possível buscar as abas da planilha.')
+        setTabs(Array.isArray(json.tabs) ? json.tabs : [])
+      })
+      .catch((error) => { if (!cancelled) { setTabsError(error.message); setTabs([]) } })
+      .finally(() => { if (!cancelled) setTabsLoading(false) })
+    return () => { cancelled = true }
+  }, [sheetUrl])
+
+  useEffect(() => {
+    if (!sheetUrl) { setHeaders([]); setDetected({}); return }
+    let cancelled = false
+    setHeadersLoading(true)
+    const params = new URLSearchParams({ url: sheetUrl, gid: gid || 'all', header_row: String(headerRow) })
+    fetch(`/api/google-sheets/leads-analytics?${params.toString()}`)
+      .then((res) => res.json().then((json) => ({ ok: res.ok, json })))
+      .then(({ ok, json }) => {
+        if (cancelled || !ok) return
+        setHeaders(Array.isArray(json.headers) ? json.headers : [])
+        setDetected(json.detectedColumns || {})
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setHeadersLoading(false) })
+    return () => { cancelled = true }
+  }, [sheetUrl, gid, headerRow])
+
+  if (!sheetUrl) return null
+
+  return (
+    <>
+      <div className="input-group">
+        <label>Aba da planilha</label>
+        <select
+          className="client-select-input"
+          value={gid}
+          onChange={(event) => onFieldChange('leadsSheetGid', event.target.value)}
+          disabled={disabled || tabsLoading}
+        >
+          <option value="all">Todas as abas (mesclar)</option>
+          {tabs.map((tab) => (
+            <option key={tab.gid} value={tab.gid}>{tab.name}</option>
+          ))}
+        </select>
+        {tabsError && <small style={{ color: '#ef4444', display: 'block', marginTop: 4 }}>{tabsError}</small>}
+      </div>
+
+      <div className="input-group leads-column-map">
+        <label>
+          Mapeamento de colunas
+          {headersLoading && <i className="bx bx-loader-alt bx-spin" style={{ marginLeft: 6, opacity: 0.6 }}></i>}
+        </label>
+        <p style={{ margin: '0 0 8px', fontSize: '0.78rem', opacity: 0.45 }}>
+          Escolha qual coluna da planilha corresponde a cada campo. Deixe em &quot;Não mapear&quot; para detectar
+          automaticamente pelo nome da coluna.
+        </p>
+        <div className="leads-column-map-grid">
+          {LEADS_SHEET_MAP_FIELDS.map((field) => (
+            <label key={field.key} className="leads-column-map-field">
+              <span>{field.label}</span>
+              <select
+                className="client-select-input"
+                value={columnMap[field.key] || ''}
+                onChange={(event) => onFieldChange('leadsSheetColumnMap', { ...columnMap, [field.key]: event.target.value })}
+                disabled={disabled || !headers.length}
+              >
+                <option value="">{detected[field.key] ? `Auto: ${detected[field.key]}` : 'Não mapear'}</option>
+                {headers.map((header) => (
+                  <option key={header} value={header}>{header}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function DashboardShell({
   initialTab = 'assistant',
   initialActiveClientId = '',
@@ -21316,6 +21427,7 @@ export default function DashboardShell({
                       <label>Link da planilha</label>
                       <input type="url" className="client-text-input" placeholder="https://docs.google.com/spreadsheets/d/..." value={activeClient.leadsSheetUrl || ''} onChange={(event) => handleClientFieldChange('leadsSheetUrl', event.target.value)} disabled={!canEditActiveClient} />
                     </div>
+                    <LeadsSheetMappingBlock client={activeClient} onFieldChange={handleClientFieldChange} disabled={!canEditActiveClient} />
                   </div>
 
                   <div className="integration-block manual-crm-toggle-block">
@@ -34778,6 +34890,26 @@ export default function DashboardShell({
           color: var(--text-muted);
           font-size: 13px;
           line-height: 1.5;
+        }
+
+        .leads-column-map-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 12px;
+        }
+
+        .leads-column-map-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .leads-column-map-field span {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-muted);
         }
 
         .form-alert {

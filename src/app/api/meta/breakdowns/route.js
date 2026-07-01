@@ -220,6 +220,7 @@ export async function GET(request) {
         ages: [],
         states: [],
         cities: [],
+        genders: [],
         creatives: [],
       })
     }
@@ -236,12 +237,16 @@ export async function GET(request) {
     stateParams.set('breakdowns', 'region')
     appendMetaEntityFiltering(stateParams, campaignIds, adsetIds, adIds)
 
+    const genderParams = buildBaseParams({ token, datePreset, since, until, fields: geographicInsightFields })
+    genderParams.set('breakdowns', 'gender')
+    appendMetaEntityFiltering(genderParams, campaignIds, adsetIds, adIds)
+
     const creativeParams = buildBaseParams({ token, datePreset, since, until, fields: `ad_id,ad_name,campaign_id,adset_id,${creativeInsightFields}` })
     creativeParams.set('level', 'ad')
     appendMetaEntityFiltering(creativeParams, campaignIds, adsetIds, adIds)
 
     const creativeUrl = `https://graph.facebook.com/v19.0/${id}/insights?${creativeParams.toString()}`
-    const [ageResult, cityResult, stateResult, creativeResult] = await Promise.all([
+    const [ageResult, cityResult, stateResult, genderResult, creativeResult] = await Promise.all([
       fetchMetaBreakdownSafely(
         `https://graph.facebook.com/v19.0/${id}/insights?${ageParams.toString()}`,
         'A Meta demorou para responder ao carregar os rankings detalhados. Tente novamente em alguns instantes.'
@@ -252,6 +257,10 @@ export async function GET(request) {
       ),
       fetchMetaBreakdownSafely(
         `https://graph.facebook.com/v19.0/${id}/insights?${stateParams.toString()}`,
+        'A Meta demorou para responder ao carregar os rankings detalhados. Tente novamente em alguns instantes.'
+      ),
+      fetchMetaBreakdownSafely(
+        `https://graph.facebook.com/v19.0/${id}/insights?${genderParams.toString()}`,
         'A Meta demorou para responder ao carregar os rankings detalhados. Tente novamente em alguns instantes.'
       ),
       fetchMetaBreakdownSafely(
@@ -345,6 +354,7 @@ export async function GET(request) {
       ages: normalizeBreakdownRows(ageResult.data?.data || [], 'age', { limit: Number.MAX_SAFE_INTEGER }),
       states: normalizeBreakdownRows(stateResult.data?.data || [], 'region', { limit: Number.MAX_SAFE_INTEGER }),
       cities: normalizeBreakdownRows(cityRows, cityLabelKey, { limit: 100 }),
+      genders: normalizeBreakdownRows(genderResult.data?.data || [], 'gender', { limit: Number.MAX_SAFE_INTEGER }),
       creatives,
       detail_daily: detailDaily,
       geoScope,
@@ -352,6 +362,7 @@ export async function GET(request) {
         ages: ageResult.error || '',
         states: stateResult.error || '',
         cities: cityError,
+        genders: genderResult.error || '',
         creatives: creativeResult.error || '',
       },
     })

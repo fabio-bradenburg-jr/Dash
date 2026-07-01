@@ -97,10 +97,11 @@ function mergeAnalytics(results) {
   // Merge multiple analyzeLeads results into one combined result
   const merge = (map, items) => {
     for (const item of items) {
-      if (!map.has(item.name)) {
-        map.set(item.name, { ...item, statusDist: [...item.statusDist] })
+      const key = item.id || item.name
+      if (!map.has(key)) {
+        map.set(key, { ...item, statusDist: [...item.statusDist] })
       } else {
-        const existing = map.get(item.name)
+        const existing = map.get(key)
         existing.total += item.total
         existing.qualified += item.qualified
         existing.converted += item.converted
@@ -116,6 +117,7 @@ function mergeAnalytics(results) {
     }
   }
   const campaignMap = new Map(), adsetMap = new Map(), adMap = new Map(), sourceMap = new Map()
+  const cityMap = new Map(), stateMap = new Map()
   const dateMap = new Map()
   let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
   const statusCountsMap = new Map()
@@ -128,6 +130,8 @@ function mergeAnalytics(results) {
     merge(adsetMap, r.adsets || [])
     merge(adMap, r.ads || [])
     merge(sourceMap, r.sources || [])
+    merge(cityMap, r.citiesFromSheet || [])
+    merge(stateMap, r.statesFromSheet || [])
     for (const sd of r.statusDist || []) {
       statusCountsMap.set(sd.label, (statusCountsMap.get(sd.label) || 0) + sd.count)
     }
@@ -155,6 +159,7 @@ function mergeAnalytics(results) {
     .sort((a, b) => b.count - a.count)
   const timeline = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date))
   const campaigns = toArr(campaignMap), adsets = toArr(adsetMap), ads = toArr(adMap), sources = toArr(sourceMap)
+  const citiesFromSheet = toArr(cityMap), statesFromSheet = toArr(stateMap)
 
   const insights = []
   if (campaigns.length >= 2) {
@@ -176,7 +181,7 @@ function mergeAnalytics(results) {
 
   return {
     overview: { total, publicoAlvo, qualified, converted, lost, noreply, publicoAlvoRate: total ? publicoAlvo/total : 0, qualRate: total ? qualified/total : 0, convRate: total ? converted/total : 0, lostRate: total ? lost/total : 0, noReplyRate: total ? noreply/total : 0 },
-    statusDist, campaigns, adsets, ads, sources, timeline, insights,
+    statusDist, campaigns, adsets, ads, sources, citiesFromSheet, statesFromSheet, timeline, insights,
     alerts: noReplyPct > 0.5 ? [{ type: 'critical', text: 'Mais de 50% dos leads sem resposta.' }] : [],
     detectedColumns: results[0]?.detectedColumns || {},
     headers: results[0]?.headers || [],
@@ -197,19 +202,37 @@ function resolveHeaders(rows, headerRow = 1) {
 const COLUMN_PATTERNS = {
   // Meta Leads sheet exact names first, then generic fallbacks
   campaign:      /^campaign_name$|^campanha$|^campaign$|utm_campaign/i,
+  campaignId:    /^campaign_id$/i,   // links sheet rows to the Meta campaign automatically
   adset:         /^adset_name$|^conjunto$|^adset$|^ad.?set$|grupo.?(an[uú]ncio|an[uú]ncios)/i,
+  adsetId:       /^adset_id$/i,      // links sheet rows to the Meta adset automatically
   ad:            /^ad_name$|^an[uú]ncio$|^ad$|^criativo$|^creative$/i,
+  adId:          /^ad_id$|^id.?(do)?.?an[uú]ncio$|^an[uú]ncio.?id$|^id_ad$|^adid$/i,  // links sheet rows to the Meta ad automatically
   qualification: /^qualifica[cç][aã]o$|^qualif/i,           // primary: Qualificação column
   status:        /^lead_status$|^status$|etapa|fase|pipeline|situa[cç][aã]o/i,
   date:          /^created_time$|^data.?(qualifica|entrada)?$|^dt[_\s-]/i,
   source:        /^platform$|origem|source|utm_source|canal/i,
   reason:        /^motivo$|^reason$/i,
   seller:        /^vendedor$|^seller$/i,
+  // Client-configurable fields (mapped explicitly in client registration; regex is only the
+  // best-effort fallback when the client hasn't picked a column).
+  name:          /^nome$|^lead_name$|^full_name$|^name$/i,
+  phone:         /^telefone$|^phone_number$|^phone$|^celular$|^whatsapp$/i,
+  city:          /^cidade$|^city$/i,
+  state:         /^estado$|^uf$|^state$/i,
+  counter:       /^contabilizador$|^contador$|^counter$/i,
 }
 
-function detectColumns(headers) {
+// `overrides` maps a COLUMN_PATTERNS key to the exact header name chosen by the client in the
+// registration screen. When present (and found in this sheet's headers) it wins over the regex
+// guess — this is what makes the mapping work for sheets that don't follow the usual naming.
+function detectColumns(headers, overrides = {}) {
   const detected = {}
   for (const [key, pattern] of Object.entries(COLUMN_PATTERNS)) {
+    const overrideName = overrides[key]
+    if (overrideName) {
+      const idx = headers.findIndex(h => h === overrideName)
+      if (idx >= 0) { detected[key] = idx; continue }
+    }
     const idx = headers.findIndex(h => pattern.test(h))
     if (idx >= 0) detected[key] = idx
   }
@@ -283,8 +306,8 @@ function computeScore({ total, qualified, converted, lost, noreply }) {
 
 // ─── Aggregation ─────────────────────────────────────────────────────────────
 
-function emptyBucket(name) {
-  return { name, total: 0, publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0, statusDist: {} }
+function emptyBucket(name, id) {
+  return { name, id: id || null, total: 0, publicoAlvo: 0, qualified: 0, converted: 0, lost: 0, noreply: 0, statusDist: {} }
 }
 
 function addToBucket(bucket, statusClass, rawStatus) {
@@ -326,11 +349,16 @@ function analyzeLeads({ rows, cols, headers }) {
   const adMap = new Map()
   const sourceMap = new Map()
   const dateMap = new Map()
+  const cityMap = new Map()
+  const stateMap = new Map()
 
   let total = 0, publicoAlvo = 0, qualified = 0, converted = 0, lost = 0, noreply = 0
 
   // Whether this sheet has a date column — if yes, only rows with a non-empty date field are leads
   const hasDateCol = cols.date !== undefined
+  // Contabilizador: when mapped, only rows with a non-empty value in that column count as a lead.
+  // Without it configured, every row is a lead (current/default behavior, unchanged).
+  const hasCounterCol = cols.counter !== undefined
 
   for (const row of rows) {
     const rawDate = hasDateCol ? row[cols.date] : null
@@ -340,11 +368,17 @@ function analyzeLeads({ rows, cols, headers }) {
     // Rows whose date doesn't parse are still counted — we don't discard leads over parse failures.
     // If no date column exists, every data row counts as a lead.
     if (hasDateCol && !rawDate) continue
+    if (hasCounterCol && !String(row[cols.counter] || '').trim()) continue
 
     const campaign = cols.campaign !== undefined ? (row[cols.campaign] || 'Sem campanha') : null
     const adset = cols.adset !== undefined ? (row[cols.adset] || 'Sem conjunto') : null
     const ad = cols.ad !== undefined ? (row[cols.ad] || 'Sem anúncio') : null
     const source = cols.source !== undefined ? (row[cols.source] || 'Sem origem') : null
+    // Meta lead-ads export sheets always carry campaign_id/adset_id/ad_id — prefer them as the
+    // bucket key so matching against Meta Ads data doesn't rely on exact name equality.
+    const campaignId = cols.campaignId !== undefined ? String(row[cols.campaignId] || '').trim() : ''
+    const adsetId = cols.adsetId !== undefined ? String(row[cols.adsetId] || '').trim() : ''
+    const adId = cols.adId !== undefined ? String(row[cols.adId] || '').trim() : ''
     // Use Qualificação as primary dimension; fall back to status
     const rawQual = cols.qualification !== undefined ? (row[cols.qualification] || '') : ''
     const rawStatus = cols.status !== undefined ? (row[cols.status] || '') : ''
@@ -363,21 +397,33 @@ function analyzeLeads({ rows, cols, headers }) {
     statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1
 
     if (campaign) {
-      if (!campaignMap.has(campaign)) campaignMap.set(campaign, emptyBucket(campaign))
-      addToBucket(campaignMap.get(campaign), statusClass, rawClassifier)
+      const key = campaignId || campaign
+      if (!campaignMap.has(key)) campaignMap.set(key, emptyBucket(campaign, campaignId))
+      addToBucket(campaignMap.get(key), statusClass, rawClassifier)
     }
     if (adset) {
-      const key = adset
-      if (!adsetMap.has(key)) adsetMap.set(key, emptyBucket(adset))
+      const key = adsetId || adset
+      if (!adsetMap.has(key)) adsetMap.set(key, emptyBucket(adset, adsetId))
       addToBucket(adsetMap.get(key), statusClass, rawClassifier)
     }
     if (ad) {
-      if (!adMap.has(ad)) adMap.set(ad, emptyBucket(ad))
-      addToBucket(adMap.get(ad), statusClass, rawClassifier)
+      const key = adId || ad
+      if (!adMap.has(key)) adMap.set(key, emptyBucket(ad, adId))
+      addToBucket(adMap.get(key), statusClass, rawClassifier)
     }
     if (source) {
       if (!sourceMap.has(source)) sourceMap.set(source, emptyBucket(source))
       addToBucket(sourceMap.get(source), statusClass, rawClassifier)
+    }
+    if (cols.city !== undefined && row[cols.city]) {
+      const city = row[cols.city]
+      if (!cityMap.has(city)) cityMap.set(city, emptyBucket(city))
+      addToBucket(cityMap.get(city), statusClass, rawClassifier)
+    }
+    if (cols.state !== undefined && row[cols.state]) {
+      const state = row[cols.state]
+      if (!stateMap.has(state)) stateMap.set(state, emptyBucket(state))
+      addToBucket(stateMap.get(state), statusClass, rawClassifier)
     }
 
     if (dt) {
@@ -401,6 +447,8 @@ function analyzeLeads({ rows, cols, headers }) {
   const adsets = bucketMapToArray(adsetMap)
   const ads = bucketMapToArray(adMap)
   const sources = bucketMapToArray(sourceMap)
+  const citiesFromSheet = bucketMapToArray(cityMap)
+  const statesFromSheet = bucketMapToArray(stateMap)
 
   // Insights
   const insights = []
@@ -449,17 +497,27 @@ function analyzeLeads({ rows, cols, headers }) {
     adsets,
     ads,
     sources,
+    citiesFromSheet,
+    statesFromSheet,
     timeline,
     insights,
     alerts,
     detectedColumns: {
       campaign: cols.campaign !== undefined ? headers[cols.campaign] : null,
+      campaignId: cols.campaignId !== undefined ? headers[cols.campaignId] : null,
       adset: cols.adset !== undefined ? headers[cols.adset] : null,
+      adsetId: cols.adsetId !== undefined ? headers[cols.adsetId] : null,
       ad: cols.ad !== undefined ? headers[cols.ad] : null,
+      adId: cols.adId !== undefined ? headers[cols.adId] : null,
       qualification: cols.qualification !== undefined ? headers[cols.qualification] : null,
       status: cols.status !== undefined ? headers[cols.status] : null,
       date: cols.date !== undefined ? headers[cols.date] : null,
       source: cols.source !== undefined ? headers[cols.source] : null,
+      name: cols.name !== undefined ? headers[cols.name] : null,
+      phone: cols.phone !== undefined ? headers[cols.phone] : null,
+      city: cols.city !== undefined ? headers[cols.city] : null,
+      state: cols.state !== undefined ? headers[cols.state] : null,
+      counter: cols.counter !== undefined ? headers[cols.counter] : null,
     },
     headers,
   }
@@ -508,6 +566,17 @@ export async function GET(request) {
     const since = searchParams.get('since') || ''  // yyyy-mm-dd
     const until = searchParams.get('until') || ''
 
+    // Explicit column mapping saved on the client (registration screen) — wins over auto-detection.
+    const columnOverrides = {
+      name: searchParams.get('col_name') || '',
+      phone: searchParams.get('col_phone') || '',
+      qualification: searchParams.get('col_qualification') || '',
+      city: searchParams.get('col_city') || '',
+      state: searchParams.get('col_state') || '',
+      date: searchParams.get('col_date') || '',
+      counter: searchParams.get('col_counter') || '',
+    }
+
     if (!sourceUrl) return NextResponse.json({ error: 'URL não informada.' }, { status: 400 })
 
     const sheetId = extractSheetId(sourceUrl)
@@ -535,7 +604,7 @@ export async function GET(request) {
       const delimiter = detectDelimiter(text)
       const allRows = parseCsv(text, delimiter)
       const { headerIndex, headers } = resolveHeaders(allRows, headerRow)
-      const cols = detectColumns(headers)
+      const cols = detectColumns(headers, columnOverrides)
       const rawDataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
       const dataRows = applyDateFilter(rawDataRows, cols.date)
       return analyzeLeads({ rows: dataRows, cols, headers })

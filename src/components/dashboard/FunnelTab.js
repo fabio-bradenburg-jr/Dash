@@ -311,6 +311,20 @@ export default function FunnelTab({ clients }) {
   const [customSince, setCustomSince] = useState('')
   const [customUntil, setCustomUntil] = useState('')
 
+  // Meta breakdowns (creatives, states, ages, gender)
+  const [breakdownsData, setBreakdownsData] = useState(null)
+  const [breakdownsLoading, setBreakdownsLoading] = useState(false)
+  const [breakdownsError, setBreakdownsError] = useState('')
+
+  // Creative preview modal
+  const [previewCreative, setPreviewCreative] = useState(null)
+  const [previewData, setPreviewData] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
+
+  // Export
+  const [isExportingFunnel, setIsExportingFunnel] = useState(false)
+
   const metaClients = useMemo(() =>
     (clients || []).filter(c => c.metaAdAccountId && c.metaAdAccountId !== '__ghost__'),
     [clients]
@@ -342,6 +356,24 @@ export default function FunnelTab({ clients }) {
 
   useEffect(() => { loadMeta() }, [loadMeta])
 
+  const loadBreakdowns = useCallback(async () => {
+    if (!activeClient?.metaAdAccountId) { setBreakdownsData(null); return }
+    setBreakdownsLoading(true); setBreakdownsError('')
+    try {
+      const params = new URLSearchParams({ ad_account_id: activeClient.metaAdAccountId, date_preset: metaPeriod })
+      if (selAd.size) params.set('ad_ids', Array.from(selAd).join(','))
+      else if (selAdset.size) params.set('adset_ids', Array.from(selAdset).join(','))
+      else if (selCampaign.size) params.set('campaign_ids', Array.from(selCampaign).join(','))
+      const res = await fetch(`/api/meta/breakdowns?${params}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erro ao carregar rankings do Meta.')
+      setBreakdownsData(json)
+    } catch (e) { setBreakdownsError(e.message) }
+    finally { setBreakdownsLoading(false) }
+  }, [activeClient, metaPeriod, selCampaign, selAdset, selAd])
+
+  useEffect(() => { loadBreakdowns() }, [loadBreakdowns])
+
   const loadpgl = useCallback(async () => {
     if (!activeClient?.leadsSheetUrl) { setpglData(null); return }
     setpglLoading(true); setpglError('')
@@ -355,9 +387,17 @@ export default function FunnelTab({ clients }) {
       else if (period === 'month') { since = fmtD(new Date(today.getFullYear(), today.getMonth(), 1)); until = fmtD(today) }
       else if (period === 'custom') { since = customSince; until = customUntil }
 
-      const params = new URLSearchParams({ url: activeClient.leadsSheetUrl, gid: 'all', header_row: activeClient.googleSheetsHeaderRow || 1 })
+      const params = new URLSearchParams({ url: activeClient.leadsSheetUrl, gid: activeClient.leadsSheetGid || 'all', header_row: activeClient.googleSheetsHeaderRow || 1 })
       if (since) params.set('since', since)
       if (until) params.set('until', until)
+      const columnMap = activeClient.leadsSheetColumnMap || {}
+      if (columnMap.name) params.set('col_name', columnMap.name)
+      if (columnMap.phone) params.set('col_phone', columnMap.phone)
+      if (columnMap.qualification) params.set('col_qualification', columnMap.qualification)
+      if (columnMap.city) params.set('col_city', columnMap.city)
+      if (columnMap.state) params.set('col_state', columnMap.state)
+      if (columnMap.date) params.set('col_date', columnMap.date)
+      if (columnMap.counter) params.set('col_counter', columnMap.counter)
       const res = await fetch(`/api/google-sheets/leads-analytics?${params}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erro ao carregar PGL.')
@@ -372,16 +412,20 @@ export default function FunnelTab({ clients }) {
 
   const pglIndex = useMemo(() => {
     if (!pglData) return null
-    const campaignByName = new Map()
-    for (const c of pglData.campaigns || []) campaignByName.set(norm(c.name), c)
-    const adsetByName = new Map()
-    for (const a of pglData.adsets || []) adsetByName.set(norm(a.name), a)
-    const adByName = new Map()
-    for (const a of pglData.ads || []) adByName.set(norm(a.name), a)
+    const buildMaps = (items) => {
+      const byName = new Map(), byId = new Map()
+      for (const item of items || []) {
+        byName.set(norm(item.name), item)
+        // Leads sheets exported from Meta always carry campaign_id/adset_id/ad_id — when the
+        // sheet has that column, prefer matching by id so it survives ad/campaign renames.
+        if (item.id) byId.set(norm(item.id), item)
+      }
+      return { byName, byId }
+    }
     return {
-      campaign: { byName: campaignByName, byId: new Map() },
-      adset:    { byName: adsetByName,    byId: new Map() },
-      ad:       { byName: adByName,       byId: new Map() },
+      campaign: buildMaps(pglData.campaigns),
+      adset:    buildMaps(pglData.adsets),
+      ad:       buildMaps(pglData.ads),
     }
   }, [pglData])
 
@@ -486,6 +530,170 @@ export default function FunnelTab({ clients }) {
 
   const haspgl = Boolean(activeClient?.leadsSheetUrl)
 
+  // ─── Top 5 breakdowns (Meta Ads) ───────────────────────────────────────────
+
+  const topCreatives = useMemo(() => (breakdownsData?.creatives || []).slice(0, 5), [breakdownsData])
+  const topStates = useMemo(() => (breakdownsData?.states || []).slice(0, 5), [breakdownsData])
+  const topAges = useMemo(() => (breakdownsData?.ages || []).slice(0, 5), [breakdownsData])
+  const genderBreakdown = useMemo(() => breakdownsData?.genders || [], [breakdownsData])
+
+  const statesTotal = useMemo(() => (breakdownsData?.states || []).reduce((s, r) => s + (r.custom_metrics?.totalConversions || 0), 0), [breakdownsData])
+  const agesTotal = useMemo(() => (breakdownsData?.ages || []).reduce((s, r) => s + (r.custom_metrics?.totalConversions || 0), 0), [breakdownsData])
+  const gendersTotal = useMemo(() => genderBreakdown.reduce((s, r) => s + (r.custom_metrics?.totalConversions || 0), 0), [genderBreakdown])
+
+  const GENDER_LABELS = { male: 'Masculino', female: 'Feminino', unknown: 'Não informado' }
+
+  // ─── Creative preview modal ────────────────────────────────────────────────
+
+  const openCreativePreview = useCallback((creative) => setPreviewCreative(creative), [])
+  const closeCreativePreview = useCallback(() => { setPreviewCreative(null); setPreviewData(null); setPreviewError('') }, [])
+
+  useEffect(() => {
+    if (!previewCreative?.adId || !activeClient?.metaAdAccountId) {
+      setPreviewData(null); setPreviewLoading(false); setPreviewError('')
+      return
+    }
+    let cancelled = false
+    const run = async () => {
+      setPreviewData(null); setPreviewLoading(true); setPreviewError('')
+      try {
+        const params = new URLSearchParams({ ad_id: previewCreative.adId, ad_account_id: activeClient.metaAdAccountId })
+        const res = await fetch(`/api/meta/creative-preview?${params}`)
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(json?.error || 'Não foi possível carregar o preview deste criativo.')
+        if (!cancelled) setPreviewData(json)
+      } catch (e) {
+        if (!cancelled) setPreviewError(e.message || 'Não foi possível carregar o preview deste criativo.')
+      } finally {
+        if (!cancelled) setPreviewLoading(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [previewCreative, activeClient])
+
+  // ─── Export (CSV / PDF) ─────────────────────────────────────────────────────
+
+  const funnelExportFileName = useMemo(() => {
+    const base = `funil-${activeClient?.name || 'cliente'}`
+    const stripped = base.normalize('NFD').split('').filter((ch) => ch.charCodeAt(0) < 0x0300 || ch.charCodeAt(0) > 0x036f).join('')
+    return stripped
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .toLowerCase()
+      .replace(/^-+|-+$/g, '')
+  }, [activeClient])
+
+  const buildFunnelExportRows = useCallback(() => {
+    const rows = []
+    rows.push({ Seção: 'Funil', Item: 'Impressões', Valor: fmt(funnelMeta.impressions) })
+    rows.push({ Seção: 'Funil', Item: 'Cliques', Valor: fmt(funnelMeta.clicks) })
+    rows.push({ Seção: 'Funil', Item: 'Leads', Valor: fmt(funnelMeta.leads) })
+    rows.push({ Seção: 'Funil', Item: 'Público-alvo', Valor: fmt(funnelpgl.publicoAlvo || 0) })
+    rows.push({ Seção: 'Funil', Item: 'Qualificados', Valor: fmt(funnelpgl.qualified || 0) })
+    rows.push({ Seção: 'Funil', Item: 'Convertidos', Valor: fmt(funnelpgl.converted || 0) })
+    rows.push({ Seção: 'Funil', Item: 'Perdidos', Valor: fmt(funnelpgl.lost || 0) })
+    rows.push({ Seção: 'Funil', Item: 'Sem resposta', Valor: fmt(funnelpgl.noreply || 0) })
+    rows.push({ Seção: 'Métricas', Item: 'Investimento', Valor: fmtMoney(funnelMeta.spend) })
+    rows.push({ Seção: 'Métricas', Item: 'CTR', Valor: `${ctr.toFixed(2)}%` })
+    rows.push({ Seção: 'Métricas', Item: 'CPC', Valor: fmtMoney(cpc) })
+    rows.push({ Seção: 'Métricas', Item: 'CPL', Valor: fmtMoney(cpl) })
+    rows.push({ Seção: 'Métricas', Item: 'Taxa de qualificação', Valor: `${Math.round(qualRate * 100)}%` })
+    rows.push({ Seção: 'Métricas', Item: 'Taxa de conversão', Valor: `${Math.round(convRate * 100)}%` })
+    rows.push({ Seção: 'Métricas', Item: 'Taxa de perda', Valor: `${Math.round(lostRate * 100)}%` })
+    topCreatives.forEach((c, i) => rows.push({
+      Seção: 'Top Criativos', Item: `${i + 1}. ${c.label}`,
+      Valor: `Resultado: ${fmt(c.custom_metrics?.totalConversions || 0)} | Custo/resultado: ${c.custom_metrics?.cpa ? fmtMoney(c.custom_metrics.cpa) : '—'} | Investimento: ${fmtMoney(c.spend)} | CTR: ${(c.custom_metrics?.ctr || 0).toFixed(2)}%`,
+    }))
+    topStates.forEach((s, i) => rows.push({
+      Seção: 'Top Estados', Item: `${i + 1}. ${s.label}`,
+      Valor: `Resultados: ${fmt(s.custom_metrics?.totalConversions || 0)} (${pct(s.custom_metrics?.totalConversions || 0, statesTotal)})`,
+    }))
+    topAges.forEach((a, i) => rows.push({
+      Seção: 'Top Idades', Item: `${i + 1}. ${a.label}`,
+      Valor: `Resultados: ${fmt(a.custom_metrics?.totalConversions || 0)} (${pct(a.custom_metrics?.totalConversions || 0, agesTotal)})`,
+    }))
+    genderBreakdown.forEach((g) => rows.push({
+      Seção: 'Gênero', Item: GENDER_LABELS[g.label] || g.label,
+      Valor: `Resultados: ${fmt(g.custom_metrics?.totalConversions || 0)} (${pct(g.custom_metrics?.totalConversions || 0, gendersTotal)})`,
+    }))
+    return rows
+  }, [funnelMeta, funnelpgl, ctr, cpc, cpl, qualRate, convRate, lostRate, topCreatives, topStates, topAges, genderBreakdown, statesTotal, agesTotal, gendersTotal])
+
+  const handleExportFunnelCsv = useCallback(() => {
+    const rows = buildFunnelExportRows()
+    if (!rows.length) { window.alert('Nenhum dado encontrado para exportar no funil atual.'); return }
+    const columns = ['Seção', 'Item', 'Valor']
+    const escapeCsvCell = (value) => {
+      const text = String(value ?? '')
+      const escaped = text.replace(/"/g, '""')
+      return /[";\n\r]/.test(escaped) ? `"${escaped}"` : escaped
+    }
+    const csv = '﻿' + [
+      columns.join(';'),
+      ...rows.map((row) => columns.map((column) => escapeCsvCell(row[column])).join(';')),
+    ].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${funnelExportFileName}.csv`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+  }, [buildFunnelExportRows, funnelExportFileName])
+
+  const handleExportFunnelPdf = useCallback(async () => {
+    const rows = buildFunnelExportRows()
+    if (!rows.length) { window.alert('Nenhum dado encontrado para exportar no funil atual.'); return }
+    setIsExportingFunnel(true)
+    try {
+      const jsPdfModule = await import('jspdf')
+      const JsPDF = jsPdfModule.default || jsPdfModule.jsPDF
+      const pdf = new JsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 32
+      let y = margin
+
+      pdf.setFillColor(38, 194, 129)
+      pdf.rect(0, 0, pageWidth, 64, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(16)
+      pdf.text(`Funil de Performance — ${activeClient?.name || ''}`, margin, 38)
+      pdf.setFontSize(10)
+      pdf.text(`Exportado em ${new Date().toLocaleString('pt-BR')}`, margin, 54)
+      y = 64 + margin
+
+      pdf.setTextColor(20, 20, 20)
+      let currentSection = ''
+      rows.forEach((row) => {
+        if (y > pageHeight - margin) { pdf.addPage(); y = margin }
+        if (row['Seção'] !== currentSection) {
+          currentSection = row['Seção']
+          y += 6
+          pdf.setFillColor(230, 246, 239)
+          pdf.roundedRect(margin, y - 12, pageWidth - margin * 2, 20, 4, 4, 'F')
+          pdf.setFontSize(11)
+          pdf.setTextColor(0, 87, 54)
+          pdf.text(String(currentSection), margin + 8, y + 2)
+          pdf.setTextColor(20, 20, 20)
+          y += 20
+        }
+        pdf.setFontSize(9)
+        const lines = pdf.splitTextToSize(`${row['Item']}: ${row['Valor']}`, pageWidth - margin * 2 - 8)
+        pdf.text(lines, margin + 8, y)
+        y += lines.length * 12 + 4
+      })
+
+      pdf.save(`${funnelExportFileName}.pdf`)
+    } catch (e) {
+      window.alert('Não consegui gerar o PDF agora. Tente exportar como CSV ou recarregar a página.')
+    } finally {
+      setIsExportingFunnel(false)
+    }
+  }, [buildFunnelExportRows, funnelExportFileName, activeClient])
+
   // Rótulo do filtro atual
   const filterLabel = useMemo(() => {
     if (selAd.size) {
@@ -559,6 +767,12 @@ export default function FunnelTab({ clients }) {
             </button>
             <button type="button" className="fn-refresh" onClick={loadpgl} title="Atualizar PGL" disabled={pglLoading}>
               <i className={`bx bx-spreadsheet${pglLoading ? ' bx-spin' : ''}`} />
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={handleExportFunnelCsv} disabled={isExportingFunnel}>
+              <i className="bx bx-download" /> Exportar CSV
+            </button>
+            <button type="button" className="btn btn-primary" onClick={handleExportFunnelPdf} disabled={isExportingFunnel}>
+              <i className={`bx ${isExportingFunnel ? 'bx-loader-alt bx-spin' : 'bx-file'}`} /> Exportar PDF
             </button>
           </div>
         </div>
@@ -736,7 +950,154 @@ export default function FunnelTab({ clients }) {
             )}
           </div>
         </div>
+
+        {/* Top breakdowns: Criativos, Estados, Idades, Gênero */}
+        <div className="fn-breakdowns-row">
+          {/* Top 5 Criativos */}
+          <div className="fn-bd-card fn-bd-creatives">
+            <div className="fn-bd-title">
+              <span><i className="bx bx-images" /> Top 5 Criativos</span>
+              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+            </div>
+            {breakdownsError && <div className="fn-bd-error"><i className="bx bx-error-circle" /> {breakdownsError}</div>}
+            {!breakdownsError && topCreatives.length === 0 && !breakdownsLoading && (
+              <div className="fn-bd-empty">Nenhum criativo com investimento no período.</div>
+            )}
+            {topCreatives.map((c, i) => (
+              <button type="button" key={c.adId || i} className="fn-bd-creative-item" onClick={() => openCreativePreview(c)}>
+                <span className="fn-bd-rank">{i + 1}</span>
+                <span className="fn-bd-creative-thumb">
+                  <img src={c.imageUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                </span>
+                <span className="fn-bd-creative-info">
+                  <strong title={c.label}>{c.label}</strong>
+                  <span className="fn-bd-creative-metrics">
+                    <span>Resultado: <b>{fmt(c.custom_metrics?.totalConversions || 0)}</b></span>
+                    {c.custom_metrics?.cpa > 0 && <span>Custo/res.: <b>{fmtMoney(c.custom_metrics.cpa)}</b></span>}
+                    <span>Invest.: <b>{fmtMoney(c.spend)}</b></span>
+                    {c.custom_metrics?.ctr > 0 && <span>CTR: <b>{c.custom_metrics.ctr.toFixed(2)}%</b></span>}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Top 5 Estados */}
+          <div className="fn-bd-card">
+            <div className="fn-bd-title">
+              <span><i className="bx bx-map" /> Top 5 Estados</span>
+              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+            </div>
+            {!breakdownsError && topStates.length === 0 && !breakdownsLoading && (
+              <div className="fn-bd-empty">Sem dados de estado no período.</div>
+            )}
+            {topStates.map((s, i) => {
+              const val = s.custom_metrics?.totalConversions || 0
+              const barPct = statesTotal ? Math.max(4, (val / statesTotal) * 100) : 4
+              return (
+                <div className="fn-bd-rank-item" key={s.label + i}>
+                  <span className="fn-bd-rank">{i + 1}</span>
+                  <span className="fn-bd-rank-info">
+                    <span className="fn-bd-rank-label" title={s.label}>{s.label}</span>
+                    <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%` }} /></span>
+                  </span>
+                  <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, statesTotal)}</small></span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Top Idades */}
+          <div className="fn-bd-card">
+            <div className="fn-bd-title">
+              <span><i className="bx bx-group" /> Top Idades</span>
+              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+            </div>
+            {!breakdownsError && topAges.length === 0 && !breakdownsLoading && (
+              <div className="fn-bd-empty">Sem dados de idade no período.</div>
+            )}
+            {topAges.map((a, i) => {
+              const val = a.custom_metrics?.totalConversions || 0
+              const barPct = agesTotal ? Math.max(4, (val / agesTotal) * 100) : 4
+              return (
+                <div className="fn-bd-rank-item" key={a.label + i}>
+                  <span className="fn-bd-rank">{i + 1}</span>
+                  <span className="fn-bd-rank-info">
+                    <span className="fn-bd-rank-label">{a.label}</span>
+                    <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#a78bfa' }} /></span>
+                  </span>
+                  <span className="fn-bd-rank-value">{fmt(val)}<small>{pct(val, agesTotal)}</small></span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Gênero (compacto) */}
+          <div className="fn-bd-card fn-bd-gender">
+            <div className="fn-bd-title">
+              <span><i className="bx bx-male-female" /> Gênero</span>
+              {breakdownsLoading && <i className="bx bx-loader-alt bx-spin" />}
+            </div>
+            {!breakdownsError && genderBreakdown.length === 0 && !breakdownsLoading && (
+              <div className="fn-bd-empty">Sem dados de gênero.</div>
+            )}
+            {genderBreakdown.map((g) => {
+              const val = g.custom_metrics?.totalConversions || 0
+              const barPct = gendersTotal ? Math.max(4, (val / gendersTotal) * 100) : 4
+              return (
+                <div className="fn-bd-gender-item" key={g.label}>
+                  <div className="fn-bd-gender-row">
+                    <span>{GENDER_LABELS[g.label] || g.label || 'Não informado'}</span>
+                    <span>{fmt(val)} <small>{pct(val, gendersTotal)}</small></span>
+                  </div>
+                  <span className="fn-bd-rank-bar-track"><span className="fn-bd-rank-bar-fill" style={{ width: `${barPct}%`, background: '#38bdf8' }} /></span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Creative preview modal */}
+      {previewCreative && (
+        <div className="modal-overlay fn-preview-overlay" onClick={closeCreativePreview}>
+          <div className="modal-card fn-preview-card" onClick={(e) => e.stopPropagation()}>
+            <div className="fn-preview-header">
+              <div>
+                <span className="fn-preview-kicker">Preview do criativo</span>
+                <h3>{previewCreative.label}</h3>
+              </div>
+              <button type="button" className="fn-preview-close" onClick={closeCreativePreview}>
+                <i className="bx bx-x" />
+              </button>
+            </div>
+            <div className="fn-preview-metrics">
+              <span>Resultado: <b>{fmt(previewCreative.custom_metrics?.totalConversions || 0)}</b></span>
+              {previewCreative.custom_metrics?.cpa > 0 && <span>Custo/resultado: <b>{fmtMoney(previewCreative.custom_metrics.cpa)}</b></span>}
+              <span>Investimento: <b>{fmtMoney(previewCreative.spend)}</b></span>
+              {previewCreative.custom_metrics?.ctr > 0 && <span>CTR: <b>{previewCreative.custom_metrics.ctr.toFixed(2)}%</b></span>}
+            </div>
+            <div className="fn-preview-body">
+              {previewLoading && <div className="fn-preview-loading"><i className="bx bx-loader-alt bx-spin" /> Carregando preview...</div>}
+              {!previewLoading && previewError && (
+                <div className="fn-preview-empty">
+                  <i className="bx bx-image-alt" />
+                  <p>Preview não disponível para este criativo.</p>
+                </div>
+              )}
+              {!previewLoading && !previewError && previewData?.previewHtml && (
+                <div className="fn-preview-frame" dangerouslySetInnerHTML={{ __html: previewData.previewHtml }} />
+              )}
+              {!previewLoading && !previewError && !previewData?.previewHtml && (
+                <div className="fn-preview-empty">
+                  <i className="bx bx-image-alt" />
+                  <p>Preview não disponível para este criativo.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         /* ─── Layout ─── */
@@ -912,6 +1273,57 @@ export default function FunnelTab({ clients }) {
         .fn-tooltip-label { font-weight: 700; color: #f1f1f1; margin-bottom: 5px; }
         .fn-tooltip-row { display: flex; justify-content: space-between; gap: 12px; line-height: 1.6; }
 
+        /* ─── Top breakdowns ─── */
+        .fn-breakdowns-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 0.9fr; gap: 14px; margin-top: 14px; align-items: start; }
+        .fn-bd-card { background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+        .fn-bd-title { font-size: 12px; font-weight: 700; color: #f1f1f1; display: flex; align-items: center; justify-content: space-between; }
+        .fn-bd-title span:first-child { display: flex; align-items: center; gap: 6px; }
+        .fn-bd-title i { font-size: 13px; color: #26c281; }
+        .fn-bd-empty { font-size: 11.5px; color: rgba(241,241,241,.3); padding: 10px 0; text-align: center; }
+        .fn-bd-error { font-size: 11px; color: #ef4444; display: flex; align-items: center; gap: 5px; }
+
+        .fn-bd-rank-item { display: flex; align-items: center; gap: 8px; }
+        .fn-bd-rank { width: 18px; height: 18px; border-radius: 5px; background: rgba(255,255,255,.06); color: rgba(241,241,241,.5); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .fn-bd-rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .fn-bd-rank-label { font-size: 11.5px; color: rgba(241,241,241,.75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fn-bd-rank-bar-track { width: 100%; height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+        .fn-bd-rank-bar-fill { display: block; height: 100%; border-radius: 3px; background: #34d399; transition: width .3s ease; }
+        .fn-bd-rank-value { font-size: 11px; font-weight: 700; color: #f1f1f1; text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+        .fn-bd-rank-value small { font-size: 9px; font-weight: 500; color: rgba(241,241,241,.3); }
+
+        .fn-bd-creatives { grid-row: span 1; }
+        .fn-bd-creative-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.05); border-radius: 10px; padding: 8px 10px; cursor: pointer; transition: background .12s; text-align: left; width: 100%; }
+        .fn-bd-creative-item:hover { background: rgba(255,255,255,.05); }
+        .fn-bd-creative-thumb { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; }
+        .fn-bd-creative-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .fn-bd-creative-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .fn-bd-creative-info strong { font-size: 11.5px; color: rgba(241,241,241,.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fn-bd-creative-metrics { display: flex; flex-wrap: wrap; gap: 8px; font-size: 10px; color: rgba(241,241,241,.4); }
+        .fn-bd-creative-metrics b { color: rgba(241,241,241,.75); font-weight: 700; }
+
+        .fn-bd-gender { gap: 12px; }
+        .fn-bd-gender-item { display: flex; flex-direction: column; gap: 5px; }
+        .fn-bd-gender-row { display: flex; justify-content: space-between; font-size: 11px; color: rgba(241,241,241,.7); }
+        .fn-bd-gender-row small { color: rgba(241,241,241,.3); margin-left: 4px; }
+
+        /* ─── Creative preview modal ─── */
+        .fn-preview-overlay { display: flex; align-items: center; justify-content: center; }
+        .fn-preview-card { width: min(560px, 92vw); max-height: 86vh; overflow-y: auto; }
+        .fn-preview-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 12px; border-bottom: 1px solid rgba(38,194,129,0.12); background: linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%); }
+        .fn-preview-kicker { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #26c281; opacity: .85; }
+        .fn-preview-header h3 { margin: 4px 0 0; font-size: 15px; font-weight: 800; color: #f1f1f1; }
+        .fn-preview-close { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 9px; width: 32px; height: 32px; color: #ccc; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .fn-preview-close:hover { background: rgba(255,255,255,.1); }
+        .fn-preview-metrics { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: rgba(241,241,241,.5); padding: 12px 20px 0; }
+        .fn-preview-metrics b { color: #f1f1f1; font-weight: 700; }
+        .fn-preview-body { padding: 16px 20px 20px; }
+        .fn-preview-frame { border-radius: 12px; overflow: hidden; background: rgba(0,0,0,.2); min-height: 200px; }
+        .fn-preview-frame iframe { width: 100%; border: none; min-height: 400px; }
+        .fn-preview-loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 40px 0; color: rgba(241,241,241,.5); font-size: 13px; }
+        .fn-preview-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 0; text-align: center; }
+        .fn-preview-empty i { font-size: 36px; color: rgba(241,241,241,.15); }
+        .fn-preview-empty p { margin: 0; font-size: 12.5px; color: rgba(241,241,241,.4); }
+
         /* Misc */
         .fn-pgl-error { font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
         .fn-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 24px; text-align: center; }
@@ -923,6 +1335,12 @@ export default function FunnelTab({ clients }) {
         @media (max-width: 960px) {
           .fn-body { grid-template-columns: 1fr; }
           .fn-funnel-col { position: static; order: -1; }
+        }
+        @media (max-width: 1180px) {
+          .fn-breakdowns-row { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+          .fn-breakdowns-row { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
