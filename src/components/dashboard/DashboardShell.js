@@ -11326,25 +11326,6 @@ export default function DashboardShell({
 
     setIsSavingManualCrm(true)
     try {
-      const response = await fetch(`/api/saas/clients/${activeClient.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          crmProvider: 'manual',
-          crmMode: 'manual',
-          manualCrmSummary,
-          business_data: {
-            crmProvider: 'manual',
-            crmMode: 'manual',
-            manualCrmSummary,
-          },
-        }),
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data?.error || data?.detail || 'Não foi possível salvar os dados manuais do CRM.')
-      }
-
       const nextClients = clients.map((client) =>
         client.id === activeClient.id
           ? createClientRecord({
@@ -11358,14 +11339,22 @@ export default function DashboardShell({
       )
 
       setClients(nextClients)
-      try {
-        await persistWorkspaceState({ clients: nextClients, activeClientId })
-      } catch (persistError) {
-        console.warn('CRM manual salvo no cliente, mas o snapshot do workspace não foi atualizado agora.', persistError)
-      }
+      await persistWorkspaceState({ clients: nextClients, activeClientId })
       setRdSummary(buildManualCrmSummary(manualCrmSummary, insights))
       setPreviousRdSummary(null)
       setIsManualCrmModalOpen(false)
+
+      // Best-effort sync to SaaS platform API (non-blocking for non-SaaS users)
+      fetch(`/api/saas/clients/${activeClient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          crmProvider: 'manual',
+          crmMode: 'manual',
+          manualCrmSummary,
+          business_data: { crmProvider: 'manual', crmMode: 'manual', manualCrmSummary },
+        }),
+      }).catch(() => {})
     } catch (error) {
       alert(error?.message || 'Não foi possível salvar os dados manuais do CRM.')
     } finally {
@@ -17208,7 +17197,15 @@ export default function DashboardShell({
 
                 <div className="date-picker glass-item">
                   <i className="bx bx-calendar"></i>
-                  <select value={draftDateRange} onChange={(event) => setDraftDateRange(event.target.value)}>
+                  <select value={draftDateRange} onChange={(event) => {
+                    const next = event.target.value
+                    setDraftDateRange(next)
+                    if (next !== 'custom') {
+                      setDateRange(next)
+                      setCustomSince('')
+                      setCustomUntil('')
+                    }
+                  }}>
                     {DATE_PRESETS.map((preset) => (
                       <option key={preset.value} value={preset.value}>
                         {preset.label}
@@ -17216,6 +17213,18 @@ export default function DashboardShell({
                     ))}
                   </select>
                 </div>
+
+                {draftDateRange === 'custom' && (
+                  <button
+                    type="button"
+                    onClick={handleApplyDashboardFilters}
+                    disabled={!draftCustomSince || !draftCustomUntil}
+                    className="btn btn-secondary"
+                  >
+                    <i className="bx bx-filter-alt"></i>
+                    Aplicar período
+                  </button>
+                )}
 
                 <button
                   type="button"
