@@ -3250,9 +3250,11 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
   if (!sheetUrl) return null
 
   return (
-    <>
-      <div className="input-group">
-        <label>Aba da planilha</label>
+    <div className="leads-sheet-config">
+      <div className="leads-sheet-config-row">
+        <span className="leads-sheet-config-label">
+          <i className="bx bx-layer"></i> Aba da planilha
+        </span>
         <select
           className="client-select-input"
           value={gid}
@@ -3264,38 +3266,46 @@ function LeadsSheetMappingBlock({ client, onFieldChange, disabled }) {
             <option key={tab.gid} value={tab.gid}>{tab.name}</option>
           ))}
         </select>
-        {tabsError && <small style={{ color: '#ef4444', display: 'block', marginTop: 4 }}>{tabsError}</small>}
+        {tabsLoading && <i className="bx bx-loader-alt bx-spin leads-sheet-config-spinner"></i>}
+        {tabsError && <small className="leads-sheet-config-error">{tabsError}</small>}
       </div>
 
-      <div className="input-group leads-column-map">
-        <label>
-          Mapeamento de colunas
-          {headersLoading && <i className="bx bx-loader-alt bx-spin" style={{ marginLeft: 6, opacity: 0.6 }}></i>}
-        </label>
-        <p style={{ margin: '0 0 8px', fontSize: '0.78rem', opacity: 0.45 }}>
-          Escolha qual coluna da planilha corresponde a cada campo. Deixe em &quot;Não mapear&quot; para detectar
-          automaticamente pelo nome da coluna.
-        </p>
+      <div className="leads-column-map">
+        <div className="leads-column-map-heading">
+          <span className="management-hero-kicker" style={{ marginBottom: 0 }}>
+            <i className="bx bx-columns" style={{ marginRight: 5 }}></i>Mapeamento de colunas
+            {headersLoading && <i className="bx bx-loader-alt bx-spin" style={{ marginLeft: 8, opacity: 0.6 }}></i>}
+          </span>
+          <p>Escolha qual coluna da planilha corresponde a cada campo. Deixe em &quot;Não mapear&quot; para detectar automaticamente pelo nome da coluna.</p>
+        </div>
         <div className="leads-column-map-grid">
-          {LEADS_SHEET_MAP_FIELDS.map((field) => (
-            <label key={field.key} className="leads-column-map-field">
-              <span>{field.label}</span>
-              <select
-                className="client-select-input"
-                value={columnMap[field.key] || ''}
-                onChange={(event) => onFieldChange('leadsSheetColumnMap', { ...columnMap, [field.key]: event.target.value })}
-                disabled={disabled || !headers.length}
-              >
-                <option value="">{detected[field.key] ? `Auto: ${detected[field.key]}` : 'Não mapear'}</option>
-                {headers.map((header) => (
-                  <option key={header} value={header}>{header}</option>
-                ))}
-              </select>
-            </label>
-          ))}
+          {LEADS_SHEET_MAP_FIELDS.map((field) => {
+            const isMapped = Boolean(columnMap[field.key])
+            const isAuto = !isMapped && Boolean(detected[field.key])
+            return (
+              <div key={field.key} className="leads-column-map-field">
+                <span className="leads-column-map-field-label">
+                  {field.label}
+                  {isMapped && <i className="bx bx-check-circle leads-column-map-badge is-mapped" title="Mapeado manualmente"></i>}
+                  {isAuto && <i className="bx bx-magic-wand leads-column-map-badge is-auto" title="Detectado automaticamente"></i>}
+                </span>
+                <select
+                  className="client-select-input"
+                  value={columnMap[field.key] || ''}
+                  onChange={(event) => onFieldChange('leadsSheetColumnMap', { ...columnMap, [field.key]: event.target.value })}
+                  disabled={disabled || !headers.length}
+                >
+                  <option value="">{detected[field.key] ? `Auto: ${detected[field.key]}` : 'Não mapear'}</option>
+                  {headers.map((header) => (
+                    <option key={header} value={header}>{header}</option>
+                  ))}
+                </select>
+              </div>
+            )
+          })}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -34892,24 +34902,114 @@ export default function DashboardShell({
           line-height: 1.5;
         }
 
+        .leads-sheet-config {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-top: 4px;
+        }
+
+        .leads-sheet-config-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .leads-sheet-config-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--text-muted);
+          flex-shrink: 0;
+        }
+
+        .leads-sheet-config-label i {
+          color: #26c281;
+          font-size: 14px;
+        }
+
+        .leads-sheet-config-row .client-select-input {
+          flex: 1 1 220px;
+          min-width: 180px;
+          width: auto;
+        }
+
+        .leads-sheet-config-spinner {
+          opacity: 0.55;
+          font-size: 15px;
+        }
+
+        .leads-sheet-config-error {
+          flex-basis: 100%;
+          color: #ef4444;
+          font-size: 12px;
+        }
+
+        .leads-column-map {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 16px;
+          padding: 18px 20px;
+        }
+
+        .leads-column-map-heading p {
+          margin: 6px 0 0;
+          font-size: 12.5px;
+          line-height: 1.5;
+          color: var(--text-muted);
+        }
+
         .leads-column-map-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+          gap: 10px;
+          margin-top: 14px;
         }
 
         .leads-column-map-field {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 7px;
+          background: rgba(255, 255, 255, 0.025);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
+          padding: 10px 12px;
+          min-width: 0;
         }
 
-        .leads-column-map-field span {
-          font-size: 11px;
+        .leads-column-map-field-label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.06em;
           color: var(--text-muted);
+        }
+
+        .leads-column-map-badge {
+          font-size: 12px;
+        }
+
+        .leads-column-map-badge.is-mapped {
+          color: #26c281;
+        }
+
+        .leads-column-map-badge.is-auto {
+          color: #60a5fa;
+        }
+
+        .leads-column-map-field .client-select-input {
+          min-height: 40px;
+          padding: 0 10px;
+          font-size: 12.5px;
+          border-radius: 10px;
         }
 
         .form-alert {
