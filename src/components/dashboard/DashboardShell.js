@@ -3252,7 +3252,7 @@ export default function DashboardShell({
   const [draftCprBenchmarks, setDraftCprBenchmarks] = useState({})
   const [draftCprSettings, setDraftCprSettings] = useState({ green_threshold: 15, yellow_threshold: 35 })
   const [cprSaving, setCprSaving] = useState(false)
-  const [campaignStatusFilter, setCampaignStatusFilter] = useState('ACTIVE')
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState('all')
   const [campaignSortBy, setCampaignSortBy] = useState('spend')
   const [isCampaignColumnLibraryOpen, setIsCampaignColumnLibraryOpen] = useState(false)
   const [metaResultFilters, setMetaResultFilters] = useState([])

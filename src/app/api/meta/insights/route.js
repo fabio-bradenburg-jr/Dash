@@ -27,7 +27,12 @@ export async function GET(request) {
     
     // Facebook API Fields for KPIs
     const fields = 'spend,reach,impressions,clicks,cpc,ctr,actions,action_values,cost_per_action_type,video_play_actions,video_p25_watched_actions,video_thruplay_watched_actions'
-    const baseParams = new URLSearchParams({ fields, access_token: token })
+    const baseParams = new URLSearchParams({
+      fields,
+      access_token: token,
+      action_attribution_windows: JSON.stringify(['7d_click', '1d_view']),
+      use_unified_attribution_setting: 'true',
+    })
     const resolvedDateSelection = resolveMetaDateSelection(datePreset, since, until)
 
     if (resolvedDateSelection.mode === 'time_range') {

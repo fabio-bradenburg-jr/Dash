@@ -91,6 +91,9 @@ function buildBaseParams({ token, datePreset, since, until }) {
     fields: CAMPAIGN_OVERVIEW_FIELDS,
     level: 'ad',
     limit: '200',
+    // Match Meta Ads Manager default attribution window: 7-day click + 1-day view
+    action_attribution_windows: JSON.stringify(['7d_click', '1d_view']),
+    use_unified_attribution_setting: 'true',
   })
   const resolvedDateSelection = resolveMetaDateSelection(datePreset, since, until)
 
