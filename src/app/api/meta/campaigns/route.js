@@ -55,12 +55,13 @@ export async function GET(request) {
     const timeFilter = buildMetaInsightsFilterExpression(datePreset, since, until)
     
     // We use the time filter syntax to fetch campaign details along with their metrics in one call
-    const campaignsUrl = `https://graph.facebook.com/v19.0/${id}/campaigns?fields=id,name,status,objective,${timeFilter}{spend,reach,impressions,cpc,actions,action_values,cost_per_action_type,video_play_actions,video_p25_watched_actions,video_thruplay_watched_actions}&limit=50&access_token=${token}`
+    const effectiveStatuses = encodeURIComponent(JSON.stringify(['ACTIVE', 'PAUSED', 'DELETED', 'ARCHIVED', 'IN_PROCESS', 'WITH_ISSUES']))
+    const campaignsUrl = `https://graph.facebook.com/v19.0/${id}/campaigns?fields=id,name,status,objective,${timeFilter}{spend,reach,impressions,cpc,actions,action_values,cost_per_action_type,video_play_actions,video_p25_watched_actions,video_thruplay_watched_actions}&effective_status=${effectiveStatuses}&limit=200&access_token=${token}`
     
     const data = await fetchMetaJson(
       campaignsUrl,
       'A Meta demorou para responder ao carregar as campanhas. Tente novamente em alguns instantes.',
-      { maxPages: 4 }
+      { forceRefresh: true, maxPages: 4 }
     )
 
     return NextResponse.json(
