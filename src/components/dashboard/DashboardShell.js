@@ -16983,12 +16983,6 @@ export default function DashboardShell({
                       <span className="nav-label">Funil</span>
                     </button>
                   )}
-                  {(isMaster || hasNavAccess('tarefas')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('tarefas')}>
-                      <i className="bx bx-check-square"></i>
-                      <span className="nav-label">Tarefas</span>
-                    </button>
-                  )}
                 </div>
               )}
             </>
