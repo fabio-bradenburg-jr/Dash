@@ -6,6 +6,7 @@ import { useDashboard } from '@/components/dashboard/DashboardContext'
 export default function UsuariosTab() {
   const {
     isMaster,
+    user,
     canAccessTeamTab,
     canEditIntegrations,
     canManageUsers,

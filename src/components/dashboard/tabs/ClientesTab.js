@@ -6,6 +6,7 @@ import { useDashboard } from '@/components/dashboard/DashboardContext'
 export default function ClientesTab() {
   const {
     clients,
+    formatClientDate,
     isMaster,
     formatWeekRangeLabel,
     WEEKLY_HEALTH_BY_KEY,

@@ -11,6 +11,9 @@ export default function ApresentacaoTab() {
     META_CAMPAIGN_TABLE_COLUMN_OPTIONS,
     META_RESULT_PERIOD_OPTIONS,
     METRIC_OPTIONS,
+    metaResultPreviewKey,
+    metaResultGrouping,
+    extractMetaCampaignMetrics,
     activeClient,
     activeClientUsesManualCrm,
     activeClientVisibleIntegrationsSet,
@@ -113,8 +116,6 @@ export default function ApresentacaoTab() {
     metric1,
     metric2,
     normalizedDraftMetaResultFilters,
-    opportunityCount,
-    qualifiedOpportunityCount,
     rankingsError,
     rdAgendorFunnelKpis,
     rdAppliedPipelineSummary,
@@ -154,8 +155,6 @@ export default function ApresentacaoTab() {
     setMetric1,
     setMetric2,
     visibleMetaConversionGroups,
-    wonOpportunityCount,
-    wonRevenue,
   } = useDashboard()
 
   return (

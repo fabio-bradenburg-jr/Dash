@@ -3134,9 +3134,6 @@ function buildManualCrmSummary(manualCrmSummary, metaSummary = null) {
   const spend = safeNumber(metaSummary?.spend)
 
   return {
-    opportunityCount,
-    qualifiedOpportunityCount,
-    wonOpportunityCount,
     wonOpportunityRevenue: wonRevenue,
     avgTicketWonByCreation: avgTicketWon,
     leadToQualifiedRate: calculateRate(qualifiedOpportunityCount, opportunityCount),
@@ -3146,7 +3143,6 @@ function buildManualCrmSummary(manualCrmSummary, metaSummary = null) {
     lostOpportunityValue,
     wonDeals: wonOpportunityCount,
     wonDealsFromPreviousCohorts: 0,
-    wonRevenue,
     avgTicketWon,
     wonRevenueFromPreviousCohorts: 0,
     avgTicketWonPreviousCohorts: 0,
@@ -15721,6 +15717,12 @@ export default function DashboardShell({
     setActiveClientId,
     setClientEditSection,
     visibleAgendorStageOptions,
+    // Runtime deps flagged by scope scan (missing from ctx would crash tabs)
+    formatClientDate,
+    metaResultPreviewKey,
+    metaResultGrouping,
+    extractMetaCampaignMetrics,
+    user,
     // Apresentação (client dashboard) tab
     META_CAMPAIGN_TABLE_COLUMN_OPTIONS,
     META_RESULT_PERIOD_OPTIONS,
@@ -15818,8 +15820,6 @@ export default function DashboardShell({
     metric1,
     metric2,
     normalizedDraftMetaResultFilters,
-    opportunityCount,
-    qualifiedOpportunityCount,
     rankingsError,
     rdAgendorFunnelKpis,
     rdAppliedPipelineSummary,
@@ -15859,8 +15859,6 @@ export default function DashboardShell({
     setMetric1,
     setMetric2,
     visibleMetaConversionGroups,
-    wonOpportunityCount,
-    wonRevenue,
   }
 
   return (
