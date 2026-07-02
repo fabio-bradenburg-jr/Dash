@@ -1,8 +1,8 @@
 # Redesign Brief — Assessoria LP Dashboard (Kinetic Emerald)
 
 > Documento de handoff para o **Claude Design** remodelar cada tela da plataforma.
-> Cada seção traz: **objetivo**, **quem usa**, **o que a tela precisa entregar** e **direção visual específica**.
-> A direção visual global (cores, tipografia, curvas, elevação) está no topo e vale para **todas** as telas — não repita, apenas siga.
+> Cada seção traz: **objetivo** · **quem usa** · **Hoje temos** (funcionalidades atuais) · **o que precisa entregar** · **direção visual**.
+> A direção visual global (cores, tipografia, curvas, elevação) está no topo e vale para **todas** as telas.
 
 ---
 
@@ -65,22 +65,23 @@
 > **Regra inegociável:** a **aba Dados** (Clientes → tab Dados) é a fonte oficial de identidade. Todo componente novo deve replicar estrutura, proporções e comportamento do que já existe lá. **Consistência acima de inovação.** Suporte a **light mode** (fundo quase-branco, borda emerald mais forte, gradiente escuro some).
 
 ### Prompt-base (system) para o Claude Design
-> "Você está redesenhando telas do 'Assessoria LP Dashboard', um hub de performance para agência de marketing. Aplique rigorosamente o design system **Kinetic Emerald** descrito acima (grafite `#131313`, accent emerald `#26C281`, glassmorphism, Plus Jakarta Sans + Inter, cantos 16px em cards e pill em botões, nuvem radial emerald nos headers). Dark-first com light mode. Layout bento 12 colunas, container 1440px, gutter 20px. Priorize densidade informacional legível, hierarquia por contraste e emerald só onde importa. Entregue: layout responsivo, estados (vazio/carregando/erro), e componentes reutilizáveis."
+> "Você está redesenhando telas do 'Assessoria LP Dashboard', um hub de performance para agência de marketing. Aplique rigorosamente o design system **Kinetic Emerald** (grafite `#131313`, accent emerald `#26C281`, glassmorphism, Plus Jakarta Sans + Inter, cantos 16px em cards e pill em botões, nuvem radial emerald nos headers). Dark-first com light mode. Layout bento 12 colunas, container 1440px, gutter 20px. Priorize densidade informacional legível, hierarquia por contraste e emerald só onde importa. Entregue: layout responsivo, estados (vazio/carregando/erro) e componentes reutilizáveis."
 
 ---
 
 ## 1. Mapa de telas (sitemap)
 
-**Geral:** Home · Controle da Operação · Configurações
+**Geral:** Home · Controle da Operação · Rotinas · Configurações
 **Sucesso do Cliente:** Clientes (Dados = referência) · Onboarding · Offboarding · Acessos
-**Performance:** Dash (Pitch Deck) · Campanhas · Anúncios · Saldos · Relatórios · Planilha de Leads · Funil · Tarefas
+**Performance:** Dash (Pitch Deck) · Campanhas · Anúncios · Saldos · Relatórios · Planilha de Leads · Funil · Tarefas · IA Orbit (assistente)
 **Social Media:** Painel · Calendário Editorial · Planejamentos
 **PAC:** Painel · Calendário · Tipos
 **Admin / Master:** Usuários · Funções e Permissões · Permissões de Páginas · **Centro de Controle Master (novo)**
 **Conta:** **Página de Usuário / Perfil (novo)**
 **Institucional / público:** Login · Integração (landing) · Contexto · Produtos · Apresentação de cliente · Privacidade / Termos / Exclusão de dados
 
-Papéis: `master` · `operador` · `visualizador` · `cliente` · `gestor_resultado`.
+**Integrações vivas hoje:** Meta Ads · Google Ads · Google Calendar · Google Sheets · Google Drive · ClickUp · Monday · RD Station.
+**Papéis:** `master` · `operador` · `visualizador` · `cliente` · `gestor_resultado`.
 
 ---
 
@@ -89,189 +90,210 @@ Papéis: `master` · `operador` · `visualizador` · `cliente` · `gestor_result
 ### 2.1 Home (Geral)
 **Objetivo:** ponto de entrada pós-login — resume o estado da operação e leva rápido às seções.
 **Quem usa:** todos os papéis internos (conteúdo varia por permissão).
-**Precisa entregar:** saudação contextual; grid bento de "cards de atalho" (Clientes, Time, Dash, Pitch Deck) com métrica-resumo em cada; bloco de pendências/alertas do dia; feed de atividade recente.
-**Visual:** hero com nuvem radial emerald e kicker; cards bento glass com número emerald e microcopy em label uppercase; estado vazio ("nada pendente") elegante, não cinza morto.
+**Hoje temos:** cards de atalho por permissão (Pitch Deck, Clientes, Time/Usuários com contagem da base); saudação contextual; sino de notificações (`NotificationBell`) com eventos da plataforma.
+**Precisa entregar:** grid bento de atalhos com métrica-resumo em cada; bloco de pendências/alertas do dia; feed de atividade recente; central de notificações.
+**Visual:** hero com nuvem radial emerald e kicker; cards bento glass com número emerald e microcopy label uppercase; estado vazio elegante.
 
 ### 2.2 Controle da Operação (Weekly Command Center)
 **Objetivo:** central semanal — status de cada cliente por semana, o que foi preenchido e o que falta.
 **Quem usa:** master, operador, gestor_resultado.
-**Precisa entregar:** seletor de período (semana atual/passada/custom/mês); grade de clientes × flags de saúde (entregáveis, financeiro, ROI, health score, CRM, CS, CSAT, NPS, participação, contas ativas); chips de filtro por status (Crítico/Atenção/Saudável/Com resultado/Churn); indicador de preenchimento por semana.
-**Visual:** tabela densa padrão "aba Dados" (header uppercase 0.68rem opacity 0.35, linhas com hover `rgba(255,255,255,0.025)`); flags como chips de estado (verde/âmbar/vermelho) com barra de topo colorida; stat cards de resumo no topo.
+**Hoje temos:** seletor de período (todo o período / semana atual / semana passada / personalizada / mês); grade de clientes com **flags de saúde** (entregáveis, financeiro, ROI, health score manual, CRM em uso, CS atendimento, CSAT ≥4, participação do cliente >90%, contas de anúncio ativas, NPS ≥7, stakeholder pagador consciente) valoradas em Ok/Atenção/Risco/N-A; classificação automática de saúde do cliente (**Crítico / Atenção / Saudável / Com resultado / Integração / Churn / Sem dados**) com cor e glow; chips de filtro por status; indicador de preenchimento por semana; APIs `client-weekly` / `operation`.
+**Precisa entregar:** manter a grade densa + resumo por status no topo + preenchimento rápido semana a semana.
+**Visual:** tabela densa padrão "aba Dados" (header uppercase 0.68rem opacity 0.35, hover `rgba(255,255,255,0.025)`); flags como chips de estado; stat cards de resumo por classificação de saúde (cada cor com seu glow).
 
-### 2.3 Configurações (Synthesizer)
+### 2.3 Rotinas
+**Objetivo:** rotinas semanais recorrentes por função (ex.: Gestor de Resultado).
+**Quem usa:** operador, gestor_resultado, master.
+**Hoje temos:** grade Segunda→Sexta (com Sáb/Dom opcionais) de tarefas-rotina por papel; templates de rotina pré-definidos por função (reunião de alinhamento, revisão de KPIs, acompanhamento de campanhas etc.).
+**Precisa entregar:** editor de rotina por dia da semana; atribuição por papel/pessoa; marcação de concluído.
+**Visual:** colunas por dia da semana (glass), cards de rotina com check emerald; chip de papel; layout de "quadro semanal".
+
+### 2.4 Configurações (Synthesizer)
 **Objetivo:** ajustar integrações, credenciais globais e preferências da plataforma.
 **Quem usa:** master (edição); demais leem.
-**Precisa entregar:** blocos de integração (Meta, Google Ads, Calendar, Sheets, Drive, ClickUp) com status conectado/desconectado, botões OAuth e teste de conexão; preferências de tema (dark/light), branding white-label, tokens; seção de credenciais mascaradas.
-**Visual:** usar `.integration-block` + `.integration-heading` + `.integration-icon`; cada integração é um card glass com ícone circular emerald, badge de status pill e CTA. Header "Synthesizer" com kicker.
+**Hoje temos:** conectores **Meta Ads, Google Ads, Google Calendar, Google Sheets, Google Drive, ClickUp, Monday, RD Station** com fluxo OAuth e status de conexão; preferências de tema (dark/light); credenciais por env; `settings/page.tsx` com `.settings-block-hero`.
+**Precisa entregar:** blocos de integração com status conectado/desconectado, botão OAuth e teste de conexão; branding white-label/tokens; credenciais mascaradas.
+**Visual:** `.integration-block` + `.integration-heading` + `.integration-icon`; cada integração é card glass com ícone circular emerald, badge de status pill e CTA. Header "Synthesizer" com kicker.
 
-### 2.4 Clientes (referência oficial — aba Dados)
-**Objetivo:** cadastrar/gerir clientes, grupos, e quem enxerga cada dashboard.
+### 2.5 Clientes (referência oficial — aba Dados)
+**Objetivo:** cadastrar/gerir clientes, grupos e quem enxerga cada dashboard.
 **Quem usa:** master, operador.
-**Precisa entregar:** barra de busca + chips de filtro; grid de stat cards (total, ativos, integração, churn); tabela/diretório de clientes com avatar 40×40, colunas (nome, responsáveis, tipo, saúde, integração); **modal de edição** completo (dados, links do cliente — contrato/dashboard/drive/EAP/manual de marca/moodboard, responsáveis — gestor de projetos/tráfego/designer/CS, flags de saúde).
-**Visual:** ESTA é a fonte de verdade — manter exatamente. Modal com header gradiente emerald, blocos de integração, avatar circular. Ao redesenhar, refine sem quebrar a linguagem.
+**Hoje temos:** busca + chips de filtro; stat cards; diretório com avatar 40×40; **modal de edição completo** com: dados do cliente; tipo (Inside Sales / Ecom / PDV); **links** (contrato, dashboard, drive, EAP, manual de marca, moodboard, narrativa de vendas, draw flow); **responsáveis** (gestor de projetos, gestor de tráfego, designer, CS/atendimento); **flags de saúde**; grupos de clientes; ACL por usuário e por grupo (`user_client_access`, `user_client_group_access`).
+**Precisa entregar:** manter tudo — esta é a fonte de verdade.
+**Visual:** ESTA é a referência — manter exatamente. Modal com header gradiente emerald, blocos de integração, avatar circular. Refinar sem quebrar a linguagem.
 
-### 2.5 Onboarding
-**Objetivo:** acompanhar a implementação de novos clientes por trilha (Setup, Inside Sales, Ecom, PDV, Ongoing).
+### 2.6 Onboarding
+**Objetivo:** acompanhar a implementação de novos clientes por trilha.
 **Quem usa:** master, operador.
-**Precisa entregar:** por cliente, checklist/etapas com progresso; filtro por trilha; stat cards de "em onboarding / atrasados / concluídos"; visão de responsável e prazo.
-**Visual:** cards de progresso com barra 6px; badges de trilha em chips uppercase; estados de atraso em âmbar/vermelho (card de estado com barra de topo).
+**Hoje temos:** trilhas **Setup de implementação / Inside Sales / Ecom / PDV / Ongoing**; definições de tarefas de onboarding por trilha (`onboarding-tasks/definitions`, `client-onboarding`); progresso por cliente; stat cards de resumo.
+**Precisa entregar:** checklist/etapas com progresso por trilha; filtro por trilha; responsável e prazo; visão de atrasados/concluídos.
+**Visual:** cards de progresso com barra 6px; badges de trilha em chips uppercase; atraso em âmbar/vermelho (card de estado com barra de topo).
 
-### 2.6 Offboarding
-**Objetivo:** conduzir saída de cliente (checklist de encerramento, motivo de churn, retomada de acessos).
+### 2.7 Offboarding
+**Objetivo:** conduzir a saída de cliente.
 **Quem usa:** master, operador.
-**Precisa entregar:** motivo/categoria de churn; checklist de desligamento (revogar acessos, encerrar contratos, exportar dados); timeline do processo; registro de aprendizado.
-**Visual:** tom mais sóbrio; usar cards de estado "danger/warning"; timeline vertical com marcadores emerald.
+**Hoje temos:** fluxo de offboarding por cliente (`client-offboarding`); registro de motivo/churn.
+**Precisa entregar:** categoria de churn; checklist de desligamento (revogar acessos, encerrar contratos, exportar dados); timeline do processo; aprendizado registrado.
+**Visual:** tom sóbrio; cards de estado "danger/warning"; timeline vertical com marcadores emerald.
 
-### 2.7 Acessos
-**Objetivo:** gerir quem (usuário) enxerga quais clientes/grupos — ACL por usuário.
-**Quem usa:** master.
-**Precisa entregar:** matriz usuário × cliente/grupo com toggles; busca; adição rápida de acesso; visão por grupo de clientes.
-**Visual:** toggles pill verdes; matriz com header sticky; chips de grupo. Reaproveitar `QuickAddAccessModal`.
+### 2.8 Acessos
+**Objetivo:** cofre de acessos, materiais e itens operacionais de cada cliente.
+**Quem usa:** master, operador.
+**Hoje temos:** categorias de **acesso** (Redes Sociais, Google, Site, CRM, Personalizado), **operacionais** (Localização, WhatsApp Business) e **materiais** (Documento, Link Importante, Planilha); armazenamento de login/senha; **status por item** (Ativo, Pendente, Em revisão, Desatualizado, Sem acesso, Precisa atualizar, Com problema); adição rápida (`QuickAddAccessModal`).
+**Precisa entregar:** organização por categoria com credenciais mascaradas (mostrar/ocultar/copiar); status por item; busca; adição rápida.
+**Visual:** grupos por categoria (ícone colorido por tipo); item com badge de status; campo de senha com toggle de visibilidade; chips de tipo.
 
-### 2.8 Dash / Pitch Deck (Apresentação)
+### 2.9 Dash / Pitch Deck (Apresentação)
 **Objetivo:** leitura executiva de resultados de um cliente — "modo apresentação" para reunião.
 **Quem usa:** operador, gestor_resultado, cliente (visualização).
-**Precisa entregar:** seletor de cliente + período; hero com KPIs grandes (spend, leads, CPL, ROAS, conversões); gráficos de tendência; blocos de destaque narrativo; visual "impressionar em reunião".
-**Visual:** `.hero-panel` + `.hero-stat`; números gigantes emerald; gráficos com paleta consistente (seguir skill dataviz); pouca poluição, muito respiro (section-gap 96px). Deve funcionar em tela cheia/projetor.
+**Hoje temos:** seletor de cliente + período; KPIs grandes; `.hero-panel` / `.hero-stat`; base para versão pública compartilhável (`/clientes/[id]/apresentacao`).
+**Precisa entregar:** hero com KPIs (spend, leads, CPL, ROAS, conversões); gráficos de tendência; blocos narrativos; funcionar em tela cheia/projetor.
+**Visual:** números gigantes emerald; gráficos com paleta consistente (skill dataviz); muito respiro (section-gap 96px).
 
-### 2.9 Campanhas (Performance — Meta/Google)
-**Objetivo:** visão de campanhas ativas e métricas por campanha.
+### 2.10 Campanhas (Performance)
+**Objetivo:** visão de campanhas por cliente, com métricas.
 **Quem usa:** operador, gestor_resultado.
-**Precisa entregar:** tabela de campanhas com métricas (spend, impressões, alcance, cliques, CTR, CPC, CPM, conversões, CPA, ROAS, frequência); filtro de período (hoje/ontem/7d/30d/mês); seletor de conta de anúncio; toggle de status (ativar/pausar).
-**Visual:** `.ads-overview-hero`; tabela densa com colunas numéricas alinhadas à direita; métrica destacada em emerald; chips de plataforma (Meta/Google/TikTok/LinkedIn) com ícone.
+**Hoje temos:** **árvore Meta + Google** (campanha → conjunto → anúncio) com modo lista/tree; busca por cliente, campanha, conjunto ou anúncio; seletor de período (hoje/ontem/7d/30d/mês); **25+ métricas**: spend, impressões, alcance, cliques, landing page views, add to cart, initiate checkout, CPC, CPM, frequência, CTR, conversões totais, taxa de conversão, valor de compra, compras, leads, mensagens, video views, video view rate, thruplay, hook rate, CPA, ROAS; `meta-fetch.js` com cache/dedupe.
+**Precisa entregar:** tabela/árvore densa com métricas configuráveis; toggle ativar/pausar; chips de plataforma.
+**Visual:** `.ads-overview-hero`; colunas numéricas alinhadas à direita; métrica-destaque em emerald; chips de plataforma (Meta/Google/TikTok/LinkedIn) com ícone.
 
-### 2.10 Anúncios
+### 2.11 Anúncios
 **Objetivo:** granularidade a nível de anúncio/criativo com preview.
 **Quem usa:** operador.
-**Precisa entregar:** grid de criativos com thumbnail, métricas por anúncio, hook rate/thruplay/video views; comparação; preview do criativo.
-**Visual:** cards de criativo (thumbnail arredondado 12px, overlay de métricas emerald ao hover); grid bento; badge de formato.
+**Hoje temos:** preview e thumbnail de criativo (`meta/creative-preview`, `creative-thumbnail`); métricas por anúncio (hook rate, thruplay, video views).
+**Precisa entregar:** grid de criativos com thumbnail, métricas por anúncio, comparação, preview.
+**Visual:** cards de criativo (thumbnail 12px, overlay de métricas emerald ao hover); grid bento; badge de formato.
 
-### 2.11 Saldos
+### 2.12 Saldos
 **Objetivo:** monitorar saldo/verba das contas de anúncio.
 **Quem usa:** master, operador.
-**Precisa entregar:** cards por conta com saldo atual, gasto no período, projeção de esgotamento, alerta de saldo baixo; histórico de recargas.
-**Visual:** `.ad-balance-hero`; card de estado (danger quando saldo crítico) com barra de topo; número de saldo grande.
+**Hoje temos:** saldo por conta de anúncio (`meta/account-balances`); busca por cliente, conta ou cartão; `.ad-balance-hero`.
+**Precisa entregar:** cards por conta com saldo atual, gasto no período, projeção de esgotamento, alerta de saldo baixo, histórico de recargas.
+**Visual:** card de estado (danger quando crítico) com barra de topo; número de saldo grande emerald.
 
-### 2.12 Relatórios (manual + automático)
-**Objetivo:** gerar/consultar relatórios de performance (semanal/mensal/ciclo) para clientes.
+### 2.13 Relatórios
+**Objetivo:** gerar/consultar relatórios de performance para clientes.
 **Quem usa:** operador, gestor_resultado.
-**Precisa entregar:** montador de relatório manual (blocos, período, comentários); templates por frequência (semanal/quinzenal/mensal/trimestral/anual/ciclo); exportação/compartilhamento; histórico.
-**Visual:** editor em duas colunas (blocos à esquerda, preview à direita); preview segue estética Pitch Deck; botões de export pill.
+**Hoje temos:** **montador de relatório manual** com blocos: contexto, KPIs Meta Ads, tabela de campanhas, CRM manual, funil e observações; **preview em tema claro idêntico ao PDF**; frequências semanal/quinzenal/mensal/trimestral/quadrimestral/anual/ciclo; `reports/manual`, `reports/[reportId]`.
+**Precisa entregar:** editor 2 colunas (blocos à esquerda, preview à direita); templates por frequência; export/compartilhar; histórico.
+**Visual:** preview segue estética Pitch Deck (mas versão light = PDF); botões de export pill.
 
-### 2.13 Planilha de Leads
-**Objetivo:** consolidar cadastros/leads com custo por cadastro ao longo do tempo.
+### 2.14 Planilha de Leads
+**Objetivo:** consolidar leads/cadastros com qualificação e custo por cadastro.
 **Quem usa:** operador, gestor_resultado.
-**Precisa entregar:** tabela de leads (origem, data, status, valor); gráfico de evolução de cadastros × CPL; filtros por período e origem; import/export.
-**Visual:** tabela densa + gráfico de linha (dataviz skill, cor emerald para série principal); stat cards de total/CPL médio.
+**Hoje temos:** tabela de leads com **qualificação** (Qualificado, Convertido/venda, Perdido, Sem resposta, Outros); **gráfico de pizza** da distribuição de qualificação; evolução de cadastros × CPL ao longo do tempo (`LeadsDashboard`).
+**Precisa entregar:** tabela + gráficos + filtros por período/origem; import/export; stat cards (total, CPL médio, taxa de conversão).
+**Visual:** tabela densa + linha de evolução (skill dataviz; emerald na série principal, paleta distinta na pizza).
 
-### 2.14 Funil
-**Objetivo:** visualizar funil de conversão (Leads → CPL → SQL → vendas).
+### 2.15 Funil
+**Objetivo:** visualizar o funil de conversão fim a fim.
 **Quem usa:** operador, gestor_resultado, cliente.
-**Precisa entregar:** funil visual por etapa com taxas de conversão entre estágios; construtor de etapas (funnel-builder); comparação de período.
-**Visual:** funil em blocos empilhados com largura proporcional; percentuais de conversão em chips emerald; transições suaves.
+**Hoje temos:** estágios de **fontes Meta** (impressões, cliques, leads) + **fontes PGL/CRM** (público-alvo, qualificados, convertidos); taxas de conversão entre estágios; construtor de funil (`funnel-builder`); reusa a árvore de campanhas.
+**Precisa entregar:** funil visual por etapa com taxas entre estágios; construtor de etapas; comparação de período.
+**Visual:** blocos empilhados com largura proporcional; % de conversão em chips emerald; cor por estágio.
 
-### 2.15 Tarefas
-**Objetivo:** gestão de tarefas internas por cliente.
+### 2.16 Tarefas
+**Objetivo:** gestão de tarefas internas por cliente/espaço.
 **Quem usa:** todos internos.
-**Precisa entregar:** 3 modos de visão — **Kanban** (colunas por status: aberto/em andamento/bloqueado/concluído), **Tabela**, **Tickets**; prioridade (sem/baixa/média/alta/urgente); responsável, prazo, cliente; campos customizados; arquivo de tarefas.
-**Visual:** Kanban com colunas glass, cards de tarefa com badge de prioridade (cores de estado), avatar de responsável; drag-and-drop com emerald glow no destino; chip de prioridade urgente em vermelho.
+**Hoje temos:** visões **Kanban / Tabela / Tickets**; **prioridades** (Urgente/Alta/Média/Baixa/Sem); **subtarefas**, **checklists**, **tarefas recorrentes**, **automações**, **templates de tarefa**, **status templates**, **campos customizados**, **comentários**, **anexos**, **espaços/spaces** com ícones, **arquivo de tarefas** (`ArchivedTasksPanel`); atribuição múltipla; `task-views`, `task-templates`, `recurring-tasks`, `automations`, `gr-tasks`.
+**Precisa entregar:** manter as 3 visões; Kanban com colunas por status; badge de prioridade; campos customizados; gerenciadores de coluna/status/automação.
+**Visual:** Kanban glass, cards com badge de prioridade (cores de estado), avatar de responsável; drag-and-drop com emerald glow no destino; urgente em vermelho.
 
-### 2.16 Social Media — Painel
-**Objetivo:** visão-resumo da operação de conteúdo (o que foi publicado, o que vem).
+### 2.17 IA Orbit (assistente)
+**Objetivo:** assistente de IA que responde sobre a operação do cliente.
+**Quem usa:** papéis com `canUseAi`.
+**Hoje temos:** chat "IA Orbit" que responde sobre **campanhas, CRM, criativos, clientes e arquivos vinculados**; histórico de conversas (`assistant_conversations`, `assistant_messages`); base de conhecimento do cliente (`client-knowledge-panel`).
+**Precisa entregar:** painel de chat com histórico de conversas, seleção de cliente/contexto, citações de fonte, streaming; anexos.
+**Visual:** chat glass; bolha do assistente à esquerda com ícone emerald, do usuário à direita; input pill "Pergunte sobre campanhas, CRM, criativos…"; contexto de cliente em chip.
+
+### 2.18 Social Media — Painel
+**Objetivo:** visão-resumo da operação de conteúdo.
 **Quem usa:** operador (social), gestor_resultado.
+**Hoje temos:** resumo de posts por status; `.editorial-header`.
 **Precisa entregar:** stat cards (posts do mês, aprovados, pendentes, publicados); próximas publicações; status de aprovação por cliente.
-**Visual:** `.editorial-header`; cards de status com badges; mini-calendário-resumo.
+**Visual:** cards de status com badges; mini-calendário-resumo.
 
-### 2.17 Social Media — Calendário Editorial
-**Objetivo:** planejar e agendar conteúdo em calendário.
+### 2.19 Social Media — Calendário Editorial
+**Objetivo:** planejar e agendar conteúdo.
 **Quem usa:** operador (social).
-**Precisa entregar:** calendário mensal/semanal com posts por dia; card de post (formato, legenda, mídia, status de aprovação); fluxo de aprovação; filtro por cliente/canal.
+**Hoje temos:** posts com **status** (Pendente, Agendado, Publicado, Cancelado); **canais** (Instagram, Facebook, LinkedIn, TikTok, YouTube, X/Twitter); data e hora de agendamento; título, descrição e cliente; `editorial/[postId]`.
+**Precisa entregar:** calendário mensal/semanal com posts por dia; card de post (formato, legenda, mídia, status); fluxo de aprovação; filtro por cliente/canal.
 **Visual:** grade de calendário glass; posts como chips coloridos por status; modal de post com preview de mídia e header emerald.
 
-### 2.18 Social Media — Planejamentos
-**Objetivo:** planejamento estratégico de conteúdo (temas, campanhas, linhas editoriais).
+### 2.20 Social Media — Planejamentos
+**Objetivo:** planejamento estratégico de conteúdo.
 **Quem usa:** operador (social), gestor_resultado.
-**Precisa entregar:** documentos/planos por cliente e período; pilares de conteúdo; metas; anexos.
-**Visual:** cards de plano tipo documento; editor rico com estética iOS Notes (`.ios-notes-shell` já existe em Notas).
+**Hoje temos:** planos por cliente e período; notas estilo iOS (`.ios-notes-shell`).
+**Precisa entregar:** documentos/planos com pilares de conteúdo, metas e anexos.
+**Visual:** cards de plano tipo documento; editor rico estética iOS Notes.
 
-### 2.19 PAC — Painel / Calendário / Tipos
-**Objetivo:** Programa de Aceleração — acompanhamento contínuo com encontros mensais.
+### 2.21 PAC — Painel / Calendário / Tipos
+**Objetivo:** Programa de Aceleração — acompanhamento contínuo com encontros/treinamentos.
 **Quem usa:** master, gestor_resultado.
-**Precisa entregar:**
-- **Painel:** status de cada cliente no programa, próximos encontros, pendências.
-- **Calendário:** agendamento de encontros/ciclos (`.pac-card`).
-- **Tipos:** configuração dos tipos de encontro/ciclo.
-**Visual:** `.pac-card`; timeline de ciclos; cards de encontro com data grande e responsável.
+**Hoje temos:** treinamentos com **status** (Agendado, Realizado, Cancelado); **formatos** (Livro, Vídeo, Áudio, Apresentação, Grupo, Certificação, Desktop, Online); tipos configuráveis (`pac/training-types`, `pac/trainings`); notas por encontro; `.pac-card`.
+**Precisa entregar:** Painel (status por cliente, próximos encontros, pendências); Calendário (agendamento de encontros/ciclos); Tipos (config de tipos de encontro).
+**Visual:** `.pac-card`; timeline de ciclos; cards de encontro com data grande, formato e responsável.
 
-### 2.20 Usuários (Admin)
-**Objetivo:** gerir pessoas do time — criar, editar, definir papel, carteira, PDI e metas.
-**Quem usa:** master; usuário vê a própria versão (PDI/metas/clientes).
-**Precisa entregar:** lista/diretório de usuários com avatar, papel (badge), status; modal de usuário (dados, papel, clientes ligados, PDI, metas); busca e filtro por papel.
-**Visual:** `.management-hero`; tabela padrão Dados; badge de papel colorido; modal com header emerald.
+### 2.22 Usuários (Admin)
+**Objetivo:** gerir pessoas do time.
+**Quem usa:** master; usuário vê a própria versão.
+**Hoje temos:** CRUD de usuários; papel (badge); **PDI, metas e carteira de clientes** por colaborador; rotinas por papel; `.management-hero`; `users`, `me`.
+**Precisa entregar:** diretório com avatar, papel, status; modal (dados, papel, clientes ligados, PDI, metas); busca e filtro por papel.
+**Visual:** tabela padrão Dados; badge de papel colorido; modal com header emerald.
 
-### 2.21 Funções e Permissões
-**Objetivo:** definir papéis e o que cada um pode fazer.
+### 2.23 Funções e Permissões
+**Objetivo:** definir papéis e capacidades.
 **Quem usa:** master.
-**Precisa entregar:** lista de papéis com matriz de capacidades (gerir usuários/clientes, editar integrações, ver dashboard, usar IA); editor de papel.
+**Hoje temos:** **catálogo de permissões granulares** (ex.: `dashboard.view/edit/export`, `tasks.spaces.create/edit/delete`, `tasks.create/edit/delete`, `tasks.templates`, `tasks.automations` …) por papel; `RolesTab`, `roles`, `permissions`.
+**Precisa entregar:** lista de papéis com matriz de capacidades; editor de papel.
 **Visual:** matriz de toggles; cada papel um card; ícone de escudo emerald.
 
-### 2.22 Permissões de Páginas
-**Objetivo:** conceder/revogar acesso de cada usuário a cada página, por grupo.
+### 2.24 Permissões de Páginas
+**Objetivo:** conceder/revogar acesso de cada usuário a cada página.
 **Quem usa:** master.
-**Precisa entregar:** seletor de usuário (chips); grupos (Sucesso do Cliente, Performance, Social Media, PAC, Geral) com toggle por página; "selecionar/desselecionar tudo".
-**Visual:** já existe base — refinar: chips de usuário, grid de toggles pill verdes por grupo, header com ícone de escudo.
+**Hoje temos:** seletor de usuário (chips); grupos (Sucesso do Cliente, Performance, Social Media, PAC, Geral) com toggle por página; "selecionar/desselecionar tudo"; `nav-permissions`.
+**Precisa entregar:** refinar o existente — chips de usuário, grid de toggles pill verdes por grupo, header com ícone de escudo.
+**Visual:** já existe base — polir hierarquia e responsividade.
 
 ---
 
 ## 3. Telas NOVAS (direção do que precisamos)
 
 ### 3.1 Página de Usuário / Perfil (self-service)
-**Por que:** hoje o usuário não tem um espaço próprio de conta. Precisamos de uma página onde **cada colaborador** gerencie a si mesmo.
-**Deve conter:**
-- **Cabeçalho de identidade:** avatar (upload), nome, papel (badge), e-mail, desde quando na equipe.
-- **Conta & segurança:** trocar senha, sessões ativas, 2FA (futuro), preferências de notificação.
-- **Preferências:** tema (dark/light), idioma, densidade da UI.
-- **Meu escopo:** clientes/grupos que enxergo (somente leitura para não-master).
-- **Meu desenvolvimento (para papéis internos):** PDI, metas do ciclo com progresso, carteira de clientes, histórico de resultados.
-- **Integrações pessoais:** conexões OAuth vinculadas à minha conta (Google, Meta) com status e "desconectar".
-**Direção visual:** hero de perfil com nuvem radial emerald + avatar circular grande (borda emerald); layout em 2 colunas (identidade/preferências à esquerda, desenvolvimento/escopo à direita) em bento; metas como stat cards com barra de progresso 6px; toggles pill; blocos de segurança com ícone circular emerald. Reutilizar `.management-hero`, `.management-stat-card`, `.integration-block`.
+**Por que:** hoje não há um espaço próprio de conta; cada colaborador precisa gerenciar a si mesmo.
+**Aproveitar do que já existe:** PDI, metas e carteira já existem em Usuários — trazer a versão "eu" para cá.
+**Deve conter:** cabeçalho de identidade (avatar upload, nome, papel, e-mail, desde quando); conta & segurança (trocar senha, sessões ativas, 2FA futuro, preferências de notificação); preferências (tema dark/light, idioma, densidade); meu escopo (clientes/grupos que enxergo, read-only p/ não-master); meu desenvolvimento (PDI, metas do ciclo com progresso, carteira, histórico); integrações pessoais (Google/Meta vinculadas à minha conta, com status e "desconectar").
+**Direção visual:** hero de perfil com nuvem radial emerald + avatar circular grande (borda emerald); 2 colunas bento; metas como stat cards com barra 6px; toggles pill; blocos de segurança com ícone circular emerald. Reutilizar `.management-hero`, `.management-stat-card`, `.integration-block`.
 
 ### 3.2 Centro de Controle Master
-**Por que:** o master precisa de **um cockpit único** de governança da plataforma, hoje espalhado entre Usuários, Permissões e Configurações.
-**Deve conter:**
-- **Saúde da plataforma:** nº de workspaces, usuários ativos, clientes, integrações conectadas vs. com erro, uso de IA — em stat cards no topo.
-- **Governança de acesso:** atalhos e visão consolidada de Usuários + Funções + Permissões de Páginas (tudo em um lugar, com busca global de "quem tem acesso a quê").
-- **Integrações globais:** status de cada conector (Meta/Google/ClickUp) em nível de plataforma, tokens expirando, botão de reautenticar.
-- **Auditoria & atividade:** log de ações sensíveis (mudança de papel, revogação de acesso, edição de credencial) com filtro por usuário/período.
-- **Configuração white-label:** domínios, branding, tema por workspace (ponte para o layer SaaS).
-- **Automação / Cron:** status dos jobs (`/api/cron`), última execução, próximos disparos, disparo manual.
-- **Ações destrutivas** protegidas (confirmação dupla): suspender usuário, revogar todos os acessos de alguém, resetar integração.
-**Direção visual:** dashboard bento denso mas respirável; topo com faixa de stat cards (nuvem radial 0.12); cards de estado (verde=ok, âmbar=token expirando, vermelho=integração quebrada) com barra de topo colorida; tabela de auditoria padrão Dados; ações destrutivas em botões ghost com borda vermelha e modal de confirmação header vermelho. Emerald para "tudo saudável", nunca para alerta. Deve transmitir **autoridade e controle** — é a tela mais "cockpit" do produto.
+**Por que:** o master precisa de um cockpit único de governança, hoje espalhado entre Usuários, Permissões e Configurações.
+**Deve conter:** saúde da plataforma (workspaces, usuários ativos, clientes, integrações conectadas vs. com erro, uso de IA em stat cards); governança de acesso consolidada (Usuários + Funções + Permissões de Páginas com busca "quem acessa o quê"); integrações globais (status de cada conector, tokens expirando, reautenticar); auditoria (log de ações sensíveis com filtro por usuário/período); white-label (domínios, branding, tema por workspace — ponte com o layer SaaS); automação/cron (status dos jobs `/api/cron`, última/próxima execução, disparo manual); ações destrutivas protegidas (suspender usuário, revogar todos os acessos, resetar integração).
+**Direção visual:** dashboard bento denso mas respirável; topo com faixa de stat cards (nuvem 0.12); cards de estado (verde=ok, âmbar=token expirando, vermelho=integração quebrada) com barra de topo; tabela de auditoria padrão Dados; ações destrutivas em botão ghost com borda vermelha + modal de confirmação header vermelho. Emerald só para "tudo saudável". Transmitir **autoridade e controle** — a tela mais "cockpit" do produto.
 
 ---
 
 ## 4. Telas institucionais / públicas
 
 ### 4.1 Login
-**Objetivo:** autenticar (Supabase Auth OAuth/e-mail **e** JWT de plataforma).
-**Precisa:** card central glass sobre fundo grafite com nuvem radial emerald; login por e-mail/senha + botão OAuth (Google/Meta); estados de erro inline; link recuperar senha; branding white-label dinâmico por domínio.
-**Visual:** minimalista, um único card centralizado, logo no topo, CTA emerald pill, fundo com gradiente radial sutil.
+**Hoje temos:** dois fluxos — **Supabase Auth** (OAuth/e-mail) e **JWT de plataforma** (cookie); branding white-label por domínio (`[slug]`, `domain-config`).
+**Precisa:** card central glass sobre fundo grafite com nuvem radial emerald; e-mail/senha + OAuth (Google/Meta); erros inline; recuperar senha; logo dinâmico por domínio.
+**Visual:** minimalista, um único card centralizado, CTA emerald pill, gradiente radial sutil.
 
 ### 4.2 Integração (landing institucional)
-**Objetivo:** página de apresentação do método (Planejamento, Processos Comerciais, Potenciais Clientes, PAC, Prestação de Contas).
-**Precisa:** hero de marca; grid de pilares com ícone circular emerald; seção de prova/resultados; CTA.
-**Visual:** mais "marketing", full-width, seções com section-gap 96px, tipografia display 48px, emerald highlights.
+**Hoje temos:** apresentação do método — Planejamento Estratégico, Processos Comerciais, Potenciais Clientes, PAC, Prestação de Contas.
+**Precisa:** hero de marca; grid de pilares com ícone circular emerald; prova/resultados; CTA.
+**Visual:** "marketing", full-width, section-gap 96px, display 48px, emerald highlights.
 
 ### 4.3 Contexto / Produtos / Apresentação de cliente
-- **Contexto:** base de conhecimento/briefing do cliente para IA (client-knowledge). Cards de contexto editáveis, tom documento.
-- **Produtos:** catálogo de produtos/ofertas do cliente. Grid de cards de produto com preço/descrição.
-- **Apresentação de cliente (`/clientes/[id]/apresentacao`):** versão pública/compartilhável do Pitch Deck — mesmo visual da 2.8, porém read-only e brandável.
+- **Contexto:** base de conhecimento/briefing do cliente para a IA (`client-knowledge-panel`). Cards editáveis, tom documento.
+- **Produtos:** catálogo de produtos/ofertas do cliente. Grid de cards com preço/descrição.
+- **Apresentação de cliente (`/clientes/[id]/apresentacao`):** versão pública/compartilhável do Pitch Deck — mesmo visual da 2.9, porém read-only e brandável.
 
 ### 4.4 Privacidade / Termos / Exclusão de dados
-**Objetivo:** páginas legais (compliance Meta/Google).
-**Precisa:** layout de documento legível, largura de leitura ~720px, tipografia body-lg, índice lateral. Visual sóbrio, ainda dentro do brandkit (fundo grafite, texto on-surface).
+**Hoje temos:** páginas legais de compliance (Meta/Google): `privacy`, `terms`, `data-deletion` / `exclusao-de-dados`.
+**Precisa:** layout de documento, largura de leitura ~720px, body-lg, índice lateral. Sóbrio, dentro do brandkit.
 
 ---
 
 ## 5. Estados obrigatórios em toda tela
-Para cada tela, o Claude Design deve entregar: **vazio** (sem dados, com CTA), **carregando** (skeletons glass com shimmer emerald sutil), **erro** (card danger com retry), **sem permissão** (mensagem elegante, não 403 cru), e **responsivo** (reflow para 1 coluna em mobile, margens 16px, header sticky).
+Para cada tela, entregar: **vazio** (sem dados, com CTA), **carregando** (skeletons glass com shimmer emerald sutil), **erro** (card danger com retry), **sem permissão** (mensagem elegante, não 403 cru) e **responsivo** (reflow 1 coluna em mobile, margens 16px, header sticky).
