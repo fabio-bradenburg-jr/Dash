@@ -1,8 +1,11 @@
 # Redesign Brief — Assessoria LP Dashboard (Kinetic Emerald)
 
+> **Objetivo do projeto:** construir uma **interface de front-end nova**, mantendo **100% das funcionalidades que já existem hoje**. Nada de feature pode ser perdida — só muda a pele (visual/UX). Por isso este documento é o **prompt exato**: cada tela lista o que existe hoje e deve continuar existindo.
+>
 > Documento de handoff para o **Claude Design** remodelar cada tela da plataforma.
-> Cada seção traz: **objetivo** · **quem usa** · **Hoje temos** (funcionalidades atuais) · **o que precisa entregar** · **direção visual**.
+> Cada seção traz: **objetivo** · **quem usa** · **Hoje temos** (funcionalidades atuais — não remover) · **o que precisa entregar** · **direção visual**.
 > A direção visual global (cores, tipografia, curvas, elevação) está no topo e vale para **todas** as telas.
+> O **Apêndice A** (fim do doc) lista todas as rotas/APIs como checklist de cobertura — nenhuma pode ficar órfã de tela.
 
 ---
 
@@ -97,8 +100,8 @@
 ### 2.2 Controle da Operação (Weekly Command Center)
 **Objetivo:** central semanal — status de cada cliente por semana, o que foi preenchido e o que falta.
 **Quem usa:** master, operador, gestor_resultado.
-**Hoje temos:** seletor de período (todo o período / semana atual / semana passada / personalizada / mês); grade de clientes com **flags de saúde** (entregáveis, financeiro, ROI, health score manual, CRM em uso, CS atendimento, CSAT ≥4, participação do cliente >90%, contas de anúncio ativas, NPS ≥7, stakeholder pagador consciente) valoradas em Ok/Atenção/Risco/N-A; classificação automática de saúde do cliente (**Crítico / Atenção / Saudável / Com resultado / Integração / Churn / Sem dados**) com cor e glow; chips de filtro por status; indicador de preenchimento por semana; APIs `client-weekly` / `operation`.
-**Precisa entregar:** manter a grade densa + resumo por status no topo + preenchimento rápido semana a semana.
+**Hoje temos:** seletor de período (todo o período / semana atual / semana passada / personalizada / mês); grade de clientes com **flags de saúde** (entregáveis, financeiro, ROI, health score manual, CRM em uso, CS atendimento, CSAT ≥4, participação do cliente >90%, contas de anúncio ativas, NPS ≥7, stakeholder pagador consciente) valoradas em Ok/Atenção/Risco/N-A; classificação automática de saúde do cliente (**Crítico / Atenção / Saudável / Com resultado / Integração / Churn / Sem dados**) com cor e glow; chips de filtro por status; indicador de preenchimento por semana; **Planos de Ação** por cliente (`ActionPlanManager`, `operation/action-plans`); **espaços semanais** configuráveis (`operation/weekly-spaces`, `ActionSpaceSettings`) e contexto da operação (`operation/context`); APIs `client-weekly` / `operation/cards`.
+**Precisa entregar:** manter a grade densa + resumo por status + preenchimento rápido semana a semana + gestor de planos de ação (tarefas/responsável/prazo) por cliente + configuração de espaços/colunas semanais.
 **Visual:** tabela densa padrão "aba Dados" (header uppercase 0.68rem opacity 0.35, hover `rgba(255,255,255,0.025)`); flags como chips de estado; stat cards de resumo por classificação de saúde (cada cor com seu glow).
 
 ### 2.3 Rotinas
@@ -153,7 +156,7 @@
 ### 2.10 Campanhas (Performance)
 **Objetivo:** visão de campanhas por cliente, com métricas.
 **Quem usa:** operador, gestor_resultado.
-**Hoje temos:** **árvore Meta + Google** (campanha → conjunto → anúncio) com modo lista/tree; busca por cliente, campanha, conjunto ou anúncio; seletor de período (hoje/ontem/7d/30d/mês); **25+ métricas**: spend, impressões, alcance, cliques, landing page views, add to cart, initiate checkout, CPC, CPM, frequência, CTR, conversões totais, taxa de conversão, valor de compra, compras, leads, mensagens, video views, video view rate, thruplay, hook rate, CPA, ROAS; `meta-fetch.js` com cache/dedupe.
+**Hoje temos:** **árvore Meta + Google** (campanha → conjunto → anúncio) com modo lista/tree; busca por cliente, campanha, conjunto ou anúncio; seletor de período (hoje/ontem/7d/30d/mês); **25+ métricas**: spend, impressões, alcance, cliques, landing page views, add to cart, initiate checkout, CPC, CPM, frequência, CTR, conversões totais, taxa de conversão, valor de compra, compras, leads, mensagens, video views, video view rate, thruplay, hook rate, CPA, ROAS; **breakdowns** demográficos/posicionamento (`meta/breakdowns`); **série diária** (`meta/campaign-daily`) e **benchmarks de CPR/custo** (`cpr-benchmarks`); `meta-fetch.js` com cache/dedupe.
 **Precisa entregar:** tabela/árvore densa com métricas configuráveis; toggle ativar/pausar; chips de plataforma.
 **Visual:** `.ads-overview-hero`; colunas numéricas alinhadas à direita; métrica-destaque em emerald; chips de plataforma (Meta/Google/TikTok/LinkedIn) com ícone.
 
@@ -167,8 +170,8 @@
 ### 2.12 Saldos
 **Objetivo:** monitorar saldo/verba das contas de anúncio.
 **Quem usa:** master, operador.
-**Hoje temos:** saldo por conta de anúncio (`meta/account-balances`); busca por cliente, conta ou cartão; `.ad-balance-hero`.
-**Precisa entregar:** cards por conta com saldo atual, gasto no período, projeção de esgotamento, alerta de saldo baixo, histórico de recargas.
+**Hoje temos:** saldo por conta de anúncio (`meta/account-balances`); busca por cliente, conta ou cartão; **alerta de saldo automático** por cliente (`clients/[id]/balance-alert`, webhook `webhooks/balance-alerts`); `.ad-balance-hero`.
+**Precisa entregar:** cards por conta com saldo atual, gasto no período, projeção de esgotamento, configuração de limite de alerta por cliente, histórico de recargas.
 **Visual:** card de estado (danger quando crítico) com barra de topo; número de saldo grande emerald.
 
 ### 2.13 Relatórios
@@ -255,6 +258,46 @@
 **Precisa entregar:** refinar o existente — chips de usuário, grid de toggles pill verdes por grupo, header com ícone de escudo.
 **Visual:** já existe base — polir hierarquia e responsividade.
 
+### 2.25 Notas por cliente
+**Objetivo:** bloco de notas por cliente, estilo iOS Notes.
+**Quem usa:** operador, gestor_resultado, master.
+**Hoje temos:** notas por cliente com CRUD (`clients/[id]/notes`, `notes`, `ClientNotesPanel`), shell `.ios-notes-shell`.
+**Precisa entregar:** lista de notas + editor; busca; timestamps; anexos.
+**Visual:** painel duas colunas (lista à esquerda, editor à direita), estética iOS Notes dentro do brandkit escuro; acento emerald sutil.
+
+### 2.26 Calendário (Google Calendar)
+**Objetivo:** agenda integrada ao Google Calendar.
+**Quem usa:** operador, gestor_resultado.
+**Hoje temos:** listagem de calendários e eventos, CRUD de evento (`google-calendar/calendars`, `/events`, `/events/[id]`); página `/calendar`.
+**Precisa entregar:** visão mês/semana/dia; criar/editar evento; seletor de calendário; sincronização.
+**Visual:** grade de calendário glass; eventos como chips; header emerald; estado de "conectar Google" quando sem integração.
+
+### 2.27 Fontes de CRM & dados (RD Station, Agendor, Sheets, ClickUp, Monday)
+**Objetivo:** trazer dados de CRMs e planilhas para dentro do dashboard.
+**Quem usa:** operador, gestor_resultado.
+**Hoje temos:** **RD Station** (pipelines + resumo — `rd/pipelines`, `rd/summary`); **Agendor** (`saas/agendor/pipelines`); **Google Sheets** (leads-analytics, abas — alimenta Planilha de Leads); resumos **ClickUp** (`clickup/summary`, página `/clickup`) e **Monday** (`monday/summary`, página `/monday`).
+**Precisa entregar:** cards de resumo por fonte com status de conexão; pipelines/estágios; mapeamento de colunas de planilha; deep-link para a fonte.
+**Visual:** cards de integração glass com logo/ícone da fonte; badge de status; mini-tabelas de pipeline.
+
+### 2.28 Camada White-label / SaaS
+**Objetivo:** dashboard white-label para clientes/tenants externos (domínio próprio, tema próprio).
+**Quem usa:** cliente/tenant SaaS, gestor.
+**Hoje temos:** shell próprio (`saas/dashboard-shell`); **layout de dashboard customizável** (`saas/dashboard-layout`); **theme-panel** (presets de tema/branding — `saas/theme`, `workspace/branding`); **funnel-builder**; **client-knowledge-panel** e **client-sources** (fontes por cliente); **ai-integration-panel** + chat (`saas/ai/chat`, `saas/ai/settings`); conectores próprios (Meta com token manual, Google Ads, Google Drive files); `saas/sync`; resolução de tenant por domínio (`[slug]`, `domain-config`).
+**Precisa entregar:** manter a paridade com o dashboard interno mas **temável por tenant** (cores/logo/domínio); editor de layout arrastar-e-soltar; painel de tema; construtor de funil.
+**Visual:** mesmo Kinetic Emerald como *default*, porém **tokens sobrescrevíveis por tenant** (accent, logo, fundo). Deixar claro no design o que é fixo vs. o que o tenant customiza.
+
+### 2.29 Visão Executiva / Platform
+**Objetivo:** camada de plataforma para usuários de alto nível (JWT de plataforma).
+**Quem usa:** platform/SaaS users, gestão.
+**Hoje temos:** home executiva e visão executiva (`platform/home`, `platform/executive`); gestão de clientes e tarefas em nível de plataforma (`platform/clients`, `platform/tasks`); admin de workspaces (`admin/workspaces`).
+**Precisa entregar:** dashboard executivo com KPIs agregados entre clientes/workspaces; ranking/comparativo; drill-down por cliente.
+**Visual:** bento executivo, números grandes emerald, comparativos; tom "board room".
+
+### 2.30 Versão / Changelog & Registro
+**Hoje temos:** endpoint de versão (`version`); fluxo de **registro** (`auth/register`) e OAuth Facebook (`auth/facebook`).
+**Precisa entregar:** modal/página de changelog (novidades por versão); tela de cadastro alinhada ao Login; arquivamento de cliente (`clients/[id]/archive`) exposto na gestão.
+**Visual:** changelog em timeline; registro = espelho do Login.
+
 ---
 
 ## 3. Telas NOVAS (direção do que precisamos)
@@ -297,3 +340,38 @@
 
 ## 5. Estados obrigatórios em toda tela
 Para cada tela, entregar: **vazio** (sem dados, com CTA), **carregando** (skeletons glass com shimmer emerald sutil), **erro** (card danger com retry), **sem permissão** (mensagem elegante, não 403 cru) e **responsivo** (reflow 1 coluna em mobile, margens 16px, header sticky).
+
+---
+
+## 6. Regras para NÃO perder funcionalidade (obrigatório)
+1. **Paridade total:** toda ação, filtro, coluna, status, campo e modal listado em "Hoje temos" deve existir na nova interface. Redesenhar ≠ remover.
+2. **Mesmos contratos de API:** o front novo consome exatamente as mesmas rotas do Apêndice A (mesmos payloads). Só a camada de apresentação muda.
+3. **Mesmos papéis e permissões:** respeitar `master/operador/visualizador/cliente/gestor_resultado`, `nav-permissions` (visibilidade por página) e o catálogo de permissões granulares.
+4. **Dois fluxos de auth** preservados: Supabase Auth + JWT de plataforma.
+5. **White-label:** tokens de tema sobrescrevíveis por tenant/domínio continuam funcionando.
+6. **Se algo não tiver tela mapeada**, sinalizar — não descartar.
+
+---
+
+## Apêndice A — Inventário de rotas (checklist de cobertura)
+
+Cada grupo abaixo precisa estar coberto por alguma tela da nova interface.
+
+- **Auth:** `auth/login` · `auth/logout` · `auth/register` · `auth/session` · `auth/preview` · `auth/facebook/*`
+- **Perfil/permissões:** `me` · `users` · `users/[id]` · `roles` · `roles/users` · `permissions` · `nav-permissions`
+- **Clientes:** `clients/accesses` · `clients/accesses/logs` · `clients/password-spaces` · `clients/[id]/archive` · `clients/[id]/balance-alert` · `clients/[id]/notes(/[noteId])`
+- **Onboarding/Offboarding:** `client-onboarding` · `onboarding-tasks/definitions` · `client-offboarding`
+- **Operação:** `operation/cards` · `operation/action-plans` · `operation/action-space-settings` · `operation/weekly-spaces` · `operation/context` · `client-weekly`
+- **Meta Ads:** `meta/adaccounts` · `meta/campaigns(-overview)` · `meta/ads-overview` · `meta/insights` · `meta/breakdowns` · `meta/campaign-daily` · `meta/structure` · `meta/account-balances` · `meta/creative-preview` · `meta/creative-thumbnail` · `meta/connection` · `meta/auth/*` · `meta/warm` · `cpr-benchmarks`
+- **Google Ads:** `google-ads/adaccounts` · `google-ads/summary` · `google-ads/connection` · `google-ads/auth/*`
+- **Google Calendar:** `google-calendar/calendars` · `google-calendar/events(/[id])` · `google-calendar/connection` · `google-calendar/auth/*`
+- **Google Sheets:** `google-sheets/leads-analytics` · `google-sheets/summary` · `google-sheets/tabs`
+- **CRMs:** `rd/pipelines` · `rd/summary` · `saas/agendor/pipelines` · `clickup/summary` · `monday/summary`
+- **Tarefas:** `tasks(/[id])` · `tasks/[id]/checklist` · `tasks/[id]/comments` · `tasks/comments` · `tasks/archived` · `tasks/custom-fields(/values)` · `tasks/recurring` · `tasks/spaces(/members)` · `tasks/statuses` · `tasks/status-templates` · `tasks/views` · `tasks/preferences` · `task-templates` · `task-views` · `recurring-tasks` · `automations(/runs)` · `cron/automations` · `gr-tasks(/definitions)`
+- **Social/Editorial:** `editorial` · `editorial/[postId]`
+- **PAC:** `pac/training-types(/[id])` · `pac/trainings(/[id])` · `pac/trainings/[id]/notes(/[noteId])`
+- **Relatórios:** `reports` · `reports/[id]` · `reports/manual(/[id])`
+- **Notificações/versão:** `notifications` · `notes` · `version` · `dashboard/state`
+- **White-label / SaaS:** `saas/ai/chat` · `saas/ai/settings` · `saas/client-context` · `saas/client-sources` · `saas/clients(/[id])` · `saas/dashboard-layout` · `saas/theme` · `saas/integrations` · `saas/sync` · `saas/meta/*` · `saas/google-ads/*` · `saas/google-drive/*` · `workspace/branding`
+- **Platform/Admin:** `platform/home` · `platform/executive` · `platform/clients(/[id])` · `platform/tasks(/[id])` · `admin/workspaces`
+- **Webhooks:** `webhooks/balance-alerts`
