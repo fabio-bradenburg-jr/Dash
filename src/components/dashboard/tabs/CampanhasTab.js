@@ -49,8 +49,8 @@ export default function CampanhasTab() {
 
   return (
           <section className="campaign-overview-page ads-overview-page">
-            <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ margin: '18px 22px 0', padding: '24px 26px', border: '1px solid rgba(255,255,255,0.05)', borderBottom: '2px solid rgba(38,194,129,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(38,194,129,0.08) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.16) 0%, transparent 68%)', pointerEvents: 'none' }} />
               <div>
                 <span className="management-hero-kicker"><i className="bx bx-broadcast" style={{ marginRight: 5 }}></i>Mapa de mídia</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Campanhas por cliente</h2>

@@ -56,10 +56,16 @@ const ICON_OPTIONS = [
 const COLOR_OPTIONS = ['#26c281','#3b82f6','#e1306c','#f59e0b','#a78bfa','#06b6d4','#f97316','#ef4444','#64748b','#ec4899']
 
 const G = '#26c281'
+const PURPLE = '#a78bfa'
+const RED = '#ef4444'
 const PANEL = '#111113'
+const GLASS = 'rgba(28,28,28,.4)'
 const BORDER = 'rgba(148,163,184,.1)'
+const BORDER2 = 'rgba(255,255,255,.1)'
+const FIELD = 'rgba(255,255,255,.04)'
 const TEXT = '#e2e8f0'
 const SUB = '#94a3b8'
+const TEXT3 = '#64748b'
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
 function copyToClipboard(text, setCopied) {
@@ -970,54 +976,51 @@ function AccessCard({ access, onUpdate, onDelete, onRevealPassword, onArchive })
 }
 
 /* ─── Client Panel Card ──────────────────────────────────────────── */
-function ClientCard({ client, accesses, onClick }) {
-  const active = (accesses || []).filter((a) => !a.is_archived && a.status === 'active').length
-  const pending = (accesses || []).filter((a) => !a.is_archived && a.status === 'pending').length
-  const problem = (accesses || []).filter((a) => !a.is_archived && (a.status === 'problem' || a.status === 'needs_update')).length
-  const total = (accesses || []).filter((a) => !a.is_archived).length
-  const completeness = total === 0 ? 0 : Math.round((accesses || []).filter((a) => !a.is_archived).reduce((s, a) => s + calcCompleteness(a), 0) / total)
-  const { icon, color: iconColor } = primaryIcon(accesses || [])
-  const cardColor = client?.dashboardColor || G
-  const hasIssue = problem > 0
+function ClientCard({ client, accesses, active: isActive, onClick }) {
+  const live = (accesses || []).filter((a) => !a.is_archived)
+  const pending = live.filter((a) => a.status === 'pending').length
+  const problem = live.filter((a) => a.status === 'problem' || a.status === 'needs_update').length
+  const total = live.length
+  const cardColor = client?.dashboardColor || PURPLE
+  const initials = (client?.name || 'Cliente').trim().split(/\s+/).map((p) => p[0] || '').slice(0, 2).join('').toUpperCase()
+
+  // distinct categories present (order of first appearance), capped at 5
+  const seen = []
+  live.forEach((a) => { if (!seen.includes(a.category)) seen.push(a.category) })
+  const platCats = seen.slice(0, 5)
+  const extra = seen.length - platCats.length
+  const flags = []
+  if (pending) flags.push(`${pending} pend.`)
+  if (problem) flags.push(`${problem} prob.`)
 
   return (
     <button type="button" onClick={onClick}
-      style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20, cursor: 'pointer', textAlign: 'left', transition: 'all .2s', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', overflow: 'hidden' }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = cardColor + '66'; e.currentTarget.style.boxShadow = `0 0 20px ${cardColor}22` }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.boxShadow = 'none' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${cardColor}, transparent)`, borderRadius: '16px 16px 0 0' }} />
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 11, background: iconColor + '22', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {client?.logoUrl
-            ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <i className={`bx ${icon}`} style={{ fontSize: 22, color: iconColor }} />}
+      style={{ position: 'relative', overflow: 'hidden', textAlign: 'left', border: `1px solid ${isActive ? PURPLE : BORDER2}`, borderRadius: 16, background: GLASS, backdropFilter: 'blur(12px)', padding: 17, cursor: 'pointer', fontFamily: 'inherit', color: TEXT, transition: 'box-shadow .15s', display: 'flex', flexDirection: 'column' }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 0 30px ${cardColor}24` }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: cardColor }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        <span style={{ width: 40, height: 40, borderRadius: 11, background: cardColor + '24', border: `1px solid ${cardColor}4d`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.82rem', color: cardColor, flexShrink: 0 }}>{initials}</span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client?.name || 'Cliente'}</div>
+          <div style={{ fontSize: '0.66rem', color: total === 0 ? TEXT3 : SUB, marginTop: 2 }}>{total === 0 ? 'Sem dados cadastrados' : `${total} registro${total > 1 ? 's' : ''}`}</div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client?.name || 'Cliente'}</div>
-          <div style={{ fontSize: 12, color: SUB, marginTop: 2 }}>{total === 0 ? 'Sem dados cadastrados' : `${total} registro${total > 1 ? 's' : ''}`}</div>
-        </div>
-        {hasIssue && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0, marginTop: 4 }} />}
       </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        {total === 0 ? (
-          <span style={{ fontSize: 11, color: '#334155' }}>Clique para adicionar</span>
-        ) : (
-          <>
-            {(accesses || []).filter((a) => !a.is_archived && a.status === 'active').map((a, i) => {
-              const cat = CATEGORIES.find((c) => c.key === a.category)
-              const ic = (a.category === 'custom' && a.icon) ? a.icon : (cat?.icon || 'bx-lock-alt')
-              const col = (a.category === 'custom' && a.icon_color) ? a.icon_color : (cat?.color || '#475569')
-              return (
-                <div key={i} title={a.platform_name || cat?.label || a.category} style={{ width: 22, height: 22, borderRadius: 6, background: col + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className={`bx ${ic}`} style={{ fontSize: 13, color: col }} />
-                </div>
-              )
-            })}
-            {pending > 0 && <span style={{ fontSize: 11, color: '#f59e0b', marginLeft: 2 }}>· {pending} pend.</span>}
-            {problem > 0 && <span style={{ fontSize: 11, color: '#ef4444', marginLeft: 2 }}>· {problem} prob.</span>}
-          </>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 13, minHeight: 22 }}>
+        {platCats.map((catKey, i) => {
+          const cat = CATEGORIES.find((c) => c.key === catKey)
+          const col = cat?.color || TEXT3
+          const ic = cat?.icon || 'bx-lock-alt'
+          return (
+            <span key={i} title={cat?.label || catKey} style={{ width: 22, height: 22, borderRadius: 6, background: col + '24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className={`bx ${ic}`} style={{ fontSize: 13, color: col }} />
+            </span>
+          )
+        })}
+        {extra > 0 && <span style={{ fontSize: '0.62rem', color: TEXT3 }}>+{extra}</span>}
+        {total === 0 && <span style={{ fontSize: 11, color: TEXT3 }}>Clique para adicionar</span>}
       </div>
+      {flags.length > 0 && <div style={{ fontSize: '0.66rem', color: TEXT3, marginTop: 9 }}>{flags.join(' · ')}</div>}
     </button>
   )
 }
@@ -1025,21 +1028,20 @@ function ClientCard({ client, accesses, onClick }) {
 function AllCard({ totalAccesses, totalClients, problems, onClick }) {
   return (
     <button type="button" onClick={onClick}
-      style={{ background: PANEL, border: `1px solid ${G}44`, borderRadius: 16, padding: 20, cursor: 'pointer', textAlign: 'left', transition: 'all .2s', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', overflow: 'hidden' }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = G; e.currentTarget.style.boxShadow = `0 0 24px ${G}33` }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${G}44`; e.currentTarget.style.boxShadow = 'none' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${G}, transparent)` }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 11, background: G + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className="bx bx-layer" style={{ fontSize: 22, color: G }} />
-        </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: G }}>Todos os Clientes</div>
-          <div style={{ fontSize: 12, color: SUB, marginTop: 2 }}>{totalClients} clientes · {totalAccesses} registros</div>
+      style={{ textAlign: 'left', border: `1px solid ${G}59`, borderRadius: 16, background: 'linear-gradient(150deg, rgba(38,194,129,0.1), rgba(38,194,129,0.02))', padding: 17, cursor: 'pointer', fontFamily: 'inherit', color: TEXT, transition: 'box-shadow .15s', display: 'flex', flexDirection: 'column' }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 0 30px ${G}24` }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
+        <span style={{ width: 42, height: 42, borderRadius: 11, background: G + '29', border: `1px solid ${G}52`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className="bx bxs-layer" style={{ fontSize: 21, color: G }} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: '0.98rem', color: TEXT }}>Todos os Clientes</div>
+          <div style={{ fontSize: '0.66rem', color: SUB, marginTop: 2 }}>{totalClients} clientes · {totalAccesses} registros</div>
         </div>
       </div>
-      {problems > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ef4444' }}><i className="bx bx-error" style={{ fontSize: 14 }} />{problems} com problema</div>}
-      <div style={{ fontSize: 11, color: SUB }}>Visualize e exporte todos os dados em uma única tela.</div>
+      {problems > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: RED, marginBottom: 8 }}><i className="bx bx-error" style={{ fontSize: 14 }} />{problems} com problema</div>}
+      <p style={{ margin: 0, fontSize: '0.8rem', color: SUB, lineHeight: 1.45 }}>Visualize e exporte todos os dados em uma única tela.</p>
     </button>
   )
 }
@@ -1077,58 +1079,71 @@ function DetailDrawer({ client, accesses, allClients, allAccessesByClient, isAll
   const materials = sortItems(filtered.filter((a) => CATEGORIES.find((c) => c.key === a.category)?.type === 'material'))
   const favCount = displayAccesses.filter((a) => !a.is_archived && a.metadata?.is_favorite).length
 
-  const renderCatSection = (catItems, catKey) => {
-    if (catItems.length === 0) return null
-    const catDef = CATEGORIES.find((c) => c.key === catKey) || CATEGORIES[0]
+  const headColor = isAll ? G : (client?.dashboardColor || PURPLE)
+  const headInitials = isAll ? '' : (client?.name || 'C').trim().split(/\s+/).map((p) => p[0] || '').slice(0, 2).join('').toUpperCase()
+  const operationalItems = [...locations, ...whatsapps]
+
+  const renderItem = (acc) => (
+    <div key={acc.id}>
+      {isAll && acc._clientName && <div style={{ fontSize: 10, color: TEXT3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>{acc._clientName}</div>}
+      {acc.category === 'location' ? (
+        <LocationCard access={acc} onUpdate={onUpdate} onDelete={onDelete} />
+      ) : acc.category === 'whatsapp' ? (
+        <WhatsAppCard access={acc} onUpdate={onUpdate} onDelete={onDelete} />
+      ) : CATEGORIES.find((c) => c.key === acc.category)?.type === 'material' ? (
+        <MaterialCard access={acc} onUpdate={onUpdate} onDelete={onDelete} onArchive={onArchive} />
+      ) : (
+        <AccessCard access={acc} onUpdate={onUpdate} onDelete={onDelete} onRevealPassword={onRevealPassword} onArchive={onArchive} />
+      )}
+    </div>
+  )
+
+  const renderGroup = (title, items, defaultAddCat) => {
+    if (!items.length) return null
     return (
-      <div key={catKey} style={{ marginBottom: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px 8px', background: 'rgba(255,255,255,.02)', borderBottom: `1px solid ${BORDER}` }}>
-          <i className={`bx ${catDef.icon}`} style={{ fontSize: 14, color: catDef.color }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>{catDef.label}</span>
-          <span style={{ fontSize: 11, color: SUB, background: 'rgba(255,255,255,.06)', borderRadius: 20, padding: '1px 7px' }}>{catItems.length}</span>
-          {!isAll && <button type="button" onClick={() => setAddModal(catKey)} style={{ marginLeft: 'auto', background: 'transparent', border: `1px dashed ${catDef.color}55`, borderRadius: 6, color: catDef.color, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Adicionar</button>}
+      <div key={title} style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+          <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.09em', color: SUB, fontWeight: 700 }}>{title}</span>
+          <span style={{ fontSize: '0.66rem', color: TEXT3, fontWeight: 600 }}>{items.length}</span>
+          <div style={{ flex: 1, height: 1, background: BORDER }} />
+          {!isAll && (
+            <button type="button" onClick={() => setAddModal(defaultAddCat)}
+              style={{ height: 26, padding: '0 10px', borderRadius: 9999, border: `1px dashed ${BORDER2}`, background: 'transparent', color: SUB, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="bx bx-plus" style={{ fontSize: 13 }} />Adicionar
+            </button>
+          )}
         </div>
-        {catItems.map((acc) => (
-          <div key={acc.id} style={{ padding: '10px 20px', borderBottom: `1px solid ${BORDER}` }}>
-            {isAll && acc._clientName && <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>{acc._clientName}</div>}
-            {acc.category === 'location' ? (
-              <LocationCard access={acc} onUpdate={onUpdate} onDelete={onDelete} />
-            ) : acc.category === 'whatsapp' ? (
-              <WhatsAppCard access={acc} onUpdate={onUpdate} onDelete={onDelete} />
-            ) : (
-              <AccessCard access={acc} onUpdate={onUpdate} onDelete={onDelete} onRevealPassword={onRevealPassword} onArchive={onArchive} />
-            )}
-          </div>
-        ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {items.map(renderItem)}
+        </div>
       </div>
     )
   }
-
-  const accessCatKeys = [...new Set(accessItems.map((a) => a.category))]
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={{ width: '100%', maxWidth: 860, background: '#0d0d0f', borderLeft: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
         {/* Header */}
-        <div style={{ padding: '18px 20px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: TEXT }}>{isAll ? 'Todos os Dados' : client?.name || 'Cliente'}</h2>
-            <p style={{ margin: '3px 0 0', fontSize: 12, color: SUB }}>{filtered.length} registro{filtered.length !== 1 ? 's' : ''} {isAll ? 'de todos os clientes' : 'cadastrados'}</p>
+        <div style={{ padding: '20px 24px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 11, background: headColor + '24', border: `1px solid ${headColor}4d`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: '0.9rem', color: headColor }}>
+            {isAll ? <i className="bx bxs-layer" style={{ fontSize: 22 }} /> : headInitials}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.01em', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{isAll ? 'Todos os Dados' : client?.name || 'Cliente'}</div>
+            <div style={{ fontSize: '0.68rem', color: SUB, marginTop: 2 }}>{filtered.length} registro{filtered.length !== 1 ? 's' : ''} {isAll ? 'de todos os clientes' : 'cadastrados'}</div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {!isAll && (
-              <button type="button" onClick={() => setAddModal('social')}
-                style={{ background: G, border: 'none', borderRadius: 8, color: '#fff', padding: '7px 13px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                <i className="bx bx-plus" /> Novo dado
-              </button>
-            )}
-            <button type="button" onClick={onExport}
-              style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, color: TEXT, padding: '7px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <i className="bx bx-file-pdf" style={{ color: '#ef4444' }} /> Exportar
+          {!isAll && (
+            <button type="button" onClick={() => setAddModal('social')}
+              style={{ height: 38, background: G, border: 'none', borderRadius: 9, color: '#fff', padding: '0 14px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <i className="bx bx-plus" style={{ fontSize: 16 }} /> Novo dado
             </button>
-            <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: SUB, cursor: 'pointer', padding: 4 }}><i className="bx bx-x" style={{ fontSize: 22 }} /></button>
-          </div>
+          )}
+          <button type="button" onClick={onExport}
+            style={{ height: 38, background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 9, color: '#fca5a5', padding: '0 13px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <i className="bx bxs-file-pdf" style={{ fontSize: 16 }} /> Exportar
+          </button>
+          <button type="button" onClick={onClose} style={{ width: 38, height: 38, background: FIELD, border: `1px solid ${BORDER2}`, borderRadius: 9, color: SUB, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
         </div>
 
         {/* Filters */}
@@ -1157,50 +1172,10 @@ function DetailDrawer({ client, accesses, allClients, allAccessesByClient, isAll
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {/* Access section header */}
-          {accessItems.length > 0 && (
-            <div style={{ padding: '10px 20px 6px', background: 'rgba(255,255,255,.015)' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.8px' }}>Acessos e Plataformas</span>
-            </div>
-          )}
-          {accessCatKeys.map((catKey) => renderCatSection(accessItems.filter((a) => a.category === catKey), catKey))}
-
-          {/* Operational section header */}
-          {(locations.length > 0 || whatsapps.length > 0) && (
-            <div style={{ padding: '10px 20px 6px', background: 'rgba(255,255,255,.015)', marginTop: 4 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.8px' }}>Informações Operacionais</span>
-            </div>
-          )}
-          {locations.length > 0 && renderCatSection(locations, 'location')}
-          {whatsapps.length > 0 && renderCatSection(whatsapps, 'whatsapp')}
-
-          {/* Materials section */}
-          {materials.length > 0 && (
-            <div style={{ padding: '10px 20px 6px', background: 'rgba(255,255,255,.015)', marginTop: 4 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.8px' }}>Materiais e Arquivos</span>
-            </div>
-          )}
-          {materials.length > 0 && MAT_CATS.map((cat) => {
-            const catItems = materials.filter((a) => a.category === cat.key)
-            if (!catItems.length) return null
-            return (
-              <div key={cat.key} style={{ marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px 8px', background: 'rgba(255,255,255,.02)', borderBottom: `1px solid ${BORDER}` }}>
-                  <i className={`bx ${cat.icon}`} style={{ fontSize: 14, color: cat.color }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>{cat.label}</span>
-                  <span style={{ fontSize: 11, color: SUB, background: 'rgba(255,255,255,.06)', borderRadius: 20, padding: '1px 7px' }}>{catItems.length}</span>
-                  {!isAll && <button type="button" onClick={() => setAddModal(cat.key)} style={{ marginLeft: 'auto', background: 'transparent', border: `1px dashed ${cat.color}55`, borderRadius: 6, color: cat.color, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Adicionar</button>}
-                </div>
-                {catItems.map((acc) => (
-                  <div key={acc.id} style={{ padding: '10px 20px', borderBottom: `1px solid ${BORDER}` }}>
-                    {isAll && acc._clientName && <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>{acc._clientName}</div>}
-                    <MaterialCard access={acc} onUpdate={onUpdate} onDelete={onDelete} onArchive={onArchive} />
-                  </div>
-                ))}
-              </div>
-            )
-          })}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px 40px' }}>
+          {renderGroup('Acessos e Plataformas', accessItems, 'social')}
+          {renderGroup('Informações Operacionais', operationalItems, 'location')}
+          {renderGroup('Materiais e Arquivos', materials, 'document')}
 
           {filtered.length === 0 && (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: SUB }}>
@@ -1224,6 +1199,7 @@ export default function ClientAccessesTab({ clients = [] }) {
   const [accessesByClient, setAccessesByClient] = useState({})
   const [loadingAll, setLoadingAll] = useState(true)
   const [search, setSearch] = useState('')
+  const [catFilter, setCatFilter] = useState('all')
   const [selectedClientId, setSelectedClientId] = useState(null)
   const [showExportModal, setShowExportModal] = useState(false)
   const [toast, setToast] = useState(null)
@@ -1334,10 +1310,24 @@ export default function ClientAccessesTab({ clients = [] }) {
     } catch (err) { showToast('Erro ao gerar PDF.', 'error') }
   }
 
-  const filteredClients = clients.filter((c) => !search || c.name?.toLowerCase().includes(search.toLowerCase()))
+  // Distinct non-archived categories present for a client
+  const clientCategories = (cid) => new Set((accessesByClient[cid] || []).filter((a) => !a.is_archived).map((a) => a.category))
+
+  const filteredClients = clients.filter((c) => {
+    if (search && !c.name?.toLowerCase().includes(search.toLowerCase())) return false
+    if (catFilter !== 'all' && !clientCategories(c.id).has(catFilter)) return false
+    return true
+  })
   const allTotal = Object.values(accessesByClient).flat().filter((a) => !a.is_archived).length
   const allProblems = Object.values(accessesByClient).flat().filter((a) => !a.is_archived && (a.status === 'problem' || a.status === 'needs_update')).length
   const selectedClient = clients.find((c) => c.id === selectedClientId)
+
+  // Category chips — count = number of clients that own at least one record of that category
+  const catCounts = {}
+  CATEGORIES.forEach((cat) => { catCounts[cat.key] = 0 })
+  clients.forEach((c) => { clientCategories(c.id).forEach((k) => { if (k in catCounts) catCounts[k] += 1 }) })
+  const catChips = [{ key: 'all', label: 'Todos', icon: null, color: PURPLE, count: clients.length }]
+    .concat(CATEGORIES.map((cat) => ({ key: cat.key, label: cat.label, icon: cat.icon, color: cat.color, count: catCounts[cat.key] })))
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -1348,30 +1338,46 @@ export default function ClientAccessesTab({ clients = [] }) {
         </div>
       )}
 
+      <div style={{ maxWidth: 1320, width: '100%', margin: '0 auto', padding: '26px 22px 90px', boxSizing: 'border-box' }}>
       {/* Hero header */}
-      <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(167,139,250,0.12)', background: 'linear-gradient(135deg, rgba(139,92,246,0.07) 0%, rgba(139,92,246,0.01) 100%)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-          <div>
-            <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a78bfa', opacity: 0.85, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <i className="bx bx-data" style={{ fontSize: 13 }}></i>Dados
+      <div style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${BORDER}`, borderBottom: '2px solid rgba(167,139,250,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.01))', padding: '24px 26px' }}>
+        <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.18), transparent 68%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: PURPLE, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+              <i className="bx bx-data" style={{ fontSize: 15 }}></i>Dados
             </span>
-            <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900, color: TEXT }}>Dados dos Clientes</h2>
-            <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.48, color: TEXT }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
+            <h2 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.6vw,1.9rem)', letterSpacing: '-0.02em', lineHeight: 1.05, color: TEXT }}>Dados dos Clientes</h2>
+            <p style={{ margin: '9px 0 0', fontSize: '0.9rem', color: SUB, maxWidth: '58ch', lineHeight: 1.5 }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
           </div>
           <button type="button" onClick={() => setShowExportModal(true)}
-            style={{ flexShrink: 0, background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 9999, color: '#ef4444', padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <i className="bx bx-file-pdf" style={{ fontSize: 15 }} /> Exportar dados
+            style={{ flexShrink: 0, height: 40, background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 9999, color: '#fca5a5', padding: '0 16px', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <i className="bx bxs-file-pdf" style={{ fontSize: 17 }} /> Exportar dados
           </button>
         </div>
-        <div style={{ marginTop: 16, position: 'relative' }}>
-          <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ ...iStyle(), paddingLeft: 42, width: '100%', boxSizing: 'border-box', maxWidth: 400 }} />
+        <div style={{ position: 'relative', marginTop: 18, maxWidth: 400, display: 'flex', alignItems: 'center' }}>
+          <i className="bx bx-search" style={{ position: 'absolute', left: 13, fontSize: 17, color: TEXT3, pointerEvents: 'none' }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ width: '100%', height: 42, padding: '0 14px 0 40px', borderRadius: 9, border: `1px solid ${BORDER2}`, background: FIELD, color: TEXT, fontFamily: 'inherit', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+        {/* Category filter chips */}
+        <div style={{ position: 'relative', marginTop: 14, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          {catChips.map((ch) => {
+            const active = catFilter === ch.key
+            return (
+              <button key={ch.key} type="button" onClick={() => setCatFilter(ch.key)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 9999, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer', transition: 'all .12s',
+                  background: active ? ch.color + '29' : FIELD, border: `1px solid ${active ? ch.color + '73' : BORDER}`, color: active ? ch.color : SUB }}>
+                {ch.icon && <i className={`bx ${ch.icon}`} style={{ fontSize: 14 }} />}
+                <span>{ch.label}</span>
+                <span style={{ opacity: 0.7, fontWeight: 700 }}>{ch.count}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* Cards grid */}
-      <div style={{ padding: '20px 24px 32px' }}>
+      <div style={{ padding: '18px 0 0' }}>
         {loadingAll ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: SUB }}>
             <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 28, display: 'block', marginBottom: 10 }} />
@@ -1381,13 +1387,14 @@ export default function ClientAccessesTab({ clients = [] }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
             <AllCard totalAccesses={allTotal} totalClients={clients.length} problems={allProblems} onClick={() => setSelectedClientId('all')} />
             {filteredClients.map((client) => (
-              <ClientCard key={client.id} client={client} accesses={accessesByClient[client.id] || []} onClick={() => setSelectedClientId(client.id)} />
+              <ClientCard key={client.id} client={client} accesses={accessesByClient[client.id] || []} active={selectedClientId === client.id} onClick={() => setSelectedClientId(client.id)} />
             ))}
             {filteredClients.length === 0 && (
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: SUB }}>Nenhum cliente encontrado para "{search}"</div>
             )}
           </div>
         )}
+      </div>
       </div>
 
       {selectedClientId && (
