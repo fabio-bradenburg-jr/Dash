@@ -164,13 +164,27 @@ export default function FunilPerformanceTab({
   // reset selection when client changes
   useEffect(() => { setSelected({}); setExpanded({}); setStatusMenu(null) }, [client?.id])
 
+  // load persisted status-attribution config (per client) from localStorage
+  useEffect(() => {
+    if (!client?.id || cfgMap[client.id]) return
+    try {
+      const raw = window.localStorage.getItem('funilPglCfg_' + client.id)
+      const parsed = raw ? JSON.parse(raw) : null
+      if (parsed?.stages) setCfgMap((m) => ({ ...m, [client.id]: parsed }))
+    } catch (e) { /* ignore */ }
+  }, [client?.id, cfgMap])
+
   const statusDist = sheetData?.statusDist || []
   const cfg = useMemo(() => {
     if (cfgMap[client?.id]) return cfgMap[client.id]
     return defaultCfg(statusDist)
   }, [cfgMap, client, statusDist])
 
-  const saveCfg = (next) => { if (client) setCfgMap((m) => ({ ...m, [client.id]: next })) }
+  const saveCfg = (next) => {
+    if (!client) return
+    setCfgMap((m) => ({ ...m, [client.id]: next }))
+    try { window.localStorage.setItem('funilPglCfg_' + client.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
+  }
   const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)
   const stageSum = (st) => (st.statuses || []).reduce((a, l) => a + statusCount(l), 0)
   const toggleStatus = (stageKey, label) => {
