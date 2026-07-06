@@ -128,11 +128,13 @@ export default function FunilPerformanceTab({
   const campaigns = campaignRow?.campaigns || []
   const hasPgl = !!client?.leadsSheetUrl
 
-  // sheet source config (tab + qualification/counter columns), per client, persisted
+  // sheet source config — the client's cadastro mapping is the default (shared across
+  // cadastro + funil); a local per-session override in the funil wins when set.
+  const clientMap = client?.leadsSheetColumnMap || {}
   const sheetCfg = sheetCfgMap[client?.id] || {}
-  const effGid = sheetCfg.gid || 'all'
-  const effQual = sheetCfg.qualCol !== undefined ? sheetCfg.qualCol : (sheetMeta.detected?.qualification || '')
-  const effCounter = sheetCfg.counterCol !== undefined ? sheetCfg.counterCol : (sheetMeta.detected?.counter || '')
+  const effGid = sheetCfg.gid || client?.leadsSheetGid || 'all'
+  const effQual = sheetCfg.qualCol !== undefined ? sheetCfg.qualCol : (clientMap.qualification || sheetMeta.detected?.qualification || '')
+  const effCounter = sheetCfg.counterCol !== undefined ? sheetCfg.counterCol : (clientMap.counter || sheetMeta.detected?.counter || '')
   const setSheetCfg = (patch) => {
     if (!client) return
     const next = { ...(sheetCfgMap[client.id] || {}), ...patch }
@@ -729,7 +731,7 @@ export default function FunilPerformanceTab({
               ))}
             </div>
             <p style={{ margin: '11px 0 0', fontFamily: 'Inter', fontSize: '0.7rem', color: C.text3, lineHeight: 1.5 }}>
-              Escolha de qual aba e colunas os leads são lidos. A <strong style={{ color: C.text2 }}>coluna de qualificação</strong> define os status que você mapeia nas etapas abaixo; a <strong style={{ color: C.text2 }}>contabilizadora</strong> define quais linhas contam como lead (só linhas com valor nela).
+              O padrão vem do <strong style={{ color: C.text2 }}>cadastro do cliente</strong> (Planilha de Leads); aqui você pode sobrescrever só nesta sessão. A <strong style={{ color: C.text2 }}>coluna de qualificação</strong> define os status que você mapeia nas etapas abaixo; a <strong style={{ color: C.text2 }}>contabilizadora</strong> define quais linhas contam como lead (só linhas com valor nela).
             </p>
           </div>
         )}
