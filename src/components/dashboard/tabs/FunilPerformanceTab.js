@@ -248,14 +248,15 @@ export default function FunilPerformanceTab({
   const stageVal = (key) => { const st = cfg.stages.find((x) => x.key === key); return st ? stageSum(st) : 0 }
   const alvo = stageVal('alvo'), qual = stageVal('qual'), conv = stageVal('conv')
   const impr = metaAgg.impressions, clicks = metaAgg.clicks, inv = metaAgg.spend
-  const ctr = impr ? (clicks / impr * 100) : 0, cpc = clicks ? (inv / clicks) : 0, cpl = totalPgl ? (inv / totalPgl) : 0
+  const metaLeads = metaAgg.results   // leads reportados pelo Meta (resultados das campanhas)
+  const ctr = impr ? (clicks / impr * 100) : 0, cpc = clicks ? (inv / clicks) : 0, cpl = metaLeads ? (inv / metaLeads) : 0
   const txQual = totalPgl ? (qual / totalPgl * 100) : 0, txConv = totalPgl ? (conv / totalPgl * 100) : 0
   const perdaPct = totalPgl ? ((totalPgl - conv) / totalPgl * 100) : 0
 
   const flow = [
     { label: 'Impressões', icon: 'bx-show', color: '#6b7280', origin: 'Meta', val: impr },
     { label: 'Cliques', icon: 'bx-mouse', color: C.sClk, origin: 'Meta', val: clicks },
-    { label: 'Leads', icon: 'bx-user-plus', color: C.sLead, origin: 'PGL', val: totalPgl },
+    { label: 'Leads', icon: 'bx-user-plus', color: C.sLead, origin: 'Meta', val: metaLeads },
     ...(hasPgl ? cfg.stages.filter((x) => x.kind === 'funnel').map((st) => ({ label: st.label, icon: st.icon, color: st.color, origin: 'PGL', val: stageSum(st) })) : []),
   ]
   const funnel = flow.map((st, i) => {
@@ -313,7 +314,7 @@ export default function FunilPerformanceTab({
     { label: 'Investimento', icon: 'bx-dollar-circle', color: C.accent, value: money0(inv), sub: 'no período', vc: C.accent },
     { label: 'CTR', icon: 'bx-mouse', color: C.sClk, value: ctr.toFixed(2).replace('.', ',') + '%', sub: 'cliques/impr.' },
     { label: 'CPC', icon: 'bx-mouse-alt', color: C.meta, value: money2(cpc), sub: 'custo/clique' },
-    { label: 'CPL', icon: 'bx-user-plus', color: C.sLead, value: hasPgl ? money2(cpl) : '—', sub: hasPgl ? totalPgl + ' leads' : 'sem PGL' },
+    { label: 'CPL', icon: 'bx-user-plus', color: C.sLead, value: metaLeads ? money2(cpl) : '—', sub: metaLeads + ' leads (Meta)' },
     { label: 'Taxa Qualif.', icon: 'bx-badge-check', color: C.sQual, value: hasPgl ? Math.round(txQual) + '%' : '—', sub: 'leads → qualif.' },
     { label: 'Taxa Conversão', icon: 'bx-trophy', color: C.sConv, value: hasPgl ? Math.round(txConv) + '%' : '—', sub: 'leads → vendas' },
     { label: 'Taxa Perda', icon: 'bx-trending-down', color: C.err, value: hasPgl ? Math.round(perdaPct) + '%' : '—', sub: 'leads → perda' },
@@ -372,7 +373,7 @@ export default function FunilPerformanceTab({
     const maxCpl = Math.max(...out.map((x) => x._cpl), 1)
     return out.map((x) => ({ ...x, barPct: Math.round(x._cpl / maxCpl * 100) }))
   }, [timeline, totalPgl, inv])
-  const avgCpl = totalPgl > 0 ? money2(inv / totalPgl) : '—'
+  const avgCpl = metaLeads > 0 ? money2(inv / metaLeads) : '—'
 
   const usedStatuses = new Set(); cfg.stages.forEach((st) => (st.statuses || []).forEach((n) => usedStatuses.add(n)))
   const unmapped = statusDist.filter((s) => !usedStatuses.has(s.label))
