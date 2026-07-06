@@ -153,6 +153,9 @@ export default function FunilPerformanceTab({
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
     if (effQual) params.set('col_qualification', effQual)
     if (effCounter) params.set('col_counter', effCounter)
+    // honor the rest of the client's cadastro column mapping (date drives period filtering)
+    const cm = client.leadsSheetColumnMap || {}
+    ;['date', 'city', 'state', 'name'].forEach((k) => { if (cm[k]) params.set('col_' + k, cm[k]) })
     if (since) params.set('since', since)
     if (until) params.set('until', until)
     fetch('/api/google-sheets/leads-analytics?' + params.toString())
