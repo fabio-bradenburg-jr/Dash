@@ -11,7 +11,6 @@ import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
 import ManualReportTab from '@/components/dashboard/ManualReportTab'
 import LeadsDashboard from '@/components/dashboard/LeadsDashboard'
-import FunnelTab from '@/components/dashboard/FunnelTab'
 import TasksTab from '@/components/dashboard/TasksTab'
 import ActionPlanManager from '@/components/dashboard/ActionPlanManager'
 import ActionSpaceSettings from '@/components/dashboard/ActionSpaceSettings'
@@ -15988,12 +15987,6 @@ export default function DashboardShell({
                       <span className="nav-label">Campanhas</span>
                     </button>
                   )}
-                  {(isMaster || hasNavAccess('campanhas')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => setActiveTab('funil')}>
-                      <i className="bx bx-filter-alt"></i>
-                      <span className="nav-label">Funil</span>
-                    </button>
-                  )}
                   {(isMaster || hasNavAccess('anuncios')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
                       <i className="bx bx-layout"></i>
@@ -16267,8 +16260,19 @@ export default function DashboardShell({
         )}
 
         {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
-          <FunnelTab
+          <FunilPerformanceTab
             clients={clients}
+            campaignOverviewRows={campaignOverviewRows}
+            campaignOverviewLoading={campaignOverviewLoading}
+            metaRequestHeaders={metaRequestHeaders}
+            dateRange={dateRange}
+            customSince={customSince}
+            customUntil={customUntil}
+            draftDateRange={draftDateRange}
+            setDraftDateRange={setDraftDateRange}
+            handleApplyDashboardFilters={handleApplyDashboardFilters}
+            onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((current) => current + 1)}
+            DATE_PRESETS={DATE_PRESETS}
           />
         )}
 
@@ -16374,23 +16378,6 @@ export default function DashboardShell({
 
         {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <CampanhasTab />
-        )}
-
-        {activeTab === 'funil' && (isMaster || hasNavAccess('campanhas')) && (
-          <FunilPerformanceTab
-            clients={clients}
-            campaignOverviewRows={campaignOverviewRows}
-            campaignOverviewLoading={campaignOverviewLoading}
-            metaRequestHeaders={metaRequestHeaders}
-            dateRange={dateRange}
-            customSince={customSince}
-            customUntil={customUntil}
-            draftDateRange={draftDateRange}
-            setDraftDateRange={setDraftDateRange}
-            handleApplyDashboardFilters={handleApplyDashboardFilters}
-            onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((current) => current + 1)}
-            DATE_PRESETS={DATE_PRESETS}
-          />
         )}
 
         {activeTab === 'anuncios' && (isMaster || hasNavAccess('anuncios')) && (
