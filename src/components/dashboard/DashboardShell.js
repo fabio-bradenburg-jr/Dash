@@ -8495,7 +8495,7 @@ export default function DashboardShell({
       return
     }
 
-    if (activeTab === 'anuncios' || activeTab === 'campanhas') {
+    if (activeTab === 'anuncios' || activeTab === 'campanhas' || activeTab === 'funil') {
       setDateRange(draftDateRange)
       setCustomSince(draftCustomSince)
       setCustomUntil(draftCustomUntil)
@@ -10426,7 +10426,7 @@ export default function DashboardShell({
   }, [hasLoadedPreferences, activeTab, dateRange, customSince, customUntil, metaRequestHeaders, adsOverviewRefreshNonce])
 
   useEffect(() => {
-    if (!hasLoadedPreferences || activeTab !== 'campanhas') return
+    if (!hasLoadedPreferences || (activeTab !== 'campanhas' && activeTab !== 'funil')) return
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
 
     let cancelled = false

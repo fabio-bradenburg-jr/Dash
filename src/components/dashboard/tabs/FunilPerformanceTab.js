@@ -387,8 +387,8 @@ export default function FunilPerformanceTab({
   const clientOptions = clients.filter((c) => !selSearch || norm(c.name).includes(norm(selSearch)))
 
   return (
-    <div className="funil-perf" style={{ minHeight: '100%', background: 'radial-gradient(ellipse 90% 55% at 55% -10%, rgba(38,194,129,0.06), transparent 60%)', color: C.text, fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", overflowY: 'auto' }}>
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '24px 20px 90px' }}>
+    <div className="funil-perf" style={{ width: '100%', color: C.text, fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif" }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 0 24px' }}>
 
         {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
