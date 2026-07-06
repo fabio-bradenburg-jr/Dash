@@ -115,6 +115,8 @@ export default function FunilPerformanceTab({
   const [addOpen, setAddOpen] = useState(false)
   const [newStage, setNewStage] = useState('')
   const [modal, setModal] = useState(null)
+  const [sheetMeta, setSheetMeta] = useState({ tabs: [], columns: [], detected: {} })  // discovered tabs/columns
+  const [sheetCfgMap, setSheetCfgMap] = useState({})  // clientId → { gid, qualCol, counterCol }
 
   const client = useMemo(() => clients.find((c) => c.id === selectedId) || clients[0] || null, [clients, selectedId])
   useEffect(() => { if (!selectedId && clients[0]) setSelectedId(clients[0].id) }, [clients, selectedId])
@@ -126,15 +128,29 @@ export default function FunilPerformanceTab({
   const campaigns = campaignRow?.campaigns || []
   const hasPgl = !!client?.leadsSheetUrl
 
-  /* leads-analytics fetch (per client) */
+  // sheet source config (tab + qualification/counter columns), per client, persisted
+  const sheetCfg = sheetCfgMap[client?.id] || {}
+  const effGid = sheetCfg.gid || 'all'
+  const effQual = sheetCfg.qualCol !== undefined ? sheetCfg.qualCol : (sheetMeta.detected?.qualification || '')
+  const effCounter = sheetCfg.counterCol !== undefined ? sheetCfg.counterCol : (sheetMeta.detected?.counter || '')
+  const setSheetCfg = (patch) => {
+    if (!client) return
+    const next = { ...(sheetCfgMap[client.id] || {}), ...patch }
+    setSheetCfgMap((m) => ({ ...m, [client.id]: next }))
+    try { window.localStorage.setItem('funilSheetCfg_' + client.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
+  }
+
+  /* leads-analytics fetch (per client + chosen tab/columns) */
   useEffect(() => {
     if (!client?.leadsSheetUrl) { setSheetData(null); return }
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
     let cancelled = false
     setSheetLoading(true)
     const { since, until } = presetToRange(dateRange, customSince, customUntil)
-    const params = new URLSearchParams({ url: client.leadsSheetUrl, gid: 'all' })
+    const params = new URLSearchParams({ url: client.leadsSheetUrl, gid: effGid || 'all' })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
+    if (effQual) params.set('col_qualification', effQual)
+    if (effCounter) params.set('col_counter', effCounter)
     if (since) params.set('since', since)
     if (until) params.set('until', until)
     fetch('/api/google-sheets/leads-analytics?' + params.toString())
@@ -143,7 +159,21 @@ export default function FunilPerformanceTab({
       .catch(() => { if (!cancelled) setSheetData(null) })
       .finally(() => { if (!cancelled) setSheetLoading(false) })
     return () => { cancelled = true }
-  }, [client?.id, client?.leadsSheetUrl, client?.googleSheetsHeaderRow, dateRange, customSince, customUntil])
+  }, [client?.id, client?.leadsSheetUrl, client?.googleSheetsHeaderRow, dateRange, customSince, customUntil, effGid, effQual, effCounter])
+
+  /* discover tabs + columns of the leads sheet */
+  useEffect(() => {
+    if (!client?.leadsSheetUrl) { setSheetMeta({ tabs: [], columns: [], detected: {} }); return }
+    let cancelled = false
+    const params = new URLSearchParams({ url: client.leadsSheetUrl })
+    if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
+    if (effGid && effGid !== 'all') params.set('gid', effGid)
+    fetch('/api/google-sheets/columns?' + params.toString())
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d && !d.error) setSheetMeta({ tabs: d.tabs || [], columns: d.columns || [], detected: d.detected || {} }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [client?.id, client?.leadsSheetUrl, client?.googleSheetsHeaderRow, effGid])
 
   /* demographics (Meta breakdowns) */
   useEffect(() => {
@@ -178,9 +208,27 @@ export default function FunilPerformanceTab({
     } catch (e) { /* ignore */ }
   }, [client?.id, cfgMap])
 
+  // load persisted sheet source config (tab + columns) per client
+  useEffect(() => {
+    if (!client?.id || sheetCfgMap[client.id]) return
+    try {
+      const raw = window.localStorage.getItem('funilSheetCfg_' + client.id)
+      const parsed = raw ? JSON.parse(raw) : null
+      if (parsed) setSheetCfgMap((m) => ({ ...m, [client.id]: parsed }))
+    } catch (e) { /* ignore */ }
+  }, [client?.id, sheetCfgMap])
+
   const statusDist = sheetData?.statusDist || []
   const cfg = useMemo(() => {
-    if (cfgMap[client?.id]) return cfgMap[client.id]
+    const saved = cfgMap[client?.id]
+    if (saved?.stages) {
+      // keep the saved mapping only if it still matches the current statuses
+      // (changing the qualification column changes the status set — re-default then)
+      if (statusDist.length === 0) return saved
+      const labels = new Set(statusDist.map((s) => s.label))
+      const anyMatch = saved.stages.some((st) => (st.statuses || []).some((l) => labels.has(l)))
+      if (anyMatch) return saved
+    }
     return defaultCfg(statusDist)
   }, [cfgMap, client, statusDist])
 
@@ -656,6 +704,35 @@ export default function FunilPerformanceTab({
             </div>
           ) : <div style={{ padding: '30px 20px', textAlign: 'center', color: C.text3, fontFamily: 'Inter', fontSize: '0.84rem' }}><i className="bx bx-line-chart-down" style={{ fontSize: 26, display: 'block', marginBottom: 8 }} />Sem leads no recorte selecionado.</div>}
         </div>
+
+        {/* SHEET SOURCE (tab + qualification/counter columns) */}
+        {hasPgl && (
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.card, padding: '16px 18px', marginTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, flexWrap: 'wrap' }}>
+              <i className="bx bx-table" style={{ fontSize: 18, color: C.pgl }} />
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Fonte da planilha</span>
+              <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>{num(totalPgl)} leads contabilizados{sheetMeta.columns.length ? ` · ${sheetMeta.columns.length} colunas` : ''}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 11 }}>
+              {[
+                { label: 'Aba', value: effGid, onChange: (v) => setSheetCfg({ gid: v }), options: [{ v: 'all', l: 'Todas as abas' }, ...sheetMeta.tabs.map((t) => ({ v: t.gid, l: t.name }))] },
+                { label: 'Coluna de qualificação', value: effQual, onChange: (v) => setSheetCfg({ qualCol: v }), options: [{ v: '', l: '— detecção automática —' }, ...sheetMeta.columns.map((c) => ({ v: c, l: c }))] },
+                { label: 'Coluna contabilizadora (total de leads)', value: effCounter, onChange: (v) => setSheetCfg({ counterCol: v }), options: [{ v: '', l: 'Todas as linhas' }, ...sheetMeta.columns.map((c) => ({ v: c, l: c }))] },
+              ].map((f, i) => (
+                <label key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+                  <span style={{ fontFamily: 'Inter', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>{f.label}</span>
+                  <select value={f.value} onChange={(e) => f.onChange(e.target.value)}
+                    style={{ height: 36, padding: '0 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.field, color: C.text2, fontFamily: 'Inter', fontSize: '0.78rem', outline: 'none', cursor: 'pointer', width: '100%' }}>
+                    {f.options.map((o) => <option key={o.v} value={o.v} style={{ color: '#000' }}>{o.l}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <p style={{ margin: '11px 0 0', fontFamily: 'Inter', fontSize: '0.7rem', color: C.text3, lineHeight: 1.5 }}>
+              Escolha de qual aba e colunas os leads são lidos. A <strong style={{ color: C.text2 }}>coluna de qualificação</strong> define os status que você mapeia nas etapas abaixo; a <strong style={{ color: C.text2 }}>contabilizadora</strong> define quais linhas contam como lead (só linhas com valor nela).
+            </p>
+          </div>
+        )}
 
         {/* STATUS ATTRIBUTION */}
         {hasPgl && (
