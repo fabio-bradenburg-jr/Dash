@@ -24,6 +24,7 @@ import PlanilhaLeadsTab from '@/components/dashboard/tabs/PlanilhaLeadsTab'
 import SaldosTab from '@/components/dashboard/tabs/SaldosTab'
 import AnunciosTab from '@/components/dashboard/tabs/AnunciosTab'
 import CampanhasTab from '@/components/dashboard/tabs/CampanhasTab'
+import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab'
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
 import OffboardingTab from '@/components/dashboard/tabs/OffboardingTab'
@@ -15987,6 +15988,12 @@ export default function DashboardShell({
                       <span className="nav-label">Campanhas</span>
                     </button>
                   )}
+                  {(isMaster || hasNavAccess('campanhas')) && (
+                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => setActiveTab('funil')}>
+                      <i className="bx bx-filter-alt"></i>
+                      <span className="nav-label">Funil</span>
+                    </button>
+                  )}
                   {(isMaster || hasNavAccess('anuncios')) && (
                     <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
                       <i className="bx bx-layout"></i>
@@ -16367,6 +16374,23 @@ export default function DashboardShell({
 
         {activeTab === 'campanhas' && (isMaster || hasNavAccess('campanhas')) && (
           <CampanhasTab />
+        )}
+
+        {activeTab === 'funil' && (isMaster || hasNavAccess('campanhas')) && (
+          <FunilPerformanceTab
+            clients={clients}
+            campaignOverviewRows={campaignOverviewRows}
+            campaignOverviewLoading={campaignOverviewLoading}
+            metaRequestHeaders={metaRequestHeaders}
+            dateRange={dateRange}
+            customSince={customSince}
+            customUntil={customUntil}
+            draftDateRange={draftDateRange}
+            setDraftDateRange={setDraftDateRange}
+            handleApplyDashboardFilters={handleApplyDashboardFilters}
+            onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((current) => current + 1)}
+            DATE_PRESETS={DATE_PRESETS}
+          />
         )}
 
         {activeTab === 'anuncios' && (isMaster || hasNavAccess('anuncios')) && (
