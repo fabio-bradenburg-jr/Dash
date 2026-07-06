@@ -170,7 +170,11 @@ export default function FunilPerformanceTab({
     try {
       const raw = window.localStorage.getItem('funilPglCfg_' + client.id)
       const parsed = raw ? JSON.parse(raw) : null
-      if (parsed?.stages) setCfgMap((m) => ({ ...m, [client.id]: parsed }))
+      // only restore a config that actually maps some statuses — never let a stale
+      // all-empty config override the auto-default and zero out the funnel
+      if (parsed?.stages && parsed.stages.some((s) => (s.statuses || []).length > 0)) {
+        setCfgMap((m) => ({ ...m, [client.id]: parsed }))
+      }
     } catch (e) { /* ignore */ }
   }, [client?.id, cfgMap])
 
@@ -187,6 +191,13 @@ export default function FunilPerformanceTab({
   }
   const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)
   const stageSum = (st) => (st.statuses || []).reduce((a, l) => a + statusCount(l), 0)
+  // per-node stage sum: apply the same attribution config to a sheet bucket's own status distribution
+  const bucketStageSum = (bucket, stageKey) => {
+    const st = cfg.stages.find((x) => x.key === stageKey)
+    if (!bucket?.statusDist || !st) return 0
+    const set = new Set(st.statuses || [])
+    return bucket.statusDist.reduce((a, s) => a + (set.has(s.label) ? s.count : 0), 0)
+  }
   const toggleStatus = (stageKey, label) => {
     const next = JSON.parse(JSON.stringify(cfg))
     const st = next.stages.find((x) => x.key === stageKey); if (!st) return
@@ -290,9 +301,9 @@ export default function FunilPerformanceTab({
       path, badge: kind, kind, level, name: node.name || 'Sem nome',
       active: (node.effectiveStatus === 'ACTIVE') || (node.status === 'ativa'),
       inv: money0(node.spend || 0), res: num(res), cpr: cpr ? money2(cpr) : '—', cprColor: cprColor(cpr),
-      leads: hasPgl ? num(p?.total || 0) : '—', alvo: hasPgl ? num(p?.publicoAlvo || 0) : '—',
-      qual: hasPgl ? num(p?.qualified || 0) : '—', conv: hasPgl ? num(p?.converted || 0) : '—',
-      txq: hasPgl && p?.total ? Math.round((p.qualified || 0) / p.total * 100) + '%' : '—',
+      leads: hasPgl ? num(p?.total || 0) : '—', alvo: hasPgl ? num(bucketStageSum(p, 'alvo')) : '—',
+      qual: hasPgl ? num(bucketStageSum(p, 'qual')) : '—', conv: hasPgl ? num(bucketStageSum(p, 'conv')) : '—',
+      txq: hasPgl && p?.total ? Math.round(bucketStageSum(p, 'qual') / p.total * 100) + '%' : '—',
       expandable: kids.length > 0, exp, selected: !!selected[path], indent: level * 22,
     })
     if (exp) kids.forEach((k) => pushRow(k, path + '>' + (k.adsetId || k.adId || k.name), level + 1, kind === 'Camp' ? 'Conj' : 'Ad'))
