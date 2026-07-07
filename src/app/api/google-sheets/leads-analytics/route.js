@@ -616,10 +616,24 @@ export async function GET(request) {
       const cols = detectColumns(headers, columnOverrides)
       const rawDataRows = allRows.slice(headerIndex + 1).filter(r => r.some(c => c))
       const dataRows = applyDateFilter(rawDataRows, cols.date)
-      return analyzeLeads({ rows: dataRows, cols, headers })
+      const result = analyzeLeads({ rows: dataRows, cols, headers })
+      result._rawRows = rawDataRows.length
+      result._afterDate = dataRows.length
+      result._hasDate = cols.date !== undefined
+      result._hasCounter = cols.counter !== undefined
+      return result
     }
 
     let analytics, totalRows
+    const diag = { rawRows: 0, afterDateRows: 0, sheetHasDate: false, sheetHasCounter: false }
+    const foldDiag = (results) => {
+      for (const r of results) {
+        diag.rawRows += r._rawRows || 0
+        diag.afterDateRows += r._afterDate || 0
+        diag.sheetHasDate = diag.sheetHasDate || !!r._hasDate
+        diag.sheetHasCounter = diag.sheetHasCounter || !!r._hasCounter
+      }
+    }
 
     // `gid` can be: null/'all' (every tab), a single gid, or a comma-separated list of gids
     // (the client picked a subset of tabs in the registration screen).
@@ -631,22 +645,26 @@ export async function GET(request) {
       const results = await Promise.all(validGids.map(g => analyzeGid(g).catch(() => null)))
       const validResults = results.filter(Boolean)
       if (!validResults.length) throw new Error('Não foi possível carregar nenhuma aba.')
+      foldDiag(validResults)
       analytics = mergeAnalytics(validResults)
       totalRows = validResults.reduce((s, r) => s + r.overview.total, 0)
     } else if (requestedGids.length > 1) {
       const results = await Promise.all(requestedGids.map(g => analyzeGid(g).catch(() => null)))
       const validResults = results.filter(Boolean)
       if (!validResults.length) throw new Error('Não foi possível carregar as abas selecionadas.')
+      foldDiag(validResults)
       analytics = mergeAnalytics(validResults)
       totalRows = validResults.reduce((s, r) => s + r.overview.total, 0)
     } else {
       analytics = await analyzeGid(requestedGids[0] || gid)
+      foldDiag([analytics])
       totalRows = analytics.overview.total
     }
 
     return NextResponse.json({
       updatedAt: new Date().toISOString(),
       totalRows,
+      diag,
       ...analytics,
     })
   } catch (err) {

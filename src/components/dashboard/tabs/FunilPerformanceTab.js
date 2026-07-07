@@ -309,6 +309,9 @@ export default function FunilPerformanceTab({
 
   /* ── funnel model ── */
   const totalPgl = hasPgl ? (sheetData?.overview?.total || 0) : 0
+  const diag = sheetData?.diag || null
+  // rows exist in the sheet but none are being counted → the counter/date column is filtering them out
+  const zeroButHasRows = hasPgl && sheetData && totalPgl === 0 && (diag?.rawRows || 0) > 0
   const stageVal = (key) => { const st = cfg.stages.find((x) => x.key === key); return st ? stageSum(st) : 0 }
   const alvo = stageVal('alvo'), qual = stageVal('qual'), conv = stageVal('conv')
   const impr = metaAgg.impressions, clicks = metaAgg.clicks, inv = metaAgg.spend
@@ -716,8 +719,18 @@ export default function FunilPerformanceTab({
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, flexWrap: 'wrap' }}>
               <i className="bx bx-table" style={{ fontSize: 18, color: C.pgl }} />
               <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Fonte da planilha</span>
-              <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>{num(totalPgl)} leads contabilizados{sheetMeta.columns.length ? ` · ${sheetMeta.columns.length} colunas` : ''}</span>
+              <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>{num(totalPgl)} leads contabilizados{diag ? ` de ${num(diag.rawRows)} linhas` : ''}{sheetMeta.columns.length ? ` · ${sheetMeta.columns.length} colunas` : ''}</span>
             </div>
+            {zeroButHasRows && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 13px', borderRadius: 10, background: hexA('#f59e0b', 0.08), border: `1px solid ${hexA('#f59e0b', 0.22)}`, marginBottom: 12 }}>
+                <i className="bx bx-error" style={{ fontSize: 17, color: C.warn, flex: 'none', marginTop: 1 }} />
+                <span style={{ fontSize: '0.78rem', color: C.text2, lineHeight: 1.45 }}>
+                  A planilha tem <strong style={{ color: C.text }}>{num(diag.rawRows)}</strong> linhas, mas <strong style={{ color: C.warn }}>0</strong> estão sendo contabilizadas.
+                  {effCounter ? <> A <strong style={{ color: C.text }}>coluna contabilizadora</strong> (“{effCounter}”) só conta linhas com valor nela — se ela estiver vazia nesses leads, troque para <strong style={{ color: C.text }}>“Todas as linhas”</strong> ou outra coluna.</> : null}
+                  {diag.sheetHasDate && diag.afterDateRows === 0 ? <> Nenhuma linha caiu no período selecionado (coluna de data) — amplie o período.</> : null}
+                </span>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 11 }}>
               {[
                 { label: 'Aba', value: effGid, onChange: (v) => setSheetCfg({ gid: v }), options: [{ v: 'all', l: 'Todas as abas' }, ...sheetMeta.tabs.map((t) => ({ v: t.gid, l: t.name }))] },
