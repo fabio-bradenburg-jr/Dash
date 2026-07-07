@@ -369,7 +369,13 @@ function analyzeLeads({ rows, cols, headers }) {
   // Without it configured, every row is a lead (current/default behavior, unchanged).
   const hasCounterCol = cols.counter !== undefined
 
+  // Skip rows that just repeat the header (section separators / re-printed column names in the
+  // middle of a sheet) so "count all rows" never treats a header line as a lead.
+  const headerKey = headers.map((h) => String(h || '').trim().toLowerCase()).join('')
+
   for (const row of rows) {
+    if (row.map((c) => String(c || '').trim().toLowerCase()).join('') === headerKey) continue
+
     const rawDate = hasDateCol ? row[cols.date] : null
     const dt = rawDate ? parseDate(rawDate) : null
 
