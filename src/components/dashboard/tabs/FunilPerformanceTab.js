@@ -115,7 +115,7 @@ export default function FunilPerformanceTab({
   const [addOpen, setAddOpen] = useState(false)
   const [newStage, setNewStage] = useState('')
   const [modal, setModal] = useState(null)
-  const [sheetMeta, setSheetMeta] = useState({ tabs: [], columns: [], detected: {} })  // discovered tabs/columns
+  const [sheetMeta, setSheetMeta] = useState({ tabs: [], columns: [], detected: {}, values: [] })  // discovered tabs/columns/values
   const [sheetCfgMap, setSheetCfgMap] = useState({})  // clientId → { gid, qualCol, counterCol }
 
   const client = useMemo(() => clients.find((c) => c.id === selectedId) || clients[0] || null, [clients, selectedId])
@@ -168,17 +168,18 @@ export default function FunilPerformanceTab({
 
   /* discover tabs + columns of the leads sheet */
   useEffect(() => {
-    if (!client?.leadsSheetUrl) { setSheetMeta({ tabs: [], columns: [], detected: {} }); return }
+    if (!client?.leadsSheetUrl) { setSheetMeta({ tabs: [], columns: [], detected: {}, values: [] }); return }
     let cancelled = false
     const params = new URLSearchParams({ url: client.leadsSheetUrl })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
     if (effGid && effGid !== 'all') params.set('gid', effGid)
+    if (effQual) params.set('value_column', effQual)  // fetch the qualification column's distinct values
     fetch('/api/google-sheets/columns?' + params.toString())
       .then((r) => r.json())
-      .then((d) => { if (!cancelled && d && !d.error) setSheetMeta({ tabs: d.tabs || [], columns: d.columns || [], detected: d.detected || {} }) })
+      .then((d) => { if (!cancelled && d && !d.error) setSheetMeta({ tabs: d.tabs || [], columns: d.columns || [], detected: d.detected || {}, values: d.values || [] }) })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [client?.id, client?.leadsSheetUrl, client?.googleSheetsHeaderRow, effGid])
+  }, [client?.id, client?.leadsSheetUrl, client?.googleSheetsHeaderRow, effGid, effQual])
 
   /* demographics (Meta breakdowns) */
   useEffect(() => {
@@ -224,25 +225,29 @@ export default function FunilPerformanceTab({
   }, [client?.id, sheetCfgMap])
 
   const statusDist = sheetData?.statusDist || []
+  // all distinct values of the qualification column (unfiltered, from the whole sheet) — so you can
+  // map statuses → stages even when the current period counts 0 leads. Falls back to the counted set.
+  const statusOptions = (sheetMeta.values && sheetMeta.values.length) ? sheetMeta.values : statusDist
   const cfg = useMemo(() => {
     const saved = cfgMap[client?.id]
     if (saved?.stages) {
       // keep the saved mapping only if it still matches the current statuses
       // (changing the qualification column changes the status set — re-default then)
-      if (statusDist.length === 0) return saved
-      const labels = new Set(statusDist.map((s) => s.label))
+      if (statusOptions.length === 0) return saved
+      const labels = new Set(statusOptions.map((s) => s.label))
       const anyMatch = saved.stages.some((st) => (st.statuses || []).some((l) => labels.has(l)))
       if (anyMatch) return saved
     }
-    return defaultCfg(statusDist)
-  }, [cfgMap, client, statusDist])
+    return defaultCfg(statusOptions)
+  }, [cfgMap, client, statusOptions])
 
   const saveCfg = (next) => {
     if (!client) return
     setCfgMap((m) => ({ ...m, [client.id]: next }))
     try { window.localStorage.setItem('funilPglCfg_' + client.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
   }
-  const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)
+  const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)  // counted in period (funnel sums)
+  const optCount = (label) => (statusOptions.find((s) => s.label === label)?.count || 0)   // total in the sheet (attribution UI)
   const stageSum = (st) => (st.statuses || []).reduce((a, l) => a + statusCount(l), 0)
   // per-node stage sum: apply the same attribution config to a sheet bucket's own status distribution
   const bucketStageSum = (bucket, stageKey) => {
@@ -443,7 +448,7 @@ export default function FunilPerformanceTab({
   const avgCpl = metaLeads > 0 ? money2(inv / metaLeads) : '—'
 
   const usedStatuses = new Set(); cfg.stages.forEach((st) => (st.statuses || []).forEach((n) => usedStatuses.add(n)))
-  const unmapped = statusDist.filter((s) => !usedStatuses.has(s.label))
+  const unmapped = statusOptions.filter((s) => !usedStatuses.has(s.label))
   const filterBadge = nSel === 0 ? 'Cliente completo' : (nSel + ' seleç' + (nSel > 1 ? 'ões' : 'ão'))
 
   if (!client) {
@@ -782,7 +787,7 @@ export default function FunilPerformanceTab({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
                       {(st.statuses || []).length ? st.statuses.map((label) => (
                         <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.68rem', padding: '3px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}` }}>
-                          <span>{label}</span><span style={{ color: C.text3 }}>{num(statusCount(label))}</span>
+                          <span>{label}</span><span style={{ color: C.text3 }}>{num(optCount(label))}</span>
                           <button type="button" onClick={() => toggleStatus(st.key, label)} style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex' }}><i className="bx bx-x" style={{ fontSize: 13 }} /></button>
                         </span>
                       )) : <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text4 }}>Nenhum status atribuído</span>}
@@ -790,7 +795,7 @@ export default function FunilPerformanceTab({
                     <button type="button" onClick={() => setStatusMenu(open ? null : st.key)} style={{ width: '100%', height: 32, borderRadius: 9, border: `1px dashed ${C.border2}`, background: 'transparent', color: C.text2, fontFamily: 'Inter', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><i className={'bx ' + (open ? 'bx-chevron-up' : 'bx-plus-circle')} style={{ fontSize: 15 }} />Atribuir status</button>
                     {open && (
                       <div style={{ marginTop: 8, border: `1px solid ${C.border2}`, borderRadius: 10, background: C.panel, overflow: 'hidden' }}>
-                        {statusDist.map((o) => {
+                        {statusOptions.map((o) => {
                           const on = (st.statuses || []).indexOf(o.label) >= 0
                           return (
                             <button key={o.label} type="button" onClick={() => toggleStatus(st.key, o.label)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px', border: 'none', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', fontFamily: 'inherit', color: C.text, background: on ? hexA(st.color, 0.08) : 'transparent' }}>

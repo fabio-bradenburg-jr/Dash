@@ -111,6 +111,23 @@ async function fetchTabs(sheetId) {
 const QUAL_RE = /^qualifica[cç][aã]o$|^qualif|^lead_status$|^status$|etapa|fase|pipeline|situa[cç][aã]o/i
 const COUNTER_RE = /^contabilizador$|^contador$|^counter$/i
 
+const CLASSIFY = {
+  converted: /venda.?realizada|fechado|ganho|won|convertido|conversion|comprou/i,
+  publicoAlvo: /p[uú]blico.?alvo/i,
+  qualified: /qualificado|mql|sql|oportun|agendado|em.?negocia[cç]|proposta|venda/i,
+  lost: /perdido|desqualificado|n[aã]o.?qualificado|cancelado|lost|rejeitado|descart/i,
+  noreply: /sem.?resposta|n[aã]o.?respondeu|no.?reply|inativo|sem.?retorno/i,
+}
+function classifyStatus(s) {
+  const v = String(s || '')
+  if (CLASSIFY.converted.test(v)) return 'converted'
+  if (CLASSIFY.publicoAlvo.test(v)) return 'publicoAlvo'
+  if (CLASSIFY.qualified.test(v)) return 'qualified'
+  if (CLASSIFY.lost.test(v)) return 'lost'
+  if (CLASSIFY.noreply.test(v)) return 'noreply'
+  return 'other'
+}
+
 export async function GET(request) {
   try {
     const adminSupabase = createAdminClient()
@@ -145,7 +162,7 @@ export async function GET(request) {
 
     const text = await fetchSheetText(url, chosenGid)
     const delimiter = detectDelimiter(text)
-    const rows = parseCsv(text, delimiter)
+    const rows = parseCsv(text, delimiter, 100000)
     const headerIndex = Math.min(headerRow - 1, Math.max(0, rows.length - 1))
     const headerCells = rows[headerIndex] || []
     const columns = headerCells.map((h, i) => String(h || '').trim() || `Coluna ${i + 1}`).filter(Boolean)
@@ -155,7 +172,30 @@ export async function GET(request) {
       counter: columns.find((h) => COUNTER_RE.test(h)) || null,
     }
 
-    return NextResponse.json({ tabs, gid: chosenGid, columns, detected })
+    // Distinct values of a chosen column (e.g. the qualification column), across the WHOLE sheet —
+    // unaffected by date/counter filters — so the funil can offer them for status→stage mapping
+    // even when the current period counts 0 leads.
+    let values = null
+    const valueCol = searchParams.get('value_column') || ''
+    if (valueCol) {
+      const idx = headerCells.findIndex((h) => String(h || '').trim() === valueCol)
+      if (idx >= 0) {
+        const headerKey = headerCells.map((h) => String(h || '').trim().toLowerCase()).join('')
+        const counts = new Map()
+        for (let i = headerIndex + 1; i < rows.length; i++) {
+          const row = rows[i]
+          if (!row.some((c) => c)) continue
+          if (row.map((c) => String(c || '').trim().toLowerCase()).join('') === headerKey) continue
+          const v = String(row[idx] || '').trim() || 'Sem qualificação'
+          counts.set(v, (counts.get(v) || 0) + 1)
+        }
+        values = Array.from(counts.entries())
+          .map(([label, count]) => ({ label, count, class: classifyStatus(label) }))
+          .sort((a, b) => b.count - a.count)
+      }
+    }
+
+    return NextResponse.json({ tabs, gid: chosenGid, columns, detected, values })
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Não foi possível ler as colunas da planilha.' }, { status: 500 })
   }
