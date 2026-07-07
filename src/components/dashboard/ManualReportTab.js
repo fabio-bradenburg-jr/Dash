@@ -51,6 +51,10 @@ function computeTotals(campaigns) {
   const reach = campaigns.reduce((s, c) => s + (Number(c.reach) || 0), 0)
   const imp = campaigns.reduce((s, c) => s + (Number(c.impressions) || 0), 0)
   const clk = campaigns.reduce((s, c) => s + (Number(c.clicks) || 0), 0)
+  // CPM = custo por mil IMPRESSÕES (como no Meta). O numerador deve ser só o investimento
+  // das campanhas que geraram impressões — gasto sem impressões (outra plataforma, ou linha
+  // sem impressão preenchida) não pode entrar, senão infla o CPM.
+  const impInv = campaigns.reduce((s, c) => ((Number(c.impressions) || 0) > 0 ? s + (Number(c.investment) || 0) : s), 0)
   return {
     investment: inv,
     results: res,
@@ -59,7 +63,7 @@ function computeTotals(campaigns) {
     clicks: clk,
     cpr: res > 0 ? inv / res : null,
     ctr: imp > 0 && clk > 0 ? (clk / imp) * 100 : null,
-    cpm: imp > 0 ? (inv / imp) * 1000 : null,
+    cpm: imp > 0 ? (impInv / imp) * 1000 : null,
     cpc: clk > 0 ? inv / clk : null,
     frequency: imp > 0 && reach > 0 ? imp / reach : null,
   }
