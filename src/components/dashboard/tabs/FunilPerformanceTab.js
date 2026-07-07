@@ -47,18 +47,22 @@ function presetToRange(dateRange, customSince, customUntil) {
   return { since: '', until: '' }
 }
 
-const STAGE_ICON = { alvo: 'bx-target-lock', qual: 'bx-badge-check', conv: 'bx-trophy', perdido: 'bx-x-circle', semresp: 'bx-time-five' }
+const STAGE_ICON = { alvo: 'bx-target-lock', qual: 'bx-badge-check', conv: 'bx-trophy', naoqual: 'bx-user-x', perdido: 'bx-x-circle', semresp: 'bx-time-five' }
+const NAOQUAL_RE = /desqualific|n[aã]o.?qualific/i
 
 // default status→stage config from the API's own classification
 function defaultCfg(statusDist) {
   const byClass = (cls) => statusDist.filter((s) => s.class === cls).map((s) => s.label)
   const notLossNoresp = statusDist.filter((s) => s.class !== 'lost' && s.class !== 'noreply').map((s) => s.label)
+  const naoqual = statusDist.filter((s) => NAOQUAL_RE.test(s.label)).map((s) => s.label)
+  const naoqualSet = new Set(naoqual)
   return {
     stages: [
       { key: 'alvo', label: 'Público-alvo', color: C.sAlvo, icon: STAGE_ICON.alvo, kind: 'funnel', statuses: notLossNoresp },
       { key: 'qual', label: 'Qualificados', color: C.sQual, icon: STAGE_ICON.qual, kind: 'funnel', statuses: [...new Set([...byClass('qualified'), ...byClass('converted')])] },
       { key: 'conv', label: 'Convertidos', color: C.sConv, icon: STAGE_ICON.conv, kind: 'funnel', statuses: byClass('converted') },
-      { key: 'perdido', label: 'Perdidos', color: C.err, icon: STAGE_ICON.perdido, kind: 'loss', statuses: byClass('lost') },
+      { key: 'naoqual', label: 'Não qualificados', color: '#f97316', icon: STAGE_ICON.naoqual, kind: 'loss', statuses: naoqual },
+      { key: 'perdido', label: 'Perdidos', color: C.err, icon: STAGE_ICON.perdido, kind: 'loss', statuses: byClass('lost').filter((l) => !naoqualSet.has(l)) },
       { key: 'semresp', label: 'Sem resposta', color: C.warn, icon: STAGE_ICON.semresp, kind: 'loss', statuses: byClass('noreply') },
     ],
   }
@@ -97,8 +101,7 @@ export default function FunilPerformanceTab({
   customSince,
   customUntil,
   draftDateRange,
-  setDraftDateRange,
-  handleApplyDashboardFilters,
+  onPeriodChange,
   onRefreshCampaigns,
   DATE_PRESETS = [],
 }) {
@@ -233,10 +236,16 @@ export default function FunilPerformanceTab({
     if (saved?.stages) {
       // keep the saved mapping only if it still matches the current statuses
       // (changing the qualification column changes the status set — re-default then)
-      if (statusOptions.length === 0) return saved
+      // configs saved before the "Não qualificados" stage existed: inject it (empty) before Perdidos
+      const withNaoqual = saved.stages.some((st) => st.key === 'naoqual')
+        ? saved
+        : { ...saved, stages: saved.stages.flatMap((st) => st.key === 'perdido'
+            ? [{ key: 'naoqual', label: 'Não qualificados', color: '#f97316', icon: STAGE_ICON.naoqual, kind: 'loss', statuses: [] }, st]
+            : [st]) }
+      if (statusOptions.length === 0) return withNaoqual
       const labels = new Set(statusOptions.map((s) => s.label))
-      const anyMatch = saved.stages.some((st) => (st.statuses || []).some((l) => labels.has(l)))
-      if (anyMatch) return saved
+      const anyMatch = withNaoqual.stages.some((st) => (st.statuses || []).some((l) => labels.has(l)))
+      if (anyMatch) return withNaoqual
     }
     return defaultCfg(statusOptions)
   }, [cfgMap, client, statusOptions])
@@ -501,7 +510,7 @@ export default function FunilPerformanceTab({
             {DATE_PRESETS.length > 0 && (
               <label style={{ ...iconBtn, width: 'auto', padding: '0 12px', gap: 6, color: C.text }}>
                 <i className="bx bx-calendar" style={{ fontSize: 16, color: C.text3 }} />
-                <select value={draftDateRange} onChange={(e) => { setDraftDateRange?.(e.target.value); setTimeout(() => handleApplyDashboardFilters?.(), 0) }} style={{ background: 'transparent', border: 'none', color: C.text, fontFamily: 'inherit', fontWeight: 600, fontSize: '0.82rem', outline: 'none', cursor: 'pointer' }}>
+                <select value={draftDateRange} onChange={(e) => onPeriodChange?.(e.target.value)} style={{ background: 'transparent', border: 'none', color: C.text, fontFamily: 'inherit', fontWeight: 600, fontSize: '0.82rem', outline: 'none', cursor: 'pointer' }}>
                   {DATE_PRESETS.map((p) => <option key={p.value} value={p.value} style={{ color: '#000' }}>{p.label}</option>)}
                 </select>
               </label>
@@ -774,6 +783,7 @@ export default function FunilPerformanceTab({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 11 }}>
               {cfg.stages.map((st) => {
                 const total = stageSum(st); const open = statusMenu === st.key
+                const sheetTotal = (st.statuses || []).reduce((a, l) => a + optCount(l), 0)
                 const removable = st.kind === 'funnel' && !['alvo', 'qual', 'conv'].includes(st.key)
                 return (
                   <div key={st.key} style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.field, padding: 12 }}>
@@ -783,7 +793,7 @@ export default function FunilPerformanceTab({
                       <span style={{ fontFamily: 'Inter', fontSize: '0.52rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 99, background: hexA(st.color, 0.16), color: st.color }}>{st.kind === 'loss' ? 'Perda' : 'Funil'}</span>
                       {removable && <button type="button" onClick={() => removeStage(st.key)} title="Remover" style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex' }}><i className="bx bx-trash" style={{ fontSize: 15 }} /></button>}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}><span style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', color: st.color }}>{num(total)}</span><span style={{ fontFamily: 'Inter', fontSize: '0.6rem', color: C.text3 }}>leads atribuídos</span></div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}><span style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', color: st.color }}>{num(total)}</span><span style={{ fontFamily: 'Inter', fontSize: '0.6rem', color: C.text3 }}>no período{sheetTotal !== total ? ` · ${num(sheetTotal)} na planilha` : ''}</span></div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
                       {(st.statuses || []).length ? st.statuses.map((label) => (
                         <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.68rem', padding: '3px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}` }}>

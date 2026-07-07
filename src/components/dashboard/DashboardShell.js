@@ -16296,8 +16296,10 @@ export default function DashboardShell({
             customSince={customSince}
             customUntil={customUntil}
             draftDateRange={draftDateRange}
-            setDraftDateRange={setDraftDateRange}
-            handleApplyDashboardFilters={handleApplyDashboardFilters}
+            onPeriodChange={(value) => {
+              setDraftDateRange(value)
+              setDateRange(value)
+            }}
             onRefreshCampaigns={() => setCampaignOverviewRefreshNonce((current) => current + 1)}
             DATE_PRESETS={DATE_PRESETS}
           />
