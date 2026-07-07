@@ -3155,6 +3155,10 @@ function buildManualCrmSummary(manualCrmSummary, metaSummary = null) {
   const spend = safeNumber(metaSummary?.spend)
 
   return {
+    // Canonical count keys the dashboard KPI cards read (same shape as the RD/Agendor summary).
+    opportunityCount,
+    qualifiedOpportunityCount,
+    wonOpportunityCount,
     wonOpportunityRevenue: wonRevenue,
     avgTicketWonByCreation: avgTicketWon,
     leadToQualifiedRate: calculateRate(qualifiedOpportunityCount, opportunityCount),
