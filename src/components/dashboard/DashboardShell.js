@@ -3095,6 +3095,26 @@ function safeNumber(value) {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+// CRM funnel metric keys → the equivalent keys present in an rdSummary/manual-CRM summary.
+// (buildManualCrmSummary / the RD summary expose contactsInPeriod/qualifiedDeals/wonDeals, while
+// the funnel library also offers opportunityCount/qualifiedOpportunityCount/wonOpportunityCount.)
+const CRM_METRIC_ALIASES = {
+  opportunityCount: ['opportunityCount', 'contactsInPeriod', 'contacts'],
+  qualifiedOpportunityCount: ['qualifiedOpportunityCount', 'qualifiedDeals', 'qualifiedContacts'],
+  wonOpportunityCount: ['wonOpportunityCount', 'wonDeals'],
+  wonRevenue: ['wonRevenue', 'wonOpportunityRevenue'],
+}
+
+function resolveCrmSummaryValue(metricKey, crmSummary) {
+  if (!crmSummary || typeof crmSummary !== 'object') return 0
+  const keys = CRM_METRIC_ALIASES[metricKey] || [metricKey]
+  for (const key of keys) {
+    const value = safeNumber(crmSummary[key])
+    if (value) return value
+  }
+  return 0
+}
+
 function hasManualCrmValue(manualCrmSummary, key) {
   if (!manualCrmSummary || typeof manualCrmSummary !== 'object') return false
   const value = manualCrmSummary[key]
@@ -12145,9 +12165,12 @@ export default function DashboardShell({
   const funnelCards = useMemo(
     () =>
       activeDraftFunnelSteps.map((metricKey, index) => {
-        const value = getSummaryMetricValue(metricKey, insights, customMetrics)
+        // Meta metrics resolve from the insights summary; CRM metrics (manual CRM or RD/Agendor)
+        // live in rdSummary — getSummaryMetricValue only knows Meta keys, so fall back to rdSummary.
+        const resolveFunnelValue = (key) => getSummaryMetricValue(key, insights, customMetrics) || resolveCrmSummaryValue(key, rdSummary)
+        const value = resolveFunnelValue(metricKey)
         const previousKey = activeDraftFunnelSteps[index - 1]
-        const previousValue = previousKey ? getSummaryMetricValue(previousKey, insights, customMetrics) : 0
+        const previousValue = previousKey ? resolveFunnelValue(previousKey) : 0
 
         return {
           key: metricKey,
@@ -12156,7 +12179,7 @@ export default function DashboardShell({
           conversionRate: index === 0 || previousValue <= 0 ? null : (value / previousValue) * 100,
         }
       }),
-    [activeDraftFunnelSteps, insights, customMetrics]
+    [activeDraftFunnelSteps, insights, customMetrics, rdSummary]
   )
 
   const rdDiagnosticsSummary = useMemo(() => {
