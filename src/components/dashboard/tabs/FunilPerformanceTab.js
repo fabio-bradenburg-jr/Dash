@@ -103,6 +103,7 @@ export default function FunilPerformanceTab({
   draftDateRange,
   onPeriodChange,
   onRefreshCampaigns,
+  onSaveFunnelConfig,
   DATE_PRESETS = [],
 }) {
   const [selectedId, setSelectedId] = useState(null)
@@ -143,6 +144,17 @@ export default function FunilPerformanceTab({
     const next = { ...(sheetCfgMap[client.id] || {}), ...patch }
     setSheetCfgMap((m) => ({ ...m, [client.id]: next }))
     try { window.localStorage.setItem('funilSheetCfg_' + client.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
+    // persist on the client record too (shared with the cadastro, survives any browser)
+    const clientPatch = {}
+    if (patch.gid !== undefined) clientPatch.leadsSheetGid = patch.gid || 'all'
+    if (patch.qualCol !== undefined || patch.counterCol !== undefined) {
+      clientPatch.leadsSheetColumnMap = {
+        ...(client.leadsSheetColumnMap || {}),
+        ...(patch.qualCol !== undefined ? { qualification: patch.qualCol } : {}),
+        ...(patch.counterCol !== undefined ? { counter: patch.counterCol } : {}),
+      }
+    }
+    if (Object.keys(clientPatch).length) onSaveFunnelConfig?.(client.id, clientPatch)
   }
 
   /* leads-analytics fetch (per client + chosen tab/columns) */
@@ -232,7 +244,11 @@ export default function FunilPerformanceTab({
   // map statuses → stages even when the current period counts 0 leads. Falls back to the counted set.
   const statusOptions = (sheetMeta.values && sheetMeta.values.length) ? sheetMeta.values : statusDist
   const cfg = useMemo(() => {
-    const saved = cfgMap[client?.id]
+    // session edits win; else the config persisted on the client record (set once, any browser)
+    const persisted = Array.isArray(client?.leadsFunnelStages) && client.leadsFunnelStages.length > 0
+      ? { stages: client.leadsFunnelStages }
+      : null
+    const saved = cfgMap[client?.id] || persisted
     if (saved?.stages) {
       // keep the saved mapping only if it still matches the current statuses
       // (changing the qualification column changes the status set — re-default then)
@@ -254,10 +270,14 @@ export default function FunilPerformanceTab({
     if (!client) return
     setCfgMap((m) => ({ ...m, [client.id]: next }))
     try { window.localStorage.setItem('funilPglCfg_' + client.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
+    // persist the status→stage mapping on the client record (configure once, shared everywhere)
+    onSaveFunnelConfig?.(client.id, { leadsFunnelStages: next.stages })
   }
-  const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)  // counted in period (funnel sums)
-  const optCount = (label) => (statusOptions.find((s) => s.label === label)?.count || 0)   // total in the sheet (attribution UI)
-  const stageSum = (st) => (st.statuses || []).reduce((a, l) => a + statusCount(l), 0)
+  const statusCount = (label) => (statusDist.find((s) => s.label === label)?.count || 0)  // counted in period
+  const optCount = (label) => (statusOptions.find((s) => s.label === label)?.count || 0)   // total in the sheet
+  // When the period/counter filters count 0 leads but the sheet has statuses, fall back to
+  // whole-sheet counts so the mapped stages still drive the funnel (pglFallback defined below).
+  const stageSum = (st) => (st.statuses || []).reduce((a, l) => a + (pglFallback ? optCount(l) : statusCount(l)), 0)
   // per-node stage sum: apply the same attribution config to a sheet bucket's own status distribution
   const bucketStageSum = (bucket, stageKey) => {
     const st = cfg.stages.find((x) => x.key === stageKey)
@@ -323,6 +343,11 @@ export default function FunilPerformanceTab({
 
   /* ── funnel model ── */
   const totalPgl = hasPgl ? (sheetData?.overview?.total || 0) : 0
+  const sheetPglTotal = statusOptions.reduce((a, s) => a + (s.count || 0), 0)
+  // period/counter filters counted 0 leads but the sheet has statuses → drive the funnel
+  // with whole-sheet counts so the user's mapping is always reflected
+  const pglFallback = hasPgl && totalPgl === 0 && sheetPglTotal > 0
+  const effPglTotal = pglFallback ? sheetPglTotal : totalPgl
   const diag = sheetData?.diag || null
   // rows exist in the sheet but none are being counted → the counter/date column is filtering them out
   const zeroButHasRows = hasPgl && sheetData && totalPgl === 0 && (diag?.rawRows || 0) > 0
@@ -331,8 +356,8 @@ export default function FunilPerformanceTab({
   const impr = metaAgg.impressions, clicks = metaAgg.clicks, inv = metaAgg.spend
   const metaLeads = metaAgg.results   // leads reportados pelo Meta (resultados das campanhas)
   const ctr = impr ? (clicks / impr * 100) : 0, cpc = clicks ? (inv / clicks) : 0, cpl = metaLeads ? (inv / metaLeads) : 0
-  const txQual = totalPgl ? (qual / totalPgl * 100) : 0, txConv = totalPgl ? (conv / totalPgl * 100) : 0
-  const perdaPct = totalPgl ? ((totalPgl - conv) / totalPgl * 100) : 0
+  const txQual = effPglTotal ? (qual / effPglTotal * 100) : 0, txConv = effPglTotal ? (conv / effPglTotal * 100) : 0
+  const perdaPct = effPglTotal ? ((effPglTotal - conv) / effPglTotal * 100) : 0
 
   const flow = [
     { label: 'Impressões', icon: 'bx-show', color: '#6b7280', origin: 'Meta', val: impr },
@@ -355,7 +380,7 @@ export default function FunilPerformanceTab({
       lossPct: '-' + (prev > 0 ? Math.round(loss / prev * 100) : 0) + '%',
     }
   })
-  const lossCards = hasPgl ? cfg.stages.filter((x) => x.kind === 'loss').map((st) => { const v = stageSum(st); return { label: st.label, icon: st.icon, color: st.color, value: num(v), pct: totalPgl ? Math.round(v / totalPgl * 100) + '%' : '—' } }) : []
+  const lossCards = hasPgl ? cfg.stages.filter((x) => x.kind === 'loss').map((st) => { const v = stageSum(st); return { label: st.label, icon: st.icon, color: st.color, value: num(v), pct: effPglTotal ? Math.round(v / effPglTotal * 100) + '%' : '—' } }) : []
 
   /* ── tree rows ── */
   const treeRows = []
@@ -403,7 +428,7 @@ export default function FunilPerformanceTab({
 
   /* ── alerts ── */
   const alerts = []
-  if (hasPgl && totalPgl > 0) {
+  if (hasPgl && effPglTotal > 0) {
     if (txQual < 20) alerts.push({ color: C.err, icon: 'bx-error-circle', title: 'Gargalo de qualificação:', text: `apenas ${Math.round(txQual)}% dos leads são qualificados.` })
     else if (txQual < 45) alerts.push({ color: C.warn, icon: 'bx-error', title: 'Qualificação abaixo do ideal:', text: `${Math.round(txQual)}% dos leads qualificados.` })
     const closeRate = qual ? (conv / qual * 100) : 0
@@ -564,7 +589,7 @@ export default function FunilPerformanceTab({
               </div>
             </div>
           )}
-          {hasPgl && (lossCards.length > 0 || totalPgl > 0) && (
+          {hasPgl && (lossCards.length > 0 || effPglTotal > 0) && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
               {lossCards.map((lc, i) => (
                 <div key={i} style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 11, background: hexA(lc.color, 0.08), border: `1px solid ${hexA(lc.color, 0.22)}` }}>
@@ -793,7 +818,7 @@ export default function FunilPerformanceTab({
                       <span style={{ fontFamily: 'Inter', fontSize: '0.52rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 99, background: hexA(st.color, 0.16), color: st.color }}>{st.kind === 'loss' ? 'Perda' : 'Funil'}</span>
                       {removable && <button type="button" onClick={() => removeStage(st.key)} title="Remover" style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex' }}><i className="bx bx-trash" style={{ fontSize: 15 }} /></button>}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}><span style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', color: st.color }}>{num(total)}</span><span style={{ fontFamily: 'Inter', fontSize: '0.6rem', color: C.text3 }}>no período{sheetTotal !== total ? ` · ${num(sheetTotal)} na planilha` : ''}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}><span style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', color: st.color }}>{num(total)}</span><span style={{ fontFamily: 'Inter', fontSize: '0.6rem', color: C.text3 }}>{pglFallback ? 'na planilha' : `no período${sheetTotal !== total ? ` · ${num(sheetTotal)} na planilha` : ''}`}</span></div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
                       {(st.statuses || []).length ? st.statuses.map((label) => (
                         <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.68rem', padding: '3px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}` }}>

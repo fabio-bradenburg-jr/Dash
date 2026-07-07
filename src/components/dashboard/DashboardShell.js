@@ -16289,6 +16289,13 @@ export default function DashboardShell({
         {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
           <FunilPerformanceTab
             clients={clients}
+            onSaveFunnelConfig={async (clientId, patch) => {
+              const nextClients = clients.map((client) =>
+                client.id === clientId ? createClientRecord({ ...client, ...patch }) : client
+              )
+              setClients(nextClients)
+              try { await persistWorkspaceState({ clients: nextClients }) } catch (e) { /* keep UI state; retry on next change */ }
+            }}
             campaignOverviewRows={campaignOverviewRows}
             campaignOverviewLoading={campaignOverviewLoading}
             metaRequestHeaders={metaRequestHeaders}

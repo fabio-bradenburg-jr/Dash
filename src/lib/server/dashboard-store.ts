@@ -784,6 +784,7 @@ function normalizeClientRecord(client: LooseRecord): ClientRecord {
     leadsSheetColumnMap: (payload.leadsSheetColumnMap && typeof payload.leadsSheetColumnMap === 'object')
       ? payload.leadsSheetColumnMap
       : {},
+    leadsFunnelStages: Array.isArray(payload.leadsFunnelStages) ? payload.leadsFunnelStages : [],
     googleSheetsUrl: payload.googleSheetsUrl || '',
     googleSheetsHeaderRow: Number.isFinite(Number(payload.googleSheetsHeaderRow)) && Number(payload.googleSheetsHeaderRow) > 0
       ? Number(payload.googleSheetsHeaderRow)

@@ -957,6 +957,7 @@ export function createClientRecord(overrides: ClientRecordOverrides = {}): Clien
     leadsSheetColumnMap: (overrides.leadsSheetColumnMap && typeof overrides.leadsSheetColumnMap === 'object')
       ? overrides.leadsSheetColumnMap
       : {},
+    leadsFunnelStages: Array.isArray(overrides.leadsFunnelStages) ? overrides.leadsFunnelStages : [],
     crmProvider,
     manualCrmSummary: overrides.manualCrmSummary || {},
     integrations: {

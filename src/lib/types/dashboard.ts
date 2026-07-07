@@ -325,6 +325,7 @@ export interface ClientRecord {
   leadsSheetUrl: string
   leadsSheetGid: string
   leadsSheetColumnMap: Record<string, string>
+  leadsFunnelStages: Array<Record<string, unknown>>
   googleSheetsUrl: string
   googleSheetsHeaderRow: number
   googleSheetsStatusColumn: string
