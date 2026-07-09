@@ -17613,10 +17613,19 @@
         }
 
 /* ══ Performance Hub shell — sidebar redesign (Kinetic Emerald) ══ */
-.dashboard-container.hub-shell .main-content,
-.dashboard-container.hub-shell .main-content-expanded {
-  margin-left: 246px;
-  width: calc(100% - 246px);
+/* The !important + breakpoint overrides beat the legacy 92px-rail rules (base,
+   :has(.weekly-dashboard-panel) and the 1180px media query) so every tab's
+   content starts after the 246px sidebar. */
+@media (min-width: 1025px) {
+  .dashboard-container.hub-shell .main-content,
+  .dashboard-container.hub-shell .main-content-expanded {
+    margin-left: 246px !important;
+    width: calc(100% - 246px) !important;
+  }
+  .dashboard-container.hub-shell .main-content:has(.weekly-dashboard-panel) {
+    width: auto !important;
+    max-width: calc(100vw - 246px) !important;
+  }
 }
 .hub-side {
   position: fixed;
@@ -17624,7 +17633,7 @@
   top: 0;
   bottom: 0;
   width: 246px;
-  z-index: 220;
+  z-index: 40; /* above content, below every modal overlay (z>=60) */
   display: flex;
   flex-direction: column;
   background: color-mix(in srgb, #0e0e0e 86%, transparent);
@@ -17734,13 +17743,13 @@
 .hub-side-userrole { font-family: 'Inter'; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(229, 226, 225, 0.4); }
 .hub-side-foot-actions { display: flex; align-items: center; gap: 6px; }
 .hub-side-foot-actions .hub-logout { flex: 1; }
-.hub-side-overlay { position: fixed; inset: 0; z-index: 210; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+.hub-side-overlay { position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
 .hub-burger {
   display: none;
   position: fixed;
   top: 14px;
   left: 14px;
-  z-index: 200;
+  z-index: 38;
   width: 40px;
   height: 40px;
   border-radius: 11px;
@@ -17762,10 +17771,12 @@
 @media (max-width: 1024px) {
   .dashboard-container.hub-shell .main-content,
   .dashboard-container.hub-shell .main-content-expanded {
-    margin-left: 0;
-    width: 100%;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
-  .hub-side { transform: translateX(-100%); transition: transform 0.2s ease; }
+  .hub-side { transform: translateX(-100%); transition: transform 0.2s ease; z-index: 210; }
+  .hub-side.open ~ * .hub-side-overlay { z-index: 209; }
+  .hub-side-overlay { z-index: 209; }
   .hub-side.open { transform: none; }
   .hub-burger { display: flex; }
 }
