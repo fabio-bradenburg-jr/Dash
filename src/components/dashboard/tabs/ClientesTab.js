@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import LeadsSheetMappingBlock from '@/components/dashboard/LeadsSheetMappingBlock'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
 export default function ClientesTab() {
+  const [healthFilter, setHealthFilter] = useState('todos')
   const {
     clients,
     formatClientDate,
@@ -93,11 +95,29 @@ export default function ClientesTab() {
   return (
     <>
         {(() => {
+          const HEALTH_META = {
+            integration: { label: 'Integração', color: '#8b5cf6' },
+            critical: { label: 'Crítico', color: '#ef4444' },
+            attention: { label: 'Atenção', color: '#f59e0b' },
+            healthy: { label: 'Saudável', color: '#22c55e' },
+            with_result: { label: 'Com resultado', color: '#3ba3ff' },
+            churn: { label: 'Churn', color: '#7b8794' },
+          }
+          const TYPE_LABEL = { pdv: 'PDV', inside: 'Inside Sales', ecom: 'Ecom', ecommerce: 'Ecom' }
+          const AVATAR_POOL = ['linear-gradient(135deg,#26C281,#4fdf9b)', 'linear-gradient(135deg,#3ba3ff,#6366f1)', 'linear-gradient(135deg,#f59e0b,#ef4444)', 'linear-gradient(135deg,#8b5cf6,#3ba3ff)', 'linear-gradient(135deg,#22c55e,#26C281)', 'linear-gradient(135deg,#ec4899,#8b5cf6)']
+          const hexA = (c, a) => { const n = parseInt(c.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})` }
+          const initialsOf = (name) => { const parts = String(name || '').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/); return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?' }
+          const hashIdx = (name) => { let h = 0; for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % AVATAR_POOL.length }
+
           const nonArchivedClients = clients.filter(c => !c.isArchived)
-          const ativosCount = nonArchivedClients.filter(c => { const st = String(c.status || '').trim().toLowerCase(); return st === 'ativo' || st === '' }).length
-          const pausadosCount = nonArchivedClients.filter(c => String(c.status || '').trim().toLowerCase() === 'pausado').length
-          const churnCount = nonArchivedClients.filter(c => String(c.status || '').trim().toLowerCase() === 'churn').length
-          const archivedCount = clients.filter(c => c.isArchived).length
+          const healthKeyOf = (client) => {
+            if (String(client?.status || '').trim().toLowerCase() === 'churn') return 'churn'
+            const rec = latestWeeklyHealthByClientId.get(client.id)
+            return rec?.healthStatus && HEALTH_META[rec.healthStatus] ? rec.healthStatus : null
+          }
+
+          const counts = { todos: nonArchivedClients.length }
+          Object.keys(HEALTH_META).forEach(k => { counts[k] = nonArchivedClients.filter(c => healthKeyOf(c) === k).length })
 
           const getClientHealthRank = (client) => {
             if (String(client?.status || '').trim().toLowerCase() === 'churn') return CLIENT_HEALTH_SORT_RANK.churn
@@ -108,17 +128,11 @@ export default function ClientesTab() {
           const displayClients = nonArchivedClients
             .filter((client) => {
               const query = clientSearch.trim().toLowerCase()
-              const matchesSearch = !query || [client.name, client.cnpj, client.metaAdAccountId, client.agendorAccountId]
+              const matchesSearch = !query || [client.name, client.cnpj, client.segment, client.trafficManager, client.metaAdAccountId]
                 .filter(Boolean)
                 .some((value) => String(value).toLowerCase().includes(query))
-              const st = String(client.status || '').trim().toLowerCase()
-              const matchesStatus = clientStatusFilter === 'all'
-                ? true
-                : clientStatusFilter === 'ativo' ? (st === 'ativo' || st === '')
-                : clientStatusFilter === 'pausado' ? st === 'pausado'
-                : clientStatusFilter === 'churn' ? st === 'churn'
-                : true
-              return matchesSearch && matchesStatus
+              const matchesHealth = healthFilter === 'todos' || healthKeyOf(client) === healthFilter
+              return matchesSearch && matchesHealth
             })
             .sort((l, r) => {
               const rankCompare = getClientHealthRank(l) - getClientHealthRank(r)
@@ -126,274 +140,211 @@ export default function ClientesTab() {
               return String(l.name || '').localeCompare(String(r.name || ''), 'pt-BR')
             })
 
+          const statDefs = [
+            { key: 'todos', label: 'Total de clientes', color: '#26C281', value: counts.todos, sub: 'na carteira', accent: true },
+            { key: 'healthy', label: 'Saudáveis', color: '#22c55e', value: counts.healthy, sub: 'sem riscos' },
+            { key: 'with_result', label: 'Com resultado', color: '#3ba3ff', value: counts.with_result, sub: 'entregando ROI' },
+            { key: 'attention', label: 'Em atenção', color: '#f59e0b', value: counts.attention, sub: 'monitorar' },
+            { key: 'critical', label: 'Críticos', color: '#ef4444', value: counts.critical, sub: 'ação imediata' },
+          ]
+          const chipDefs = [['todos', 'Todos', null], ['critical', 'Crítico', '#ef4444'], ['attention', 'Atenção', '#f59e0b'], ['healthy', 'Saudável', '#22c55e'], ['with_result', 'Com resultado', '#3ba3ff'], ['integration', 'Integração', '#8b5cf6'], ['churn', 'Churn', '#7b8794']]
+
+          const openEdit = (clientId) => { setActiveClientId(clientId); setClientEditSection('geral'); setIsEditClientModalOpen(true) }
+          const GRID = '2.6fr 1.5fr 1fr 1.2fr 0.5fr 88px'
+          const thStyle = { fontFamily: 'Inter', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600 }
+
           return (
-            <section className="weekly-dashboard-panel clients-panel">
-              {/* ── Hero header ── */}
-              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                  <div>
-                    <span className="management-hero-kicker"><i className="bx bx-buildings" style={{ marginRight: 5 }}></i>Clientes</span>
-                    <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Gestão de clientes</h2>
-                    <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Gerencie os clientes cadastrados, acompanhe status e acesse rapidamente as integrações.</p>
+            <section className="weekly-dashboard-panel clients-panel" style={{ background: 'transparent', border: 'none' }}>
+              {/* ── HERO ── */}
+              <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', borderTop: '3px solid #26C281', borderRadius: 18, background: 'linear-gradient(135deg,rgba(38,194,129,0.07),rgba(38,194,129,0.01))', padding: '26px 28px' }}>
+                <div style={{ position: 'absolute', top: -60, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.09) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: '#26C281', fontWeight: 700, marginBottom: 9 }}>Sucesso do Cliente · Fonte de verdade</div>
+                    <h1 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.5vw,1.95rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>Clientes</h1>
+                    <p style={{ margin: '9px 0 0', color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', maxWidth: '52ch', lineHeight: 1.5 }}>Cadastro, saúde e acesso de toda a carteira. Cada cliente carrega links, responsáveis e flags que derivam sua classificação.</p>
                   </div>
-                  <button type="button" className="btn btn-primary" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }} onClick={openCreateClientModal}>
-                    <i className="bx bx-user-plus"></i>
-                    Novo cliente
-                  </button>
-                </div>
-
-                {/* Stat cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, margin: '20px 0 4px' }}>
-                  {[
-                    { icon: 'bx-group', label: 'Total de clientes', value: nonArchivedClients.length, color: '#94a3b8' },
-                    { icon: 'bx-check-circle', label: 'Ativos', value: ativosCount, color: '#22c55e' },
-                    { icon: 'bx-pause-circle', label: 'Pausados', value: pausadosCount, color: '#f59e0b' },
-                    { icon: 'bx-x-circle', label: 'Churn', value: churnCount, color: '#ef4444' },
-                    { icon: 'bx-archive', label: 'Arquivados', value: archivedCount, color: '#64748b' },
-                  ].map((m) => (
-                    <div key={m.label} className="management-stat-card" style={{ gap: 6 }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <i className={`bx ${m.icon}`} style={{ color: m.color, fontSize: 13 }}></i>
-                        {m.label}
-                      </span>
-                      <span style={{ fontSize: '1.5rem', fontWeight: 900, color: m.color, lineHeight: 1 }}>{m.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Filter bar */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 18 }}>
-                  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180 }}>
-                    <i className="bx bx-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, opacity: 0.4, pointerEvents: 'none' }}></i>
-                    <input
-                      type="text"
-                      value={clientSearch}
-                      onChange={(e) => setClientSearch(e.target.value)}
-                      placeholder="Buscar por nome, CNPJ ou conta..."
-                      style={{ width: '100%', padding: '8px 12px 8px 42px', borderRadius: 10, border: '1px solid rgba(129,216,167,0.18)', background: 'rgba(255,255,255,0.05)', color: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {[
-                      { id: 'all', label: 'Todos', count: nonArchivedClients.length },
-                      { id: 'ativo', label: 'Ativos', count: ativosCount },
-                      { id: 'pausado', label: 'Pausados', count: pausadosCount },
-                      { id: 'churn', label: 'Churn', count: churnCount },
-                    ].map((f) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setClientStatusFilter(f.id)}
-                        style={{ padding: '7px 12px', borderRadius: 9, border: `1px solid ${clientStatusFilter === f.id ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.08)'}`, background: clientStatusFilter === f.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: clientStatusFilter === f.id ? '#26c281' : 'rgba(255,255,255,0.5)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
-                      >
-                        {f.label} <span style={{ opacity: 0.6 }}>({f.count})</span>
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', gap: 10, flex: 'none' }}>
+                    <button type="button" onClick={openCreateClientModal} style={{ height: 42, padding: '0 18px', borderRadius: 99, border: 'none', background: '#26C281', color: '#04150d', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 8px 24px rgba(38,194,129,0.28)' }}>
+                      <span className="mi" style={{ fontSize: 19 }}>add</span>Novo cliente
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* ── Client list ── */}
-              <div style={{ padding: '0 0 8px' }}>
-                {/* Table header */}
-                {displayClients.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 160px 120px 130px', gap: 12, padding: '12px 24px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {['Cliente', 'Status', 'Saúde', 'Integrações', 'Ações'].map(h => (
-                      <span key={h} style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.35 }}>{h}</span>
-                    ))}
+              {/* ── STAT CARDS ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(148px,1fr))', gap: 12, marginTop: 22 }}>
+                {statDefs.map((d) => (
+                  <div key={d.key} style={{ position: 'relative', overflow: 'hidden', padding: '14px 16px', borderRadius: 14, background: 'rgba(28,28,28,0.4)', border: '1px solid rgba(255,255,255,0.06)', borderTop: `1px solid ${hexA(d.color, 0.35)}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 99, background: d.color, boxShadow: `0 0 10px ${d.color}` }} />
+                      <span style={{ fontFamily: 'Inter', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.11em', color: 'rgba(229,226,225,0.4)', fontWeight: 600 }}>{d.label}</span>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '1.7rem', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: d.accent ? '#26C281' : '#E5E2E1' }}>{d.value}</div>
+                    <div style={{ fontFamily: 'Inter', fontSize: '0.64rem', color: 'rgba(229,226,225,0.4)', marginTop: 2 }}>{d.sub}</div>
                   </div>
-                )}
+                ))}
+              </div>
 
-                {displayClients.map((client) => {
-                  const metaAccount = adAccounts.find((account) => account.id === client.metaAdAccountId)
-                  const hasMeta = Boolean(client.metaAdAccountId)
-                  const hasAgendor = Boolean(client.agendorAccountId || client.integrations?.agendorToken)
-                  const hasLeadsSheet = Boolean(client.leadsSheetUrl && String(client.leadsSheetUrl).trim())
-                  const isChurnClient = String(client.status || '').trim().toLowerCase() === 'churn'
-                  const latestHealthRecord = latestWeeklyHealthByClientId.get(client.id)
-                  const latestHealth = isChurnClient
-                    ? { key: 'churn', label: 'Churn', color: '#64748b' }
-                    : latestHealthRecord
-                      ? (WEEKLY_HEALTH_BY_KEY[latestHealthRecord.healthStatus] || WEEKLY_HEALTH_BY_KEY.attention)
-                      : null
-                  const healthDetail = isChurnClient
-                    ? (client.churnDate ? `Churn em ${formatClientDate(client.churnDate)}` : 'Cliente churn')
-                    : latestHealth
-                      ? formatWeekRangeLabel(latestHealthRecord.weekStart, latestHealthRecord.weekEnd)
-                      : 'Aguardando semanal'
-
-                  return (
-                    <div
-                      key={client.id}
-                      style={{ display: 'grid', gridTemplateColumns: '1fr 160px 160px 120px 130px', gap: 12, padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      {/* Name cell */}
-                      <button
-                        type="button"
-                        onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}
-                      >
-                        <span style={{ width: 40, height: 40, borderRadius: 10, background: client.dashboardColor ? client.dashboardColor + '22' : 'rgba(38,194,129,0.12)', border: `1px solid ${client.dashboardColor ? client.dashboardColor + '44' : 'rgba(38,194,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                          {client.logoUrl
-                            ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <i className="bx bx-building-house" style={{ fontSize: 18, color: client.dashboardColor || '#26c281', opacity: 0.8 }}></i>}
-                        </span>
-                        <span style={{ minWidth: 0 }}>
-                          <strong style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</strong>
-                          <small style={{ fontSize: '0.75rem', opacity: 0.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{metaAccount?.name || client.metaAdAccountId || client.cnpj || 'Sem conta vinculada'}</small>
-                        </span>
+              {/* ── SEARCH + CHIPS ── */}
+              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 230, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span className="mi" style={{ position: 'absolute', left: 14, fontSize: 19, color: 'rgba(229,226,225,0.4)', pointerEvents: 'none' }}>search</span>
+                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Buscar por cliente, responsável ou segmento…" style={{ width: '100%', height: 44, padding: '0 14px 0 42px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.04)', color: '#E5E2E1', fontFamily: 'inherit', fontSize: '0.88rem', outline: 'none' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {chipDefs.map(([k, label, color]) => {
+                    const active = healthFilter === k
+                    const base = { display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 10, fontFamily: 'Inter', fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer', transition: 'all .12s' }
+                    const style = active
+                      ? { ...base, background: hexA(color || '#26C281', 0.15), border: `1px solid ${hexA(color || '#26C281', 0.4)}`, color: color || '#26C281' }
+                      : { ...base, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(229,226,225,0.62)' }
+                    return (
+                      <button key={k} type="button" onClick={() => setHealthFilter(k)} style={style}>
+                        {color && <span style={{ width: 7, height: 7, borderRadius: 99, background: color }} />}
+                        <span>{label}</span>
+                        <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.72, fontWeight: 700 }}>{counts[k] ?? 0}</span>
                       </button>
+                    )
+                  })}
+                </div>
+              </div>
 
-                      {/* Status cell */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: '0.65rem', opacity: 0.35, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</span>
-                          <select
-                            value={['Ativo', 'Pausado', 'Churn'].includes(client.status) ? client.status : 'Ativo'}
-                            onChange={(e) => handleClientInlineFieldChange(client.id, 'status', e.target.value)}
-                            disabled={!canEditClientRecord(client.id)}
-                            aria-label={`Status de ${client.name}`}
-                            style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.06)', color: 'inherit', fontSize: '0.82rem', cursor: canEditClientRecord(client.id) ? 'pointer' : 'default' }}
-                          >
-                            <option value="Ativo">Ativo</option>
-                            <option value="Pausado">Pausado</option>
-                            <option value="Churn">Churn</option>
-                          </select>
-                        </label>
-                        {isChurnClient && (
-                          <input
-                            type="date"
-                            value={client.churnDate || ''}
-                            onChange={(e) => handleClientInlineFieldChange(client.id, 'churnDate', e.target.value)}
-                            disabled={!canEditClientRecord(client.id)}
-                            title="Data do churn"
-                            style={{ padding: '4px 8px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.07)', color: 'inherit', fontSize: '0.78rem', width: '100%', boxSizing: 'border-box' }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Health cell */}
-                      <span
-                        title={isChurnClient ? 'Cliente marcado como Churn' : latestHealth ? `Último semanal: ${healthDetail}` : 'Sem registro semanal'}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: latestHealth ? (latestHealth.color + '18') : 'rgba(255,255,255,0.05)', color: latestHealth ? latestHealth.color : 'rgba(255,255,255,0.3)', border: `1px solid ${latestHealth ? latestHealth.color + '35' : 'rgba(255,255,255,0.08)'}`, width: 'fit-content' }}>
-                          <i className={`bx ${isChurnClient ? 'bx-x-circle' : latestHealth ? 'bx-heart' : 'bx-time'}`} style={{ fontSize: 12 }}></i>
-                          {latestHealth?.label || 'Sem registro'}
-                        </span>
-                        <small style={{ fontSize: '0.7rem', opacity: 0.35, paddingLeft: 2 }}>{healthDetail}</small>
-                      </span>
-
-                      {/* Integrations cell */}
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} aria-label="Integrações do cliente">
-                        {[
-                          { active: hasMeta, icon: 'bx bxl-meta', title: hasMeta ? 'Meta conectada' : 'Meta não conectada', color: '#0668E1' },
-                          { active: hasAgendor, icon: 'bx bx-git-branch', title: hasAgendor ? 'Agendor cadastrado' : 'Agendor não cadastrado', color: '#f97316' },
-                          { active: hasLeadsSheet, icon: 'bx bx-table', title: hasLeadsSheet ? 'Planilha de leads cadastrada' : 'Sem planilha de leads', color: '#22c55e' },
-                        ].map((integ, idx) => (
-                          <span
-                            key={idx}
-                            title={integ.title}
-                            style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, background: integ.active ? integ.color + '18' : 'rgba(255,255,255,0.04)', color: integ.active ? integ.color : 'rgba(255,255,255,0.2)', border: `1px solid ${integ.active ? integ.color + '35' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}
-                          >
-                            <i className={integ.icon}></i>
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Actions cell */}
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ fontSize: '0.78rem', padding: '5px 12px' }}
-                          onClick={() => { setActiveClientId(client.id); setClientEditSection('geral'); setIsEditClientModalOpen(true) }}
+              {/* ── DIRECTORY TABLE ── */}
+              {displayClients.length > 0 && (
+                <>
+                  <div style={{ marginTop: 20, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden', background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 14, alignItems: 'center', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
+                      <div style={thStyle}>Cliente</div>
+                      <div style={thStyle}>Gestor de tráfego</div>
+                      <div style={thStyle}>Tipo</div>
+                      <div style={thStyle}>Saúde</div>
+                      <div style={{ ...thStyle, textAlign: 'center' }}>Integr.</div>
+                      <div></div>
+                    </div>
+                    {displayClients.map((client) => {
+                      const hk = healthKeyOf(client)
+                      const hm = hk ? HEALTH_META[hk] : null
+                      const hasMeta = Boolean(client.metaAdAccountId)
+                      const gestor = String(client.trafficManager || '').trim()
+                      const typeLabel = TYPE_LABEL[String(client.salesModel || '').toLowerCase()] || null
+                      const canEditRow = canEditClientRecord(client.id)
+                      return (
+                        <div key={client.id} onClick={() => openEdit(client.id)}
+                          style={{ display: 'grid', gridTemplateColumns: GRID, gap: 14, alignItems: 'center', padding: '13px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', transition: 'background .12s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.035)' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                         >
-                          <i className="bx bx-edit" style={{ marginRight: 4 }}></i>Editar
-                        </button>
-                        {canEditClientRecord(client.id) && (
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            onClick={() => handleArchiveClient(client.id, true)}
-                            title="Arquivar cliente"
-                            style={{ padding: '5px 8px', fontSize: '0.88rem' }}
-                          >
-                            <i className="bx bx-archive-in"></i>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-
-                {/* Empty state */}
-                {displayClients.length === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '56px 24px', textAlign: 'center' }}>
-                    <i className="bx bx-buildings" style={{ fontSize: '2.5rem', opacity: 0.2 }}></i>
-                    <div>
-                      <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, opacity: 0.7 }}>
-                        {clientSearch || clientStatusFilter !== 'all' ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado ainda'}
-                      </h3>
-                      <p style={{ margin: 0, fontSize: '0.84rem', opacity: 0.4 }}>
-                        {clientSearch || clientStatusFilter !== 'all'
-                          ? 'Tente ajustar a busca ou os filtros de status.'
-                          : 'Cadastre o primeiro cliente para iniciar o onboarding e organizar os dados operacionais.'}
-                      </p>
-                    </div>
-                    {!clientSearch && clientStatusFilter === 'all' && (
-                      <button type="button" className="btn btn-primary" style={{ marginTop: 4 }} onClick={openCreateClientModal}>
-                        <i className="bx bx-user-plus" style={{ marginRight: 6 }}></i>Novo cliente
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Archived clients */}
-                {clients.some(c => c.isArchived) && (() => {
-                  const archivedList = clients.filter(c => c.isArchived && (() => {
-                    const query = clientSearch.trim().toLowerCase()
-                    if (!query) return true
-                    return [c.name, c.cnpj].filter(Boolean).some(v => String(v).toLowerCase().includes(query))
-                  })())
-                  if (!archivedList.length) return null
-                  return (
-                    <details style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8 }}>
-                      <summary style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, opacity: 0.45, userSelect: 'none', listStyle: 'none' }}>
-                        <i className="bx bx-archive" style={{ fontSize: 15 }}></i>
-                        Arquivados ({archivedList.length})
-                        <i className="bx bx-chevron-down" style={{ marginLeft: 'auto', fontSize: 16 }}></i>
-                      </summary>
-                      <div style={{ padding: '0 0 8px' }}>
-                        {archivedList.map(client => (
-                          <div
-                            key={client.id}
-                            style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.03)', alignItems: 'center', opacity: 0.55 }}
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                                {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ fontSize: 15, opacity: 0.4 }}></i>}
-                              </span>
-                              <span>
-                                <strong style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700 }}>{client.name}</strong>
-                                <small style={{ fontSize: '0.72rem', opacity: 0.5 }}>{client.metaAdAccountId || client.cnpj || 'Arquivado'}</small>
-                              </span>
-                            </span>
-                            {canEditClientRecord(client.id) && (
-                              <button type="button" className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => handleArchiveClient(client.id, false)}>
-                                <i className="bx bx-archive-out"></i> Desarquivar
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 11, background: AVATAR_POOL[hashIdx(client.name)], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.82rem', color: '#fff', flex: 'none', overflow: 'hidden' }}>
+                              {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initialsOf(client.name)}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</div>
+                              <div style={{ fontFamily: 'Inter', fontSize: '0.68rem', color: 'rgba(229,226,225,0.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{client.segment || client.cnpj || 'Sem segmento'}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                            {gestor ? (
+                              <>
+                                <div style={{ width: 24, height: 24, borderRadius: 8, background: AVATAR_POOL[hashIdx(gestor)], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.6rem', color: '#fff', flex: 'none' }}>{initialsOf(gestor)}</div>
+                                <span style={{ fontSize: '0.82rem', color: 'rgba(229,226,225,0.62)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gestor}</span>
+                              </>
+                            ) : <span style={{ fontSize: '0.78rem', color: 'rgba(229,226,225,0.26)' }}>—</span>}
+                          </div>
+                          <div>
+                            {typeLabel
+                              ? <span style={{ fontFamily: 'Inter', fontSize: '0.64rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(229,226,225,0.62)', whiteSpace: 'nowrap' }}>{typeLabel}</span>
+                              : <span style={{ fontSize: '0.78rem', color: 'rgba(229,226,225,0.26)' }}>—</span>}
+                          </div>
+                          <div>
+                            {hm
+                              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 4px 9px', borderRadius: 99, background: hexA(hm.color, 0.13), color: hm.color, border: `1px solid ${hexA(hm.color, 0.3)}`, boxShadow: `0 0 14px ${hexA(hm.color, 0.18)}`, whiteSpace: 'nowrap' }}><span style={{ width: 6, height: 6, borderRadius: 99, background: hm.color, boxShadow: `0 0 8px ${hm.color}` }} />{hm.label}</span>
+                              : <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(229,226,225,0.35)', whiteSpace: 'nowrap' }}>Sem registro</span>}
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <span title={hasMeta ? 'Integração ativa' : 'Sem integração'} style={{ display: 'inline-block', width: 9, height: 9, borderRadius: 99, background: hasMeta ? '#22c55e' : 'rgba(229,226,225,0.35)', boxShadow: hasMeta ? '0 0 8px rgba(34,197,94,0.6)' : 'none' }} />
+                          </div>
+                          <div style={{ textAlign: 'right', display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(client.id) }} title="Editar" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: 'rgba(229,226,225,0.62)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span className="mi" style={{ fontSize: 17 }}>edit</span>
+                            </button>
+                            {canEditRow && (
+                              <button type="button" onClick={(e) => { e.stopPropagation(); handleArchiveClient(client.id, true) }} title="Arquivar cliente" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid rgba(255,255,255,0.06)', background: 'transparent', color: 'rgba(229,226,225,0.4)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span className="mi" style={{ fontSize: 17 }}>archive</span>
                               </button>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </details>
-                  )
-                })()}
-              </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ marginTop: 12, fontFamily: 'Inter', fontSize: '0.7rem', color: 'rgba(229,226,225,0.4)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                    <span>{displayClients.length} de {nonArchivedClients.length} cliente{nonArchivedClients.length === 1 ? '' : 's'}</span>
+                    <span>Saúde derivada do controle semanal · atualizado agora</span>
+                  </div>
+                </>
+              )}
+
+              {/* ── EMPTY / NO RESULTS ── */}
+              {displayClients.length === 0 && (
+                nonArchivedClients.length === 0 ? (
+                  <div style={{ marginTop: 20, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', padding: '52px 28px', textAlign: 'center' }}>
+                    <div style={{ width: 66, height: 66, borderRadius: 99, background: 'rgba(38,194,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}><span className="mi" style={{ fontSize: 34, color: '#26C281' }}>groups</span></div>
+                    <div style={{ fontWeight: 800, fontSize: '1.15rem', marginBottom: 8 }}>Nenhum cliente ainda</div>
+                    <p style={{ color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', margin: '0 auto 22px', maxWidth: '42ch', lineHeight: 1.55 }}>Cadastre o primeiro cliente para começar a acompanhar links, responsáveis e saúde da carteira.</p>
+                    <button type="button" onClick={openCreateClientModal} style={{ height: 42, padding: '0 20px', borderRadius: 99, border: 'none', background: '#26C281', color: '#04150d', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}><span className="mi" style={{ fontSize: 19 }}>add</span>Cadastrar cliente</button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 20, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', padding: '44px 28px', textAlign: 'center' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 99, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px' }}><span className="mi" style={{ fontSize: 28, color: 'rgba(229,226,225,0.4)' }}>search_off</span></div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 6 }}>Nenhum cliente encontrado</div>
+                    <p style={{ color: 'rgba(229,226,225,0.62)', fontSize: '0.86rem', margin: '0 auto 18px', maxWidth: '40ch' }}>Nada corresponde à busca e ao filtro atuais.</p>
+                    <button type="button" onClick={() => { setClientSearch(''); setHealthFilter('todos') }} style={{ height: 38, padding: '0 16px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#E5E2E1', fontFamily: 'inherit', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>Limpar filtros</button>
+                  </div>
+                )
+              )}
+
+              {/* ── ARCHIVED ── */}
+              {clients.some(c => c.isArchived) && (() => {
+                const archivedList = clients.filter(c => c.isArchived && (() => {
+                  const query = clientSearch.trim().toLowerCase()
+                  if (!query) return true
+                  return [c.name, c.cnpj].filter(Boolean).some(v => String(v).toLowerCase().includes(query))
+                })())
+                if (!archivedList.length) return null
+                return (
+                  <details style={{ marginTop: 18, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', overflow: 'hidden' }}>
+                    <summary style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 20px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: 'rgba(229,226,225,0.45)', userSelect: 'none', listStyle: 'none' }}>
+                      <span className="mi" style={{ fontSize: 17 }}>archive</span>
+                      Arquivados ({archivedList.length})
+                      <span className="mi" style={{ marginLeft: 'auto', fontSize: 18 }}>expand_more</span>
+                    </summary>
+                    <div>
+                      {archivedList.map(client => (
+                        <div key={client.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.04)', alignItems: 'center', opacity: 0.6 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', fontWeight: 700, fontSize: '0.7rem', color: '#fff' }}>
+                              {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initialsOf(client.name)}
+                            </span>
+                            <span>
+                              <strong style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700 }}>{client.name}</strong>
+                              <small style={{ fontSize: '0.72rem', opacity: 0.5 }}>{client.metaAdAccountId || client.cnpj || 'Arquivado'}</small>
+                            </span>
+                          </span>
+                          {canEditClientRecord(client.id) && (
+                            <button type="button" onClick={() => handleArchiveClient(client.id, false)} style={{ height: 34, padding: '0 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#E5E2E1', fontFamily: 'inherit', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span className="mi" style={{ fontSize: 16 }}>unarchive</span>Desarquivar
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )
+              })()}
             </section>
           )
         })()}
