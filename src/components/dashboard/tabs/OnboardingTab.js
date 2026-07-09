@@ -3,6 +3,8 @@
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
+const OB_INITIALS = (name) => { const p = String(name || '').trim().split(/\s+/); return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?' }
+
 export default function OnboardingTab() {
   const {
     clients,
@@ -262,9 +264,9 @@ export default function OnboardingTab() {
 
           return (
             <>
-            <section className="weekly-dashboard-panel onboarding-panel">
-              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(38,194,129,0.12)', background: 'linear-gradient(135deg, rgba(38,194,129,0.07) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <section className="weekly-dashboard-panel onboarding-panel" style={{ background: 'transparent', border: 'none' }}>
+              <div style={{ padding: '24px 26px 20px', border: '1px solid rgba(255,255,255,0.05)', borderBottom: '2px solid rgba(38,194,129,0.28)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(38,194,129,0.09) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.18), transparent 68%)', pointerEvents: 'none' }} />
                 <span className="management-hero-kicker"><i className="bx bx-list-check" style={{ marginRight: 5 }}></i>Onboarding</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Onboarding de clientes</h2>
                 {isMaster && (
@@ -330,7 +332,7 @@ export default function OnboardingTab() {
                         key={f.id}
                         type="button"
                         onClick={() => setOnboardingStatusFilter(f.id)}
-                        style={{ padding: '7px 12px', borderRadius: 9, border: `1px solid ${onboardingStatusFilter === f.id ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.08)'}`, background: onboardingStatusFilter === f.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: onboardingStatusFilter === f.id ? '#26c281' : 'rgba(255,255,255,0.5)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                        style={{ padding: '8px 14px', borderRadius: 99, border: `1px solid ${onboardingStatusFilter === f.id ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.05)'}`, background: onboardingStatusFilter === f.id ? 'rgba(38,194,129,0.15)' : 'rgba(255,255,255,0.03)', color: onboardingStatusFilter === f.id ? '#26c281' : 'rgba(232,230,228,0.66)', fontFamily: 'Inter', fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
                       >
                         {f.label} <span style={{ opacity: 0.6 }}>({f.count})</span>
                       </button>
@@ -561,8 +563,8 @@ export default function OnboardingTab() {
                         onClick={() => setOnboardingExpandedClient(client.id)}
                         style={{ borderRadius: 14, border: '1px solid rgba(129,216,167,0.1)', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', color: 'inherit', width: '100%' }}
                       >
-                        <span style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.18)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                          {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 32, height: 32, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 14 }}></i>}
+                        <span style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(38,194,129,0.14)', border: '1px solid rgba(38,194,129,0.3)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden', fontWeight: 800, fontSize: '0.8rem', color: '#26c281' }}>
+                          {client.logoUrl ? <img src={client.logoUrl} alt="" style={{ width: 38, height: 38, objectFit: 'cover' }} /> : OB_INITIALS(client.name)}
                         </span>
                         <span style={{ fontWeight: 700, fontSize: '0.95rem', flex: 1 }}>{client.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
@@ -594,12 +596,14 @@ export default function OnboardingTab() {
                       key={client.id}
                       type="button"
                       onClick={() => setOnboardingExpandedClient(client.id)}
-                      style={{ borderRadius: 18, border: '1px solid rgba(129,216,167,0.14)', background: 'rgba(255,255,255,0.025)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', color: 'inherit', width: '100%' }}
+                      style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)', padding: 17, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left', color: 'inherit', width: '100%', transition: 'border-color .15s, box-shadow .15s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(38,194,129,0.4)'; e.currentTarget.style.boxShadow = '0 0 30px rgba(38,194,129,0.1)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.boxShadow = 'none' }}
                     >
-                      <span style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.2)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      <span style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(38,194,129,0.14)', border: '1px solid rgba(38,194,129,0.3)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden', fontWeight: 800, fontSize: '0.9rem', color: '#26c281' }}>
                         {client.logoUrl
-                          ? <img src={client.logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
-                          : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 18 }}></i>
+                          ? <img src={client.logoUrl} alt="" style={{ width: 44, height: 44, objectFit: 'cover' }} />
+                          : OB_INITIALS(client.name)
                         }
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -642,8 +646,8 @@ export default function OnboardingTab() {
                       <div style={{ position: 'relative', padding: '28px 28px 22px', background: 'linear-gradient(135deg,rgba(38,194,129,0.1) 0%,rgba(34,197,94,0.04) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)' }}>
                         <div style={{ position: 'absolute', top: 0, right: 0, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(38,194,129,0.08) 0%,transparent 70%)', pointerEvents: 'none' }} />
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                          <span style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(38,194,129,0.15)', border: '1.5px solid rgba(38,194,129,0.35)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden', boxShadow: '0 4px 20px rgba(38,194,129,0.2)' }}>
-                            {modalClient.logoUrl ? <img src={modalClient.logoUrl} alt="" style={{ width: 56, height: 56, objectFit: 'cover' }} /> : <i className="bx bx-building-house" style={{ color: '#26c281', fontSize: 26 }}></i>}
+                          <span style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(38,194,129,0.16)', border: '1px solid rgba(38,194,129,0.4)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden', boxShadow: '0 0 26px rgba(38,194,129,0.3)', fontWeight: 800, fontSize: '1.05rem', color: '#26c281' }}>
+                            {modalClient.logoUrl ? <img src={modalClient.logoUrl} alt="" style={{ width: 56, height: 56, objectFit: 'cover' }} /> : OB_INITIALS(modalClient.name)}
                           </span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#26c281', marginBottom: 4, opacity: 0.8 }}>Checklist de Onboarding</div>
@@ -751,9 +755,9 @@ export default function OnboardingTab() {
                                           type="button"
                                           title={isNa ? 'Clique para remover N/A' : 'Não se aplica'}
                                           onClick={() => handleToggleOnboardingTaskNA(modalClient.id, task.id)}
-                                          style={{ width: 22, height: 22, borderRadius: 6, border: `1.5px solid ${isNa ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, background: isNa ? 'rgba(239,68,68,0.15)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s', marginRight: 8, color: isNa ? '#ef4444' : 'rgba(255,255,255,0.25)' }}
+                                          style={{ width: 34, height: 24, borderRadius: 7, border: `1px solid ${isNa ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: isNa ? 'rgba(239,68,68,0.18)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.15s', marginRight: 8, color: isNa ? '#ef4444' : 'rgba(255,255,255,0.3)', fontFamily: 'Inter', fontSize: '0.6rem', fontWeight: 700 }}
                                         >
-                                          <i className="bx bx-x" style={{ fontSize: 14 }}></i>
+                                          N/A
                                         </button>
                                       </div>
                                     )

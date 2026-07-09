@@ -114,9 +114,9 @@ export default function OffboardingTab() {
           const overallProgress = churnClients.length > 0 ? Math.round((totalDone / (churnClients.length * totalTasks)) * 100) : 0
 
           return (
-            <section className="weekly-dashboard-panel onboarding-panel">
-              <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)', background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,68,68,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <section className="weekly-dashboard-panel onboarding-panel" style={{ background: 'transparent', border: 'none' }}>
+              <div style={{ padding: '24px 26px 20px', border: '1px solid rgba(255,255,255,0.05)', borderBottom: '2px solid rgba(239,68,68,0.28)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(239,68,68,0.07) 0%, rgba(239,68,68,0.01) 100%)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,68,68,0.16), transparent 68%)', pointerEvents: 'none' }} />
                 <span style={{ display: 'inline-block', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#ef4444', marginBottom: 6, opacity: 0.85 }}><i className="bx bx-log-out" style={{ marginRight: 5 }}></i>Offboarding</span>
                 <h2 style={{ margin: '6px 0 4px', fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', fontWeight: 900 }}>Offboarding de clientes</h2>
                 <p style={{ opacity: 0.48, fontSize: '0.88rem', margin: 0 }}>Checklist de encerramento para clientes com status Churn.</p>
