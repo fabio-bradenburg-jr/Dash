@@ -3232,7 +3232,7 @@ export default function DashboardShell({
   externalAppPanelColor = '',
   externalAppTextColor = '',
 }) {
-  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'home', 'monday', 'operacao', 'assistant', 'notas'])
+  const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'monday', 'operacao', 'assistant', 'notas'])
   const { user, profile, access, appearance, updateAppearance, loading: userLoading } = useUser()
   const supabase = createClient()
   const dashboardRef = useRef(null)
@@ -3272,6 +3272,7 @@ export default function DashboardShell({
   const [draftMondayCustomUntil, setDraftMondayCustomUntil] = useState('')
   const [themeColor, setThemeColor] = useState('blue')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+  const [isHubNavOpen, setIsHubNavOpen] = useState(false)
   const [isSidebarHovered, setIsSidebarHovered] = useState(false)
   const isSidebarVisible = !isSidebarCollapsed || isSidebarHovered
   const [isHomeToolsExpanded, setIsHomeToolsExpanded] = useState(false)
@@ -15892,7 +15893,7 @@ export default function DashboardShell({
   return (
     <DashboardContext.Provider value={dashboardContextValue}>
     <div
-      className={`dashboard-container dashboard-shell-stellar ${isLightAppMode ? "dashboard-light-mode" : ""}`}
+      className={`dashboard-container dashboard-shell-stellar hub-shell ${isLightAppMode ? "dashboard-light-mode" : ""}`}
       data-active-tab={activeTab}
       style={{
         '--accent-blue': appAccentColor,
@@ -15914,249 +15915,209 @@ export default function DashboardShell({
         '--accent-rgb': `${activeClientDashboardAccentRgb.r}, ${activeClientDashboardAccentRgb.g}, ${activeClientDashboardAccentRgb.b}`,
       }}
     >
-      <aside className="sidebar glass-panel sidebar-collapsed">
-        <div className="sidebar-top">
-          <div className="logo">
-            {appLogoUrl ? (
-              <span className="brand-logo-mark workspace-logo-mark" aria-hidden="true">
-                <img src={appLogoUrl} alt="" />
-              </span>
-            ) : (
-              <span className="brand-logo-mark logo-image" aria-hidden="true"></span>
-            )}
-            <div className="logo-copy sidebar-reveal">
-              <span>{appName}</span>
-              <small>{appSubtitle}</small>
-            </div>
+      <aside className={`hub-side ${isHubNavOpen ? 'open' : ''}`}>
+        <div className="hub-side-brand">
+          {appLogoUrl ? (
+            <span className="hub-side-logo hub-side-logo-img"><img src={appLogoUrl} alt="" /></span>
+          ) : (
+            <span className="hub-side-logo"><span className="mi">radar</span></span>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div className="hub-side-title">{appName}</div>
+            <div className="hub-side-subtitle">{appSubtitle}</div>
           </div>
         </div>
 
-        <nav className="nav-menu">
-          {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('offboarding')) && (
-            <>
-              <button
-                type="button"
-                data-tooltip="Sucesso do Cliente"
-                aria-label="Sucesso do Cliente"
-                className={`nav-item nav-button nav-group-trigger ${SUCCESS_TABS.includes(activeTab) ? 'active' : ''}`}
-                onClick={() => setIsSuccessMenuOpen((v) => !v)}
-              >
-                <i className="bx bx-heart"></i>
-                <span className="nav-label" style={{ flex: 1 }}>Sucesso do Cliente</span>
-                <i className={`bx bx-chevron-${isSuccessMenuOpen ? 'up' : 'down'} nav-label`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </button>
-              {isSuccessMenuOpen && (
-                <div className="nav-sub-group">
-                  {canAccessClientsTab && (isMaster || hasNavAccess('clientes')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => setActiveTab('clientes')}>
-                      <i className="bx bxs-buildings"></i>
-                      <span className="nav-label">Clientes</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('onboarding')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => setActiveTab('onboarding')}>
-                      <i className="bx bx-log-in"></i>
-                      <span className="nav-label">Onboarding</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('offboarding')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'offboarding' ? 'active' : ''}`} onClick={() => setActiveTab('offboarding')}>
-                      <i className="bx bx-log-out"></i>
-                      <span className="nav-label">Offboarding</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('acessos')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => setActiveTab('acessos')}>
-                      <i className="bx bx-lock-alt"></i>
-                      <span className="nav-label">Dados</span>
-                    </button>
-                  )}
-                </div>
+        <nav className="hub-nav">
+          {(isMaster || hasNavAccess('semanal') || hasNavAccess('settings')) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Geral</div>
+              {isMaster && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => { setActiveTab('home'); setIsHubNavOpen(false) }}>
+                  <span className="mi">home</span><span className="hub-nav-label">Home</span>
+                </button>
               )}
-            </>
-          )}
-          {(isMaster || hasNavAccess('semanal')) && (
-            <button type="button" data-tooltip="Controle da Operação" aria-label="Controle da Operação" className={`nav-item nav-button ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => setActiveTab('semanal')}>
-              <i className="bx bx-pulse"></i>
-              <span className="nav-label">Controle da Operação</span>
-            </button>
-          )}
-          {(isMaster || hasNavAccess('tarefas')) && (
-            <button type="button" data-tooltip="Central de Tarefas" aria-label="Central de Tarefas" className={`nav-item nav-button ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => setActiveTab('tarefas')}>
-              <i className="bx bx-task"></i>
-              <span className="nav-label">Central de Tarefas</span>
-            </button>
-          )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual')) && (
-            <>
-              <button
-                type="button"
-                data-tooltip="Performance"
-                aria-label="Performance"
-                className={`nav-item nav-button nav-group-trigger ${ADS_TABS.includes(activeTab) ? 'active' : ''}`}
-                onClick={() => setIsAdsMenuOpen((v) => !v)}
-              >
-                <i className="bx bx-bullseye"></i>
-                <span className="nav-label" style={{ flex: 1 }}>Performance</span>
-                <i className={`bx bx-chevron-${isAdsMenuOpen ? 'up' : 'down'} nav-label`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </button>
-              {isAdsMenuOpen && (
-                <div className="nav-sub-group">
-                  {(isMaster || hasNavAccess('apresentacao')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => setActiveTab('apresentacao')}>
-                      <i className="bx bxs-dashboard"></i>
-                      <span className="nav-label">Dash</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('campanhas')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'campanhas' ? 'active' : ''}`} onClick={() => setActiveTab('campanhas')}>
-                      <i className="bx bx-sitemap"></i>
-                      <span className="nav-label">Campanhas</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('anuncios')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => setActiveTab('anuncios')}>
-                      <i className="bx bx-layout"></i>
-                      <span className="nav-label">Anúncios</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('saldos')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'saldos' ? 'active' : ''}`} onClick={() => setActiveTab('saldos')}>
-                      <i className="bx bx-wallet-alt"></i>
-                      <span className="nav-label">Saldos</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('relatorios')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => setActiveTab('relatorios')}>
-                      <i className="bx bx-file"></i>
-                      <span className="nav-label">Relatórios</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('relatorio-manual')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'relatorio-manual' ? 'active' : ''}`} onClick={() => setActiveTab('relatorio-manual')}>
-                      <i className="bx bx-file-plus"></i>
-                      <span className="nav-label">Relatório Manual</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('planilha-leads')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'planilha-leads' ? 'active' : ''}`} onClick={() => setActiveTab('planilha-leads')}>
-                      <i className="bx bx-table"></i>
-                      <span className="nav-label">Planilha de Leads</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('funil')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => setActiveTab('funil')}>
-                      <i className="bx bx-filter-alt"></i>
-                      <span className="nav-label">Funil</span>
-                    </button>
-                  )}
-                </div>
+              {(isMaster || hasNavAccess('semanal')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'semanal' ? 'active' : ''}`} onClick={() => { setActiveTab('semanal'); setIsHubNavOpen(false) }}>
+                  <span className="mi">insights</span><span className="hub-nav-label">Controle da Operação</span>
+                </button>
               )}
-            </>
+              {isMaster && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'rotinas' ? 'active' : ''}`} onClick={() => { setActiveTab('rotinas'); setIsHubNavOpen(false) }}>
+                  <span className="mi">event_repeat</span><span className="hub-nav-label">Rotinas</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('settings')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setIsHubNavOpen(false) }}>
+                  <span className="mi">tune</span><span className="hub-nav-label">Configurações</span>
+                </button>
+              )}
+            </div>
+          )}
+          {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('offboarding') || hasNavAccess('acessos')) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Sucesso do Cliente</div>
+              {canAccessClientsTab && (isMaster || hasNavAccess('clientes')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'clientes' ? 'active' : ''}`} onClick={() => { setActiveTab('clientes'); setIsHubNavOpen(false) }}>
+                  <span className="mi">groups</span><span className="hub-nav-label">Clientes</span>
+                  {clients.length > 0 && <span className="hub-nav-badge">{clients.length}</span>}
+                </button>
+              )}
+              {(isMaster || hasNavAccess('onboarding')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => { setActiveTab('onboarding'); setIsHubNavOpen(false) }}>
+                  <span className="mi">rocket_launch</span><span className="hub-nav-label">Onboarding</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('offboarding')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'offboarding' ? 'active' : ''}`} onClick={() => { setActiveTab('offboarding'); setIsHubNavOpen(false) }}>
+                  <span className="mi">logout</span><span className="hub-nav-label">Offboarding</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('acessos')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => { setActiveTab('acessos'); setIsHubNavOpen(false) }}>
+                  <span className="mi">database</span><span className="hub-nav-label">Dados</span>
+                </button>
+              )}
+            </div>
+          )}
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas')) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Performance</div>
+              {(isMaster || hasNavAccess('apresentacao')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'apresentacao' ? 'active' : ''}`} onClick={() => { setActiveTab('apresentacao'); setIsHubNavOpen(false) }}>
+                  <span className="mi">dashboard</span><span className="hub-nav-label">Dash</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('campanhas')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'campanhas' ? 'active' : ''}`} onClick={() => { setActiveTab('campanhas'); setIsHubNavOpen(false) }}>
+                  <span className="mi">campaign</span><span className="hub-nav-label">Campanhas</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('anuncios')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'anuncios' ? 'active' : ''}`} onClick={() => { setActiveTab('anuncios'); setIsHubNavOpen(false) }}>
+                  <span className="mi">ad_units</span><span className="hub-nav-label">Anúncios</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('saldos')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'saldos' ? 'active' : ''}`} onClick={() => { setActiveTab('saldos'); setIsHubNavOpen(false) }}>
+                  <span className="mi">account_balance_wallet</span><span className="hub-nav-label">Saldos</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('relatorios')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'relatorios' ? 'active' : ''}`} onClick={() => { setActiveTab('relatorios'); setIsHubNavOpen(false) }}>
+                  <span className="mi">description</span><span className="hub-nav-label">Relatórios</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('relatorio-manual')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'relatorio-manual' ? 'active' : ''}`} onClick={() => { setActiveTab('relatorio-manual'); setIsHubNavOpen(false) }}>
+                  <span className="mi">edit_document</span><span className="hub-nav-label">Relatório Manual</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('planilha-leads')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'planilha-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('planilha-leads'); setIsHubNavOpen(false) }}>
+                  <span className="mi">table</span><span className="hub-nav-label">Planilha de Leads</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('funil')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => { setActiveTab('funil'); setIsHubNavOpen(false) }}>
+                  <span className="mi">filter_alt</span><span className="hub-nav-label">Funil</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('tarefas')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => { setActiveTab('tarefas'); setIsHubNavOpen(false) }}>
+                  <span className="mi">checklist</span><span className="hub-nav-label">Tarefas</span>
+                </button>
+              )}
+              {isMaster && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'ia-orbit' ? 'active' : ''}`} onClick={() => { setActiveTab('ia-orbit'); setIsHubNavOpen(false) }}>
+                  <span className="mi">smart_toy</span><span className="hub-nav-label">IA Orbit</span>
+                </button>
+              )}
+            </div>
           )}
           {(isMaster || hasNavAccess('editorial-dash') || hasNavAccess('editorial') || hasNavAccess('editorial-plans')) && (
-            <>
-              <button
-                type="button"
-                data-tooltip="Social Media"
-                aria-label="Social Media"
-                className={`nav-item nav-button nav-group-trigger ${SOCIAL_TABS.includes(activeTab) ? 'active' : ''}`}
-                onClick={() => setIsSocialMenuOpen((v) => !v)}
-              >
-                <i className="bx bx-image-alt"></i>
-                <span className="nav-label" style={{ flex: 1 }}>Social Media</span>
-                <i className={`bx bx-chevron-${isSocialMenuOpen ? 'up' : 'down'} nav-label`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </button>
-              {isSocialMenuOpen && (
-                <div className="nav-sub-group">
-                  {(isMaster || hasNavAccess('editorial-dash')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-dash')}>
-                      <i className="bx bx-bar-chart-alt-2"></i>
-                      <span className="nav-label">Painel</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('editorial')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => setActiveTab('editorial')}>
-                      <i className="bx bx-calendar-alt"></i>
-                      <span className="nav-label">Calendário</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('editorial-plans')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => setActiveTab('editorial-plans')}>
-                      <i className="bx bx-spreadsheet"></i>
-                      <span className="nav-label">Planejamentos</span>
-                    </button>
-                  )}
-                </div>
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Social Media</div>
+              {(isMaster || hasNavAccess('editorial-dash')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'editorial-dash' ? 'active' : ''}`} onClick={() => { setActiveTab('editorial-dash'); setIsHubNavOpen(false) }}>
+                  <span className="mi">monitoring</span><span className="hub-nav-label">Painel</span>
+                </button>
               )}
-            </>
+              {(isMaster || hasNavAccess('editorial')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'editorial' ? 'active' : ''}`} onClick={() => { setActiveTab('editorial'); setIsHubNavOpen(false) }}>
+                  <span className="mi">calendar_month</span><span className="hub-nav-label">Calendário</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('editorial-plans')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'editorial-plans' ? 'active' : ''}`} onClick={() => { setActiveTab('editorial-plans'); setIsHubNavOpen(false) }}>
+                  <span className="mi">table_chart</span><span className="hub-nav-label">Planejamentos</span>
+                </button>
+              )}
+            </div>
           )}
           {(isMaster || hasNavAccess('pac-dash') || hasNavAccess('pac-calendario') || hasNavAccess('pac-tipos')) && (
-            <>
-              <button
-                type="button"
-                data-tooltip="PAC"
-                aria-label="PAC"
-                className={`nav-item nav-button nav-group-trigger ${PAC_TABS.includes(activeTab) ? 'active' : ''}`}
-                onClick={() => setIsPacMenuOpen((v) => !v)}
-              >
-                <i className="bx bx-book-bookmark"></i>
-                <span className="nav-label" style={{ flex: 1 }}>PAC</span>
-                <i className={`bx bx-chevron-${isPacMenuOpen ? 'up' : 'down'} nav-label`} style={{ fontSize: 16, marginLeft: 4 }}></i>
-              </button>
-              {isPacMenuOpen && (
-                <div className="nav-sub-group">
-                  {(isMaster || hasNavAccess('pac-dash')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => setActiveTab('pac-dash')}>
-                      <i className="bx bx-bar-chart-alt-2"></i>
-                      <span className="nav-label">Painel</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('pac-calendario')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => setActiveTab('pac-calendario')}>
-                      <i className="bx bx-calendar-alt"></i>
-                      <span className="nav-label">Calendário</span>
-                    </button>
-                  )}
-                  {(isMaster || hasNavAccess('pac-tipos')) && (
-                    <button type="button" className={`nav-item nav-button nav-sub-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => setActiveTab('pac-tipos')}>
-                      <i className="bx bx-category"></i>
-                      <span className="nav-label">Tipos</span>
-                    </button>
-                  )}
-                </div>
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">PAC</div>
+              {(isMaster || hasNavAccess('pac-dash')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'pac-dash' ? 'active' : ''}`} onClick={() => { setActiveTab('pac-dash'); setIsHubNavOpen(false) }}>
+                  <span className="mi">monitoring</span><span className="hub-nav-label">Painel</span>
+                </button>
               )}
-            </>
+              {(isMaster || hasNavAccess('pac-calendario')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'pac-calendario' ? 'active' : ''}`} onClick={() => { setActiveTab('pac-calendario'); setIsHubNavOpen(false) }}>
+                  <span className="mi">calendar_month</span><span className="hub-nav-label">Calendário</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('pac-tipos')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'pac-tipos' ? 'active' : ''}`} onClick={() => { setActiveTab('pac-tipos'); setIsHubNavOpen(false) }}>
+                  <span className="mi">category</span><span className="hub-nav-label">Tipos</span>
+                </button>
+              )}
+            </div>
           )}
-          {canAccessTeamTab && (
-            <button type="button" data-tooltip="Time" aria-label="Time" className={`nav-item nav-button ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}>
-              <i className="bx bxs-user-detail"></i>
-              <span className="nav-label">Time</span>
-            </button>
-          )}
-          {(isMaster || hasNavAccess('settings')) && (
-          <button type="button" data-tooltip="Configurações" aria-label="Configurações" className={"nav-item nav-button " + (activeTab === "settings" ? "active" : "")} onClick={() => setActiveTab('settings')}>
-            <i className="bx bx-cog"></i>
-            <span className="nav-label">Configurações</span>
-          </button>
+          {(canAccessTeamTab || isMaster) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Admin</div>
+              {canAccessTeamTab && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => { setActiveTab('usuarios'); setIsHubNavOpen(false) }}>
+                  <span className="mi">manage_accounts</span><span className="hub-nav-label">Usuários</span>
+                </button>
+              )}
+              {isMaster && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'permissoes' ? 'active' : ''}`} onClick={() => { setActiveTab('permissoes'); setIsHubNavOpen(false) }}>
+                  <span className="mi">shield</span><span className="hub-nav-label">Permissões</span>
+                </button>
+              )}
+              {isMaster && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'centro-master' ? 'active' : ''}`} onClick={() => { setActiveTab('centro-master'); setIsHubNavOpen(false) }}>
+                  <span className="mi">admin_panel_settings</span><span className="hub-nav-label">Centro Master</span>
+                </button>
+              )}
+            </div>
           )}
         </nav>
 
-        <div className="sidebar-bottom-actions">
-          <NotificationBell isLight={isLightAppMode} inSidebar />
-
-          <button
-            type="button"
-            data-tooltip="Sair"
-            className="nav-item nav-button sidebar-logout-button"
-            onClick={handleLogout}
-            aria-label="Sair da plataforma"
-          >
-            <i className="bx bx-log-out"></i>
-            <span className="nav-label">Sair</span>
-          </button>
+        <div className="hub-side-foot">
+          <div className="hub-side-user">
+            <div className="hub-side-avatar">{String(profile?.full_name || user?.email || 'U').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || 'U'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="hub-side-username">{profile?.full_name || user?.email || 'Usuário'}</div>
+              <div className="hub-side-userrole">{role || 'membro'}</div>
+            </div>
+          </div>
+          <div className="hub-side-foot-actions">
+            <NotificationBell isLight={isLightAppMode} inSidebar />
+            <button type="button" className="hub-nav-item hub-logout" onClick={handleLogout} aria-label="Sair da plataforma">
+              <span className="mi">logout</span><span className="hub-nav-label">Sair</span>
+            </button>
+          </div>
         </div>
       </aside>
+
+      {isHubNavOpen && <div className="hub-side-overlay" onClick={() => setIsHubNavOpen(false)} />}
+      <button type="button" className="hub-burger" onClick={() => setIsHubNavOpen(true)} aria-label="Abrir menu">
+        <span className="mi">menu</span>
+      </button>
 
       <main className={`main-content ${isSidebarCollapsed ? 'main-content-expanded' : ''}`}>
         <header className="header" style={{ alignItems: 'flex-start' }}>
@@ -16285,6 +16246,32 @@ export default function DashboardShell({
         {activeTab === 'planilha-leads' && (isMaster || hasNavAccess('planilha-leads')) && (
           <PlanilhaLeadsTab />
         )}
+
+        {['home', 'rotinas', 'ia-orbit', 'permissoes', 'centro-master'].includes(activeTab) && isMaster && (() => {
+          const HUB_PLACEHOLDERS = {
+            'home': { group: 'Geral', title: 'Home', icon: 'home' },
+            'rotinas': { group: 'Geral', title: 'Rotinas', icon: 'event_repeat' },
+            'ia-orbit': { group: 'Performance', title: 'IA Orbit', icon: 'smart_toy' },
+            'permissoes': { group: 'Admin', title: 'Permissões', icon: 'shield' },
+            'centro-master': { group: 'Admin', title: 'Centro Master', icon: 'admin_panel_settings' },
+          }
+          const ph = HUB_PLACEHOLDERS[activeTab]
+          return (
+            <div style={{ maxWidth: 1440, margin: '0 auto', width: '100%' }}>
+              <div style={{ position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', borderTop: '3px solid #26C281', borderRadius: 18, background: 'linear-gradient(135deg,rgba(38,194,129,0.07),rgba(38,194,129,0.01))', padding: '26px 28px' }}>
+                <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.14em', color: '#26C281', fontWeight: 700, marginBottom: 9 }}>{ph.group}</div>
+                <h1 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.5vw,1.95rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{ph.title}</h1>
+                <p style={{ margin: '9px 0 0', color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', maxWidth: '52ch', lineHeight: 1.5 }}>Módulo {ph.title} do Performance Hub — em breve com os dados da operação.</p>
+              </div>
+              <div style={{ marginTop: 22, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)', padding: '56px 28px', textAlign: 'center' }}>
+                <div style={{ width: 66, height: 66, borderRadius: 99, background: 'rgba(38,194,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}><span className="mi" style={{ fontSize: 34, color: '#26C281' }}>{ph.icon}</span></div>
+                <div style={{ fontWeight: 800, fontSize: '1.15rem', marginBottom: 8 }}>{ph.title} · em construção</div>
+                <p style={{ color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', margin: '0 auto 22px', maxWidth: '46ch', lineHeight: 1.55 }}>Esta tela vai reutilizar os componentes base do Performance Hub — hero, stat cards, chips e tabela densa — no mesmo sistema Kinetic Emerald.</p>
+                <button type="button" onClick={() => setActiveTab('clientes')} style={{ height: 42, padding: '0 20px', borderRadius: 99, border: 'none', background: '#26C281', color: '#04150d', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}><span className="mi" style={{ fontSize: 19 }}>groups</span>Ir para Clientes</button>
+              </div>
+            </div>
+          )
+        })()}
 
         {activeTab === 'funil' && (isMaster || hasNavAccess('funil')) && (
           <FunilPerformanceTab
