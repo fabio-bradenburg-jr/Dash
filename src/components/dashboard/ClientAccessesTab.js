@@ -1338,7 +1338,7 @@ export default function ClientAccessesTab({ clients = [] }) {
         </div>
       )}
 
-      <div style={{ maxWidth: 1320, width: '100%', margin: '0 auto', padding: '26px 22px 90px', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1320, width: '100%', margin: '0 auto', padding: '0 0 60px', boxSizing: 'border-box' }}>
       {/* Hero header */}
       <div style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${BORDER}`, borderBottom: '2px solid rgba(167,139,250,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.01))', padding: '24px 26px' }}>
         <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.18), transparent 68%)', pointerEvents: 'none' }} />
@@ -1355,12 +1355,15 @@ export default function ClientAccessesTab({ clients = [] }) {
             <i className="bx bxs-file-pdf" style={{ fontSize: 17 }} /> Exportar dados
           </button>
         </div>
-        <div style={{ position: 'relative', marginTop: 18, maxWidth: 400, display: 'flex', alignItems: 'center' }}>
+      </div>
+
+      {/* Busca + chips — fora do hero, como nas abas Onboarding/Offboarding */}
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ position: 'relative', maxWidth: 400, display: 'flex', alignItems: 'center' }}>
           <i className="bx bx-search" style={{ position: 'absolute', left: 13, fontSize: 17, color: TEXT3, pointerEvents: 'none' }} />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente..." style={{ width: '100%', height: 42, padding: '0 14px 0 40px', borderRadius: 9, border: `1px solid ${BORDER2}`, background: FIELD, color: TEXT, fontFamily: 'inherit', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
         </div>
-        {/* Category filter chips */}
-        <div style={{ position: 'relative', marginTop: 14, display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {catChips.map((ch) => {
             const active = catFilter === ch.key
             return (
