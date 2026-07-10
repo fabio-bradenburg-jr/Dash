@@ -49,7 +49,7 @@ export default function CampanhasTab() {
 
   return (
           <section className="campaign-overview-page ads-overview-page">
-            <div style={{ margin: '18px 22px 0', padding: '24px 26px', border: '1px solid rgba(255,255,255,0.05)', borderBottom: '2px solid rgba(38,194,129,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(38,194,129,0.08) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ margin: 0, padding: '24px 26px', border: '1px solid rgba(255,255,255,0.05)', borderBottom: '2px solid rgba(38,194,129,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(38,194,129,0.08) 0%, rgba(38,194,129,0.01) 100%)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(38,194,129,0.16) 0%, transparent 68%)', pointerEvents: 'none' }} />
               <div>
                 <span className="management-hero-kicker"><i className="bx bx-broadcast" style={{ marginRight: 5 }}></i>Mapa de mídia</span>

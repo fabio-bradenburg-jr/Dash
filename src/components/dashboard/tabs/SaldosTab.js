@@ -45,10 +45,10 @@ export default function SaldosTab() {
   } = useDashboard()
 
   const summaryDefs = [
-    { label: 'Pré-pago abaixo de R$ 100', icon: 'error_outline', color: C.err, value: formatNumber(adAccountBalanceSummary.critical), sub: 'Prioridade de recarga' },
-    { label: 'Pré-pago entre R$ 100 e R$ 200', icon: 'schedule', color: C.warn, value: formatNumber(adAccountBalanceSummary.attention), sub: 'Acompanhar de perto' },
-    { label: 'Contas pós-pagas', icon: 'credit_card', color: C.ok, value: formatNumber(adAccountBalanceSummary.postpaid), sub: `${formatNumber(adAccountBalanceSummary.withCard)} com cartão` },
-    { label: 'Saldo devedor total', icon: 'paid', color: '#94a3b8', value: formatCurrency(adAccountBalanceSummary.pendingAmount), sub: 'Contas pós-pagas com cobrança pendente', neutral: true },
+    { label: 'Pré-pago abaixo de R$ 100', icon: 'bx-error-circle', color: C.err, value: formatNumber(adAccountBalanceSummary.critical), sub: 'Prioridade de recarga' },
+    { label: 'Pré-pago entre R$ 100 e R$ 200', icon: 'bx-time-five', color: C.warn, value: formatNumber(adAccountBalanceSummary.attention), sub: 'Acompanhar de perto' },
+    { label: 'Contas pós-pagas', icon: 'bx-credit-card', color: C.ok, value: formatNumber(adAccountBalanceSummary.postpaid), sub: `${formatNumber(adAccountBalanceSummary.withCard)} com cartão` },
+    { label: 'Saldo devedor total', icon: 'bx-dollar-circle', color: '#94a3b8', value: formatCurrency(adAccountBalanceSummary.pendingAmount), sub: 'Contas pós-pagas com cobrança pendente', neutral: true },
   ]
 
   const filterDefs = [
@@ -65,7 +65,7 @@ export default function SaldosTab() {
         <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: 99, background: 'radial-gradient(circle,rgba(38,194,129,0.16),transparent 68%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'Inter', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: C.accent, fontWeight: 700, marginBottom: 9 }}><span className="mi" style={{ fontSize: 15 }}>account_balance_wallet</span>Controle financeiro de mídia</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'Inter', fontSize: '0.64rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: C.accent, fontWeight: 700, marginBottom: 9 }}><i className="bx bx-wallet" style={{ fontSize: 15 }}></i>Controle financeiro de mídia</div>
             <h1 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.6vw,1.9rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>Saldo das contas de anúncio</h1>
             <p style={{ margin: '9px 0 0', color: C.text2, fontSize: '0.9rem', maxWidth: '62ch', lineHeight: 1.5 }}>Separe contas pré-pagas por fundos disponíveis e pós-pagas por saldo devedor e forma de pagamento.</p>
           </div>
@@ -93,7 +93,7 @@ export default function SaldosTab() {
         {summaryDefs.map((s) => (
           <div key={s.label} style={{ position: 'relative', overflow: 'hidden', padding: '16px 17px', borderRadius: 16, background: C.glass, backdropFilter: 'blur(12px)', border: `1px solid ${C.border}`, borderTop: `2px solid ${s.neutral ? C.border2 : hexA(s.color, 0.4)}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11 }}>
-              <span style={{ width: 30, height: 30, borderRadius: 9, background: hexA(s.color, 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}><span className="mi" style={{ fontSize: 17, color: s.color }}>{s.icon}</span></span>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: hexA(s.color, 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}><i className={'bx ' + s.icon} style={{ fontSize: 17, color: s.color }}></i></span>
               <span style={{ fontFamily: 'Inter', fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: C.text3, fontWeight: 600, lineHeight: 1.2 }}>{s.label}</span>
             </div>
             <div style={{ fontWeight: 800, fontSize: '1.65rem', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: s.neutral ? C.text : s.color }}>{s.value}</div>
