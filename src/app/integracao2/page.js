@@ -17,8 +17,7 @@ const THREE_PS = [
 const METHOD_STEPS = [
   { code: 'P1', label: 'Planejamento',           color: '#26c281' },
   { code: 'P2', label: 'Qualificação',           color: '#4fdf9b' },
-  { code: 'P2', label: 'Atendimento',            color: '#4fdf9b' },
-  { code: 'P2', label: 'Venda & Retenção',       color: '#4fdf9b' },
+  { code: 'P2', label: 'Atendimento e Vendas',   color: '#4fdf9b' },
   { code: 'P3', label: 'Anúncios que Convertem', color: '#26c281' },
   { code: 'P3', label: 'Gestão dos Leads',       color: '#26c281' },
   { code: 'P4', label: 'Controle do Funil',      color: '#1ba86d' },
@@ -306,7 +305,7 @@ export default function Integracao2Page() {
           <div className={styles.twoCol}>
             <div>
               <span className={styles.sectionTag}>P2</span>
-              <h2 className={styles.sectionTitle}>Atendimento</h2>
+              <h2 className={styles.sectionTitle}>Atendimento e Vendas</h2>
               <p className={styles.bodyText}>O comercial recebe o lead e segue um processo claro.</p>
               <ul className={styles.greenList}>
                 <li>Responder rápido</li>
@@ -317,28 +316,6 @@ export default function Integracao2Page() {
             <div className={`${styles.impactCard} ${styles.ledCard}`}>
               <i className="bx bx-message-dots" style={{ fontSize: 40, color: '#26c281', marginBottom: 16 }} />
               <p className={styles.impactText}>"Lead bom precisa de atendimento rápido e processo comercial bem executado."</p>
-            </div>
-          </div>
-        </section>
-
-        {/* 10 — VENDA E RETENÇÃO */}
-        <section id="venda" className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>P2</span>
-            <h2 className={styles.sectionTitle}>Venda e Retenção</h2>
-            <p className={styles.sectionSub}>Venda é método: CRM, follow-up, proposta e fechamento.</p>
-          </div>
-          <div className={styles.vendaGrid}>
-            <div className={`${styles.vendaHighlight} ${styles.ledCard}`}>
-              <span className={styles.vendaBig}>90%</span>
-              <span className={styles.vendaLabel}>das empresas não faz isso</span>
-            </div>
-            <div className={styles.vendaSteps}>
-              {['CRM atualizado','Follow-up estruturado','Proposta clara','Fechamento ativo','Acompanhamento pós-venda','Fidelização do cliente'].map((item, i) => (
-                <div key={i} className={styles.vendaStep}>
-                  <i className="bx bx-check-circle" style={{ color: '#26c281' }} /><span>{item}</span>
-                </div>
-              ))}
             </div>
           </div>
         </section>
