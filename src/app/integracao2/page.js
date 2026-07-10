@@ -40,7 +40,7 @@ const BRIEFING_QUESTIONS = [
 ]
 
 const CHECKLIST_ITEMS = [
-  'Acesso ao Meta Ads, Google Ads, etc.',
+  'Acesso ao Meta Ads',
   'Acesso do Instagram: login e senha',
   'Lista de clientes',
   'Materiais da marca, como logomarca',
