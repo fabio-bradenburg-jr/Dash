@@ -341,7 +341,7 @@ export default function Integracao2Page() {
               <p className={styles.bodyText}>O que você precisa garantir:</p>
               <ul className={styles.greenList}>
                 <li>Agilidade no atendimento</li>
-                <li>Uso diário do CRM</li>
+                <li>Uso diário de CRM, para preenchimento da PGL</li>
                 <li>Participar das reuniões</li>
               </ul>
             </div>
