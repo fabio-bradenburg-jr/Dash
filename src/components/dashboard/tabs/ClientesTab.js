@@ -622,16 +622,21 @@ export default function ClientesTab() {
 
               <div className="client-create-steps" style={{ display: 'flex', gap: 8, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} aria-label="Etapas do cadastro">
                 {[
-                  { id: 'identity', label: '1. Identificação' },
-                  { id: 'integrations', label: '2. Integrações' },
-                ].map((step) => (
-                  <span
-                    key={step.id}
-                    style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: createClientStep === step.id ? 'rgba(38,194,129,0.15)' : 'transparent', color: createClientStep === step.id ? '#26c281' : 'rgba(255,255,255,0.3)', border: `1px solid ${createClientStep === step.id ? 'rgba(38,194,129,0.35)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.15s' }}
-                  >
-                    {step.label}
-                  </span>
-                ))}
+                  { id: 'identity', num: '1', label: 'Identificação' },
+                  { id: 'integrations', num: '2', label: 'Integrações' },
+                ].map((step, idx) => {
+                  const active = createClientStep === step.id
+                  const done = createClientStep === 'integrations' && idx === 0
+                  return (
+                    <span
+                      key={step.id}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 13px 6px 6px', borderRadius: 99, fontFamily: 'Inter', fontSize: '0.74rem', fontWeight: 600, background: active ? 'rgba(38,194,129,0.14)' : 'rgba(255,255,255,0.03)', border: `1px solid ${active ? 'rgba(38,194,129,0.4)' : 'rgba(255,255,255,0.05)'}`, color: active ? '#26c281' : 'rgba(232,230,228,0.42)', transition: 'all 0.15s' }}
+                    >
+                      <span style={{ width: 22, height: 22, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.72rem', background: active ? '#26c281' : (done ? 'rgba(38,194,129,0.3)' : 'rgba(255,255,255,0.1)'), color: active ? '#003821' : (done ? '#26c281' : 'rgba(232,230,228,0.42)') }}>{done ? '✓' : step.num}</span>
+                      {step.label}
+                    </span>
+                  )
+                })}
               </div>
 
               <form className="client-create-stack" onSubmit={handleCreateClient}>
