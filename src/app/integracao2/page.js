@@ -5,9 +5,7 @@ const JOURNEY_STEPS = [
   { label: 'Apresentação',           done: true },
   { label: 'Assinatura do Contrato', done: true },
   { label: 'Reunião de Integração',  current: true },
-  { label: 'Processo Comercial',     done: false },
   { label: 'Início dos Anúncios',    done: false },
-  { label: 'Consultoria Mensal',     done: false },
 ]
 
 const FIVE_PS = [
