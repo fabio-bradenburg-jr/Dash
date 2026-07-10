@@ -8,12 +8,10 @@ const JOURNEY_STEPS = [
   { label: 'Início dos Anúncios',    done: false },
 ]
 
-const FIVE_PS = [
-  { icon: 'bx-target-lock',     title: 'Planejamento Estratégico', desc: 'Definimos público, produto, estratégia e metas antes de qualquer ação.' },
-  { icon: 'bx-git-branch',      title: 'Processos Comerciais',     desc: 'Scripts, fluxos e CRM para transformar leads em vendas de forma previsível.' },
-  { icon: 'bxs-group',          title: 'Potenciais Clientes',      desc: 'Captação ativa de leads qualificados com anúncios e formulários filtrados.' },
-  { icon: 'bx-bar-chart-alt-2', title: 'PAC',                      desc: 'Programa de Aceleração. Acompanhamento individual e contínuo. Encontros mensais para ajustar estratégias na prática e garantir crescimento previsível.' },
-  { icon: 'bx-receipt',         title: 'Prestação de Contas',      desc: 'Relatórios e reuniões mensais para transparência total nos resultados.' },
+const THREE_PS = [
+  { icon: 'bx-target-lock', title: 'Planejamento Estratégico', desc: 'Definimos público, produto, estratégia e metas antes de qualquer ação.' },
+  { icon: 'bxs-group',      title: 'Potenciais Clientes',      desc: 'Captação ativa de leads qualificados com anúncios e formulários filtrados.' },
+  { icon: 'bx-receipt',     title: 'Prestação de Contas',      desc: 'Relatórios e reuniões mensais para transparência total nos resultados.' },
 ]
 
 const METHOD_STEPS = [
@@ -174,14 +172,14 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 3 — MÉTODO 5 P'S */}
-        <section id="metodo-5ps" className={styles.section}>
+        {/* 3 — MÉTODO 3 P'S */}
+        <section id="metodo-3ps" className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>MÉTODO</span>
-            <h2 className={styles.sectionTitle}>Os 5 P's</h2>
+            <h2 className={styles.sectionTitle}>Os 3 P's</h2>
           </div>
           <div className={styles.fivePs}>
-            {FIVE_PS.map((p, i) => (
+            {THREE_PS.map((p, i) => (
               <div key={i} className={`${styles.pCard} ${styles.ledCard}`}>
                 <div className={styles.pCardIcon}><i className={`bx ${p.icon}`} /></div>
                 <h3 className={styles.pCardTitle}>{p.title}</h3>
