@@ -12911,6 +12911,57 @@
           max-height: min(86vh, 920px);
           overflow-y: auto;
         }
+        /* Create-client wizard: fit a single step inside the viewport without scrolling */
+        .modal-create-client.simple-client-modal {
+          width: min(100%, 860px);
+          max-height: min(94vh, 940px);
+          gap: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        .modal-create-client.simple-client-modal .modal-header {
+          flex-shrink: 0;
+        }
+        .modal-create-client.simple-client-modal .client-create-steps {
+          flex-shrink: 0;
+        }
+        .modal-create-client.simple-client-modal .client-create-stack {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 16px 24px 18px;
+          gap: 12px;
+        }
+        .modal-create-client.simple-client-modal .client-create-identity-only {
+          margin-top: 0;
+        }
+        .modal-create-client.simple-client-modal .client-logo-uploader-create,
+        .modal-create-client.simple-client-modal .client-dashboard-color-picker-create {
+          margin-top: 0;
+          padding: 12px 14px;
+        }
+        .modal-create-client.simple-client-modal .client-logo-uploader {
+          grid-template-columns: 64px minmax(0, 1fr);
+          gap: 14px;
+        }
+        .modal-create-client.simple-client-modal .client-logo-preview {
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
+        }
+        .modal-create-client.simple-client-modal .client-logo-copy p,
+        .modal-create-client.simple-client-modal .client-dashboard-color-picker p {
+          font-size: 0.78rem;
+          line-height: 1.35;
+        }
+        .modal-create-client.simple-client-modal .client-create-integration-panel {
+          display: grid;
+          gap: 12px;
+        }
+        .modal-create-client.simple-client-modal .integration-block.client-create-integration-card {
+          padding: 16px 18px;
+        }
         .simple-client-modal .modal-header {
           padding-bottom: 22px;
           margin-bottom: 10px;

@@ -103,7 +103,17 @@ export default function ClientesTab() {
             with_result: { label: 'Com resultado', color: '#3ba3ff' },
             churn: { label: 'Churn', color: '#7b8794' },
           }
-          const TYPE_LABEL = { pdv: 'PDV', inside: 'Inside Sales', ecom: 'Ecom', ecommerce: 'Ecom' }
+          const STATUS_META = {
+            ativo: { label: 'Ativo', color: '#26C281' },
+            onboarding: { label: 'Onboarding', color: '#3ba3ff' },
+            pausado: { label: 'Pausado', color: '#f59e0b' },
+            risco: { label: 'Risco', color: '#ef4444' },
+            churn: { label: 'Churn', color: '#7b8794' },
+          }
+          const statusMetaOf = (client) => {
+            const raw = String(client?.status || '').trim().toLowerCase()
+            return STATUS_META[raw] || STATUS_META.ativo
+          }
           const AVATAR_POOL = ['linear-gradient(135deg,#26C281,#4fdf9b)', 'linear-gradient(135deg,#3ba3ff,#6366f1)', 'linear-gradient(135deg,#f59e0b,#ef4444)', 'linear-gradient(135deg,#8b5cf6,#3ba3ff)', 'linear-gradient(135deg,#22c55e,#26C281)', 'linear-gradient(135deg,#ec4899,#8b5cf6)']
           const hexA = (c, a) => { const n = parseInt(c.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})` }
           const initialsOf = (name) => { const parts = String(name || '').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/); return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?' }
@@ -150,7 +160,7 @@ export default function ClientesTab() {
           const chipDefs = [['todos', 'Todos', null], ['critical', 'Crítico', '#ef4444'], ['attention', 'Atenção', '#f59e0b'], ['healthy', 'Saudável', '#22c55e'], ['with_result', 'Com resultado', '#3ba3ff'], ['integration', 'Integração', '#8b5cf6'], ['churn', 'Churn', '#7b8794']]
 
           const openEdit = (clientId) => { setActiveClientId(clientId); setClientEditSection('geral'); setIsEditClientModalOpen(true) }
-          const GRID = '2.6fr 1.5fr 1fr 1.2fr 0.5fr 88px'
+          const GRID = '2.6fr 1.3fr 1.3fr 0.5fr 88px'
           const thStyle = { fontFamily: 'Inter', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600 }
 
           return (
@@ -218,8 +228,7 @@ export default function ClientesTab() {
                   <div style={{ marginTop: 20, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, overflow: 'hidden', background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 14, alignItems: 'center', padding: '11px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
                       <div style={thStyle}>Cliente</div>
-                      <div style={thStyle}>Gestor de tráfego</div>
-                      <div style={thStyle}>Tipo</div>
+                      <div style={thStyle}>Status</div>
                       <div style={thStyle}>Saúde</div>
                       <div style={{ ...thStyle, textAlign: 'center' }}>Integr.</div>
                       <div></div>
@@ -228,8 +237,7 @@ export default function ClientesTab() {
                       const hk = healthKeyOf(client)
                       const hm = hk ? HEALTH_META[hk] : null
                       const hasMeta = Boolean(client.metaAdAccountId)
-                      const gestor = String(client.trafficManager || '').trim()
-                      const typeLabel = TYPE_LABEL[String(client.salesModel || '').toLowerCase()] || null
+                      const sm = statusMetaOf(client)
                       const canEditRow = canEditClientRecord(client.id)
                       return (
                         <div key={client.id} onClick={() => openEdit(client.id)}
@@ -246,18 +254,10 @@ export default function ClientesTab() {
                               <div style={{ fontFamily: 'Inter', fontSize: '0.68rem', color: 'rgba(229,226,225,0.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{client.segment || client.cnpj || 'Sem segmento'}</div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                            {gestor ? (
-                              <>
-                                <div style={{ width: 24, height: 24, borderRadius: 8, background: AVATAR_POOL[hashIdx(gestor)], display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.6rem', color: '#fff', flex: 'none' }}>{initialsOf(gestor)}</div>
-                                <span style={{ fontSize: '0.82rem', color: 'rgba(229,226,225,0.62)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gestor}</span>
-                              </>
-                            ) : <span style={{ fontSize: '0.78rem', color: 'rgba(229,226,225,0.26)' }}>—</span>}
-                          </div>
                           <div>
-                            {typeLabel
-                              ? <span style={{ fontFamily: 'Inter', fontSize: '0.64rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(229,226,225,0.62)', whiteSpace: 'nowrap' }}>{typeLabel}</span>
-                              : <span style={{ fontSize: '0.78rem', color: 'rgba(229,226,225,0.26)' }}>—</span>}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 4px 9px', borderRadius: 99, background: hexA(sm.color, 0.13), color: sm.color, border: `1px solid ${hexA(sm.color, 0.3)}`, whiteSpace: 'nowrap' }}>
+                              <span style={{ width: 6, height: 6, borderRadius: 99, background: sm.color, boxShadow: `0 0 8px ${sm.color}` }} />{sm.label}
+                            </span>
                           </div>
                           <div>
                             {hm

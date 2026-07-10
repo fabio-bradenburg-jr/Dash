@@ -1340,15 +1340,15 @@ export default function ClientAccessesTab({ clients = [] }) {
 
       <div style={{ maxWidth: 1320, width: '100%', margin: '0 auto', padding: '0 0 60px', boxSizing: 'border-box' }}>
       {/* Hero header */}
-      <div style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${BORDER}`, borderBottom: '2px solid rgba(167,139,250,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.01))', padding: '24px 26px' }}>
+      <div style={{ position: 'relative', overflow: 'hidden', border: `1px solid ${BORDER}`, borderBottom: '2px solid rgba(167,139,250,0.24)', borderRadius: 18, background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(167,139,250,0.01))', padding: '24px 26px 20px' }}>
         <div style={{ position: 'absolute', top: -70, right: -40, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(167,139,250,0.18), transparent 68%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: PURPLE, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+            <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: PURPLE, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
               <i className="bx bx-data" style={{ fontSize: 15 }}></i>Dados
             </span>
-            <h2 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.6vw,1.9rem)', letterSpacing: '-0.02em', lineHeight: 1.05, color: TEXT }}>Dados dos Clientes</h2>
-            <p style={{ margin: '9px 0 0', fontSize: '0.9rem', color: SUB, maxWidth: '58ch', lineHeight: 1.5 }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
+            <h2 style={{ margin: '6px 0 4px', fontWeight: 800, fontSize: 'clamp(1.4rem,2.5vw,1.9rem)', letterSpacing: '-0.02em', lineHeight: 1.05, color: TEXT }}>Dados dos Clientes</h2>
+            <p style={{ margin: 0, opacity: 0.48, fontSize: '0.88rem', color: SUB, maxWidth: '58ch', lineHeight: 1.5 }}>Consulte, organize e exporte os dados de cada cliente — acessos, localizações, WhatsApp e mais.</p>
           </div>
           <button type="button" onClick={() => setShowExportModal(true)}
             style={{ flexShrink: 0, height: 40, background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 9999, color: '#fca5a5', padding: '0 16px', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
