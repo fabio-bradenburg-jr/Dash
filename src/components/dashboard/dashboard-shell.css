@@ -17785,14 +17785,17 @@
    Saldos e placeholders usam .mi fora dela e renderizavam o nome do ícone como texto) */
 .mi {
   font-family: 'Material Symbols Outlined' !important;
-  font-weight: normal;
+  font-weight: normal !important;
   font-style: normal;
   line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
+  letter-spacing: normal !important;
+  text-transform: none !important;
   display: inline-block;
   white-space: nowrap;
   direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Respiro lateral consistente em TODAS as abas do hub shell: 15px de cada lado.
