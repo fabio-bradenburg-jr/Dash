@@ -308,9 +308,9 @@ export default function Integracao2Page() {
               <h2 className={styles.sectionTitle}>Atendimento e Vendas</h2>
               <p className={styles.bodyText}>O comercial recebe o lead e segue um processo claro.</p>
               <ul className={styles.greenList}>
-                <li>Responder rápido</li>
-                <li>Seguir o script</li>
+                <li>Responder Rápido</li>
                 <li>Conduzir o cliente até a proposta</li>
+                <li>Fechamento de venda</li>
               </ul>
             </div>
             <div className={`${styles.impactCard} ${styles.ledCard}`}>
