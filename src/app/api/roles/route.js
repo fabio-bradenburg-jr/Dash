@@ -52,12 +52,14 @@ export async function POST(request) {
     const body = await request.json()
     const { workspaceId } = ctx.accessContext
 
-    const { name, description, color, icon, is_active, permission_keys = [] } = body
+    const { name, description, color, icon, is_active, base_role, permission_keys = [] } = body
     if (!name?.trim()) return NextResponse.json({ error: 'Nome obrigatório.' }, { status: 400 })
+    const VALID_BASE = ['master', 'admin', 'operador', 'analista', 'gestor_resultado', 'visualizador', 'cliente']
+    const safeBaseRole = VALID_BASE.includes(base_role) ? base_role : 'visualizador'
 
     const { data: role, error } = await ctx.adminSupabase
       .from('roles')
-      .insert({ workspace_id: workspaceId, name: name.trim(), description, color: color || '#26c281', icon: icon || 'bx-user', is_active: is_active !== false })
+      .insert({ workspace_id: workspaceId, name: name.trim(), description, color: color || '#26c281', icon: icon || 'bx-user', is_active: is_active !== false, base_role: safeBaseRole })
       .select()
       .single()
     if (error) throw error
@@ -82,7 +84,7 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
     const body = await request.json()
     const { workspaceId } = ctx.accessContext
-    const { id, name, description, color, icon, is_active, permission_keys } = body
+    const { id, name, description, color, icon, is_active, base_role, permission_keys } = body
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
@@ -91,6 +93,8 @@ export async function PUT(request) {
     if (color !== undefined) updates.color = color
     if (icon !== undefined) updates.icon = icon
     if (is_active !== undefined) updates.is_active = is_active
+    const VALID_BASE = ['master', 'admin', 'operador', 'analista', 'gestor_resultado', 'visualizador', 'cliente']
+    if (base_role !== undefined && VALID_BASE.includes(base_role)) updates.base_role = base_role
 
     const { data: role, error } = await ctx.adminSupabase
       .from('roles').update(updates).eq('id', id).eq('workspace_id', workspaceId).select().single()

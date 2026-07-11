@@ -186,6 +186,7 @@ function RoleModal({ role, onClose, onSaved }) {
     color: role?.color || GREEN,
     icon: role?.icon || 'bx-user',
     is_active: role?.is_active !== false,
+    base_role: role?.base_role || 'visualizador',
     permission_keys: role?.permission_keys || [],
   })
   const [saving, setSaving] = useState(false)
@@ -252,6 +253,20 @@ function RoleModal({ role, onClose, onSaved }) {
           <div>
             <label style={S.label}>Descrição</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Descreva as responsabilidades desta função..." rows={2} style={{ ...S.input, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} />
+          </div>
+
+          {/* Nível de acesso base — define o que a função concede ao usuário no app */}
+          <div>
+            <label style={S.label}>Nível de acesso base</label>
+            <select value={form.base_role} onChange={e => setForm(p => ({ ...p, base_role: e.target.value }))} style={{ ...S.input, cursor: 'pointer' }}>
+              <option value="admin">Admin — gerencia clientes, integrações e usuários</option>
+              <option value="operador">Operador — gerencia clientes e dashboards</option>
+              <option value="analista">Analista — vê dashboards e IA</option>
+              <option value="gestor_resultado">Gestor de Resultado</option>
+              <option value="visualizador">Visualizador — acesso somente de leitura</option>
+              <option value="cliente">Cliente — acesso externo</option>
+            </select>
+            <p style={{ fontSize: 11, color: '#64748b', margin: '5px 0 0' }}>Ao atribuir esta função a um usuário, ele recebe este nível de acesso no app.</p>
           </div>
 
           {/* Color + Icon */}

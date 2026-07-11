@@ -609,3 +609,7 @@ create table if not exists public.user_activity_log (
 alter table public.user_activity_log enable row level security;
 create index if not exists user_activity_log_user_idx
   on public.user_activity_log (workspace_id, user_id, created_at desc);
+
+-- ── Funções: nível de acesso base (atribuição principal de papel) ──
+alter table public.roles add column if not exists base_role text not null default 'visualizador'
+  check (base_role in ('master','admin','operador','analista','gestor_resultado','visualizador','cliente'));

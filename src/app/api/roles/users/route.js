@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/server/supabase-admin'
-import { getAccessContext } from '@/lib/server/access-control'
+import { getAccessContext, isPrimaryAdminEmail } from '@/lib/server/access-control'
 import { resolveAuthContext } from '@/lib/server/auth-context'
+import { logUserActivity } from '@/lib/server/user-activity'
 
 async function getAuthContext() {
   const ctx = await resolveAuthContext()
@@ -38,6 +39,7 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
     const { user_id, role_ids = [], primary_role_id } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'user_id obrigatório.' }, { status: 400 })
+    if (!ctx.accessContext.canManageUsers) return NextResponse.json({ error: 'Sem permissão para atribuir funções.' }, { status: 403 })
     const { workspaceId } = ctx.accessContext
 
     await ctx.adminSupabase.from('user_roles').delete().eq('user_id', user_id).eq('workspace_id', workspaceId)
@@ -46,6 +48,35 @@ export async function PUT(request) {
         role_ids.map(rid => ({ user_id, role_id: rid, workspace_id: workspaceId, is_primary: rid === primary_role_id }))
       )
     }
+
+    // Atribuição de função é a forma principal: sincroniza o nível efetivo (profiles.role)
+    // a partir do base_role da função primária — exceto a conta master principal.
+    const effectivePrimaryId = primary_role_id || role_ids[0] || null
+    const { data: targetProfile } = await ctx.adminSupabase
+      .from('profiles').select('email, role').eq('id', user_id).eq('workspace_id', workspaceId).maybeSingle()
+
+    if (targetProfile && !isPrimaryAdminEmail(targetProfile.email)) {
+      let nextRole = 'visualizador'
+      let roleName = ''
+      if (effectivePrimaryId) {
+        const { data: primaryRole } = await ctx.adminSupabase
+          .from('roles').select('base_role, name').eq('id', effectivePrimaryId).eq('workspace_id', workspaceId).maybeSingle()
+        if (primaryRole?.base_role) nextRole = primaryRole.base_role
+        roleName = primaryRole?.name || ''
+      }
+      // Não rebaixa um master existente por engano se nenhuma função foi escolhida.
+      if (effectivePrimaryId || targetProfile.role !== 'master') {
+        const patch = { role: nextRole }
+        if (nextRole === 'master') { patch.ai_access_level = 'master'; patch.can_edit_integrations = true }
+        await ctx.adminSupabase.from('profiles').update(patch).eq('id', user_id)
+      }
+      await logUserActivity(ctx.adminSupabase, {
+        workspaceId, userId: user_id, actorId: ctx.user?.id || null,
+        actorName: ctx.accessContext.profile?.full_name || ctx.accessContext.profile?.email || '',
+        action: 'Função atribuída', detail: roleName ? `Função: ${roleName} (nível ${nextRole}).` : 'Funções removidas.',
+      })
+    }
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })

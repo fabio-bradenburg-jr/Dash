@@ -283,6 +283,22 @@ export async function GET() {
       groupAccessByUser.set(row.user_id, current)
     })
 
+    // Função atribuída (user_roles → roles). Forma principal de atribuição.
+    const assignedRoleById = new Map()
+    try {
+      const { data: userRoles } = await accessRowsClient
+        .from('user_roles')
+        .select('user_id, is_primary, roles(id, name, color, base_role)')
+        .eq('workspace_id', accessContext.workspaceId)
+      ;(userRoles || []).forEach((row) => {
+        if (!row.roles) return
+        const current = assignedRoleById.get(row.user_id)
+        if (!current || row.is_primary) assignedRoleById.set(row.user_id, { ...row.roles, is_primary: row.is_primary })
+      })
+    } catch (rolesErr) {
+      console.warn('Users GET assigned-role lookup failed:', rolesErr?.message)
+    }
+
     // Último acesso vem do auth (last_sign_in_at). Só disponível para quem gerencia usuários.
     const lastAccessById = new Map()
     if (accessContext.canManageUsers) {
@@ -301,6 +317,7 @@ export async function GET() {
         ...profile,
         status: profile.status || 'active',
         last_access: lastAccessById.get(profile.id) || null,
+        assignedRole: assignedRoleById.get(profile.id) || null,
         clientAccess: accessByUser.get(profile.id) || [],
         clientGroupAccess: groupAccessByUser.get(profile.id) || [],
       }))

@@ -93,6 +93,7 @@ export default function UsuariosTab() {
   const [modalTab, setModalTab] = useState('dados')
   const [activity, setActivity] = useState({ loading: false, entries: [] })
   const [presets, setPresets] = useState([])
+  const [rolesList, setRolesList] = useState([])
   const [newPresetName, setNewPresetName] = useState('')
   const [customPerms, setCustomPerms] = useState([])
   const [newCustomLabel, setNewCustomLabel] = useState('')
@@ -114,7 +115,10 @@ export default function UsuariosTab() {
   const loadPresets = useCallback(async () => {
     try { const r = await fetch('/api/permission-presets', { cache: 'no-store' }); const d = await r.json(); if (r.ok) setPresets(d.presets || []) } catch { /* ignore */ }
   }, [])
-  useEffect(() => { if (canManageUsers) loadPresets() }, [canManageUsers, loadPresets])
+  const loadRoles = useCallback(async () => {
+    try { const r = await fetch('/api/roles', { cache: 'no-store' }); const d = await r.json(); if (r.ok) setRolesList((d.roles || []).filter((x) => x.is_active !== false)) } catch { /* ignore */ }
+  }, [])
+  useEffect(() => { if (canManageUsers) { loadPresets(); loadRoles() } }, [canManageUsers, loadPresets, loadRoles])
 
   if (!canManageUsers) {
     return (
@@ -206,6 +210,16 @@ export default function UsuariosTab() {
       if (!r.ok) throw new Error(d.error || 'Falha ao transferir.')
       showToast('Master transferido com sucesso.')
       setTransferOpen(false); setTransferTargetId('')
+      await loadUsers()
+    } catch (e) { showToast(e.message, 'error') } finally { setBusyAction(false) }
+  }
+  const assignFunction = async (userId, roleId) => {
+    setBusyAction(true)
+    try {
+      const body = roleId ? { user_id: userId, role_ids: [roleId], primary_role_id: roleId } : { user_id: userId, role_ids: [] }
+      const r = await fetch('/api/roles/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Falha ao atribuir função.')
+      showToast(roleId ? 'Função atribuída.' : 'Função removida.')
       await loadUsers()
     } catch (e) { showToast(e.message, 'error') } finally { setBusyAction(false) }
   }
@@ -342,6 +356,9 @@ export default function UsuariosTab() {
               </div>
               {visibleUsers.map((u) => {
                 const rm = roleMetaOf(u); const sm = statusMetaOf(u)
+                const ar = u.assignedRole
+                const chipColor = (ar?.color && /^#/.test(ar.color)) ? ar.color : rm.color
+                const chipLabel = ar?.name || rm.label
                 const accessCount = getManagedUserAccessibleClientCount(u)
                 const accessLabel = u.role === 'master' ? 'Todos' : accessCount > 0 ? `${accessCount} dashboard(s)` : 'Nenhum'
                 const name = u.full_name || u.email
@@ -360,8 +377,8 @@ export default function UsuariosTab() {
                       </div>
                     </div>
                     <div>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 4px 9px', borderRadius: 99, background: hexA(rm.color, 0.13), color: rm.color, border: `1px solid ${hexA(rm.color, 0.3)}`, whiteSpace: 'nowrap' }}>
-                        <span style={{ width: 6, height: 6, borderRadius: 99, background: rm.color }} />{rm.label}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 4px 9px', borderRadius: 99, background: hexA(chipColor, 0.13), color: chipColor, border: `1px solid ${hexA(chipColor, 0.3)}`, whiteSpace: 'nowrap' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 99, background: chipColor }} />{chipLabel}
                       </span>
                     </div>
                     <div style={{ fontSize: '0.82rem', color: 'rgba(229,226,225,0.62)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{accessLabel}</div>
@@ -455,13 +472,43 @@ export default function UsuariosTab() {
           {/* DADOS */}
           {modalTab === 'dados' && (
             <>
+              {/* Função (forma principal de atribuição) */}
+              {selectedManagedUser.role !== 'master' && (
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 9 }}>Função</div>
+                  {rolesList.length ? (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {rolesList.map((role) => {
+                        const active = selectedManagedUser.assignedRole?.id === role.id
+                        const color = /^#/.test(role.color || '') ? role.color : '#26C281'
+                        return (
+                          <button key={role.id} type="button" disabled={busyAction} onClick={() => assignFunction(selectedManagedUser.id, role.id)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 10, fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 600, cursor: busyAction ? 'default' : 'pointer',
+                              background: active ? hexA(color, 0.16) : 'rgba(255,255,255,0.04)', border: `1px solid ${active ? hexA(color, 0.5) : 'rgba(255,255,255,0.08)'}`, color: active ? color : 'rgba(229,226,225,0.7)' }}>
+                            {role.icon && <i className={`bx ${role.icon}`} style={{ fontSize: 15 }} />}
+                            {role.name}
+                            {active && <span className="mi" style={{ fontSize: 16 }}>check</span>}
+                          </button>
+                        )
+                      })}
+                      <button type="button" disabled={busyAction || !selectedManagedUser.assignedRole} onClick={() => assignFunction(selectedManagedUser.id, null)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 12px', borderRadius: 10, fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', background: 'transparent', border: '1px dashed rgba(255,255,255,0.14)', color: 'rgba(229,226,225,0.45)' }}>
+                        Sem função
+                      </button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.82rem', color: 'rgba(229,226,225,0.5)', margin: 0 }}>Nenhuma função criada ainda. Crie funções na aba <strong style={{ color: '#26C281' }}>Funções e Permissões</strong>.</p>
+                  )}
+                  <p style={{ fontSize: '0.74rem', color: 'rgba(229,226,225,0.4)', margin: '8px 0 0' }}>A função define o nível de acesso do usuário no app. É salva na hora.</p>
+                </div>
+              )}
               <div className="form-grid user-admin-grid">
                 <div className="input-group"><label>Nome</label><input type="text" value={selectedManagedUser.full_name || ''} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, full_name: e.target.value }))} /></div>
                 <div className="input-group"><label>E-mail</label><input type="email" value={selectedManagedUser.email || ''} disabled /></div>
                 {selectedManagedUser.role !== 'master' ? (
-                  <div className="input-group"><label>Papel</label><select className="client-select-input" value={selectedManagedUser.role || 'visualizador'} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, role: e.target.value }))}>{EDIT_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                  <div className="input-group"><label>Nível de acesso (efetivo)</label><select className="client-select-input" value={selectedManagedUser.role || 'visualizador'} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, role: e.target.value }))}>{EDIT_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
                 ) : (
-                  <div className="input-group"><label>Papel</label><input type="text" value="Master" disabled /></div>
+                  <div className="input-group"><label>Nível de acesso</label><input type="text" value="Master" disabled /></div>
                 )}
                 <div className="input-group"><label>IA</label><select className="client-select-input" value={selectedManagedUser.ai_access_level || (selectedManagedUser.role === 'master' ? 'master' : 'team')} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, ai_access_level: e.target.value }))}>{selectedManagedUser.role === 'master' && <option value="master">IA Master</option>}<option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
               </div>
