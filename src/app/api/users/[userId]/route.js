@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server'
 import { resolveAuthContext } from '@/lib/server/auth-context'
 import { AI_ACCESS_LEVELS, isPrimaryAdminEmail, USER_ROLES } from '@/lib/server/access-control'
+import { logUserActivity } from '@/lib/server/user-activity'
+
+const VALID_STATUS = ['active', 'inactive', 'invited']
+async function setProfileStatus(adminSupabase, userId, status) {
+  if (!VALID_STATUS.includes(status)) return
+  try {
+    const { error } = await adminSupabase.from('profiles').update({ status }).eq('id', userId)
+    if (error && !String(error.message || '').toLowerCase().includes('status')) throw error
+  } catch (error) {
+    console.warn('setProfileStatus failed:', error?.message)
+  }
+}
 
 function isMissingRelationError(error) {
   const message = String(error?.message || '').toLowerCase()
@@ -126,6 +138,19 @@ export async function PATCH(request, context) {
 
     if (profileError) throw profileError
 
+    if (typeof body.status === 'string' && VALID_STATUS.includes(body.status)) {
+      await setProfileStatus(adminSupabase, userId, body.status)
+    }
+
+    await logUserActivity(adminSupabase, {
+      workspaceId: accessContext.workspaceId,
+      userId,
+      actorId: user?.id || null,
+      actorName: accessContext.profile?.full_name || accessContext.profile?.email || '',
+      action: 'Usuário atualizado',
+      detail: `Papel: ${role}${body.status ? ` · Status: ${body.status}` : ''}.`,
+    })
+
     const { error: deleteAccessError } = await adminSupabase
       .from('user_client_access')
       .delete()
@@ -205,7 +230,7 @@ export async function DELETE(_request, { params }) {
 
     const { data: targetProfile } = await adminSupabase
       .from('profiles')
-      .select('workspace_id')
+      .select('workspace_id, role, email, full_name')
       .eq('id', userId)
       .maybeSingle()
 
@@ -213,8 +238,31 @@ export async function DELETE(_request, { params }) {
       return NextResponse.json({ error: 'Usuário não encontrado neste workspace.' }, { status: 403 })
     }
 
+    if (isPrimaryAdminEmail(targetProfile.email)) {
+      return NextResponse.json({ error: 'A conta master principal não pode ser removida.' }, { status: 400 })
+    }
+
+    if (targetProfile.role === USER_ROLES.MASTER) {
+      const { count } = await adminSupabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', accessContext.workspaceId)
+        .eq('role', USER_ROLES.MASTER)
+      if ((count || 0) <= 1) {
+        return NextResponse.json({ error: 'Não é possível remover o único Master do workspace. Transfira o Master antes.' }, { status: 400 })
+      }
+    }
+
     const { error } = await adminSupabase.auth.admin.deleteUser(userId)
     if (error) throw error
+
+    await logUserActivity(adminSupabase, {
+      workspaceId: accessContext.workspaceId,
+      actorId: user?.id || null,
+      actorName: accessContext.profile?.full_name || accessContext.profile?.email || '',
+      action: 'Usuário removido',
+      detail: `${targetProfile.full_name || targetProfile.email} removido do workspace.`,
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

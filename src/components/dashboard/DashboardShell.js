@@ -15590,6 +15590,7 @@ export default function DashboardShell({
     setIsCreateUserModalOpen,
     isEditUserModalOpen,
     setIsEditUserModalOpen,
+    loadUsers,
     navPermissions,
     permSelectedUserId,
     setPermSelectedUserId,

@@ -6,6 +6,17 @@ import { createAdminClient } from '@/lib/server/supabase-admin'
 import { AI_ACCESS_LEVELS, getAccessContext, isPrimaryAdminEmail, USER_ROLES } from '@/lib/server/access-control'
 import { PLATFORM_AUTH_COOKIE } from '@/lib/saas/auth'
 import { verifyLocalAccessToken } from '@/lib/server/platform-auth-fallback'
+import { logUserActivity } from '@/lib/server/user-activity'
+
+// Atualiza a coluna status de forma defensiva (ignora se a migration ainda não rodou).
+async function setProfileStatus(adminSupabase, userId, status) {
+  try {
+    const { error } = await adminSupabase.from('profiles').update({ status }).eq('id', userId)
+    if (error && !String(error.message || '').toLowerCase().includes('status')) throw error
+  } catch (error) {
+    console.warn('setProfileStatus failed:', error?.message)
+  }
+}
 
 function isMissingRelationError(error) {
   const message = String(error?.message || '').toLowerCase()
@@ -220,16 +231,31 @@ export async function GET() {
     const profilesClient = accessContext.canManageUsers ? adminSupabase : supabase
     const accessRowsClient = accessContext.canManageUsers ? adminSupabase : supabase
 
+    const selectWithStatus = 'id, email, full_name, avatar_url, role, ai_access_level, can_edit_integrations, workspace_id, created_at, status'
+    const selectBase = 'id, email, full_name, avatar_url, role, ai_access_level, can_edit_integrations, workspace_id, created_at'
+    const loadProfiles = async () => {
+      const withStatus = await profilesClient
+        .from('profiles')
+        .select(selectWithStatus)
+        .eq('workspace_id', accessContext.workspaceId)
+        .order('created_at', { ascending: true })
+      // Coluna status pode não existir ainda (migration pendente) → refaz sem ela.
+      if (withStatus.error && String(withStatus.error.message || '').toLowerCase().includes('status')) {
+        return profilesClient
+          .from('profiles')
+          .select(selectBase)
+          .eq('workspace_id', accessContext.workspaceId)
+          .order('created_at', { ascending: true })
+      }
+      return withStatus
+    }
+
     const [
       { data: profiles, error: profilesError },
       { data: accessRows, error: accessError },
       { data: groupAccessRows, error: groupAccessError },
     ] = await Promise.all([
-      profilesClient
-        .from('profiles')
-        .select('id, email, full_name, avatar_url, role, ai_access_level, can_edit_integrations, workspace_id, created_at')
-        .eq('workspace_id', accessContext.workspaceId)
-        .order('created_at', { ascending: true }),
+      loadProfiles(),
       accessRowsClient
         .from('user_client_access')
         .select('user_id, client_id, can_view, can_edit')
@@ -257,9 +283,24 @@ export async function GET() {
       groupAccessByUser.set(row.user_id, current)
     })
 
+    // Último acesso vem do auth (last_sign_in_at). Só disponível para quem gerencia usuários.
+    const lastAccessById = new Map()
+    if (accessContext.canManageUsers) {
+      try {
+        const { data: authList } = await adminSupabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+        ;(authList?.users || []).forEach((authUser) => {
+          if (authUser?.id) lastAccessById.set(authUser.id, authUser.last_sign_in_at || null)
+        })
+      } catch (authListError) {
+        console.warn('Users GET last-access lookup failed:', authListError?.message)
+      }
+    }
+
     return NextResponse.json(
       (profiles || []).map((profile) => ({
         ...profile,
+        status: profile.status || 'active',
+        last_access: lastAccessById.get(profile.id) || null,
         clientAccess: accessByUser.get(profile.id) || [],
         clientGroupAccess: groupAccessByUser.get(profile.id) || [],
       }))
@@ -371,6 +412,16 @@ export async function POST(request) {
         throw groupAccessInsertError
       }
     }
+
+    await setProfileStatus(adminSupabase, userId, 'invited')
+    await logUserActivity(adminSupabase, {
+      workspaceId: accessContext.workspaceId,
+      userId,
+      actorId: accessContext.profile?.id || null,
+      actorName: accessContext.profile?.full_name || accessContext.profile?.email || '',
+      action: 'Convite criado',
+      detail: `${fullName || email} adicionado como ${role}.`,
+    })
 
     return NextResponse.json({
       ok: true,
