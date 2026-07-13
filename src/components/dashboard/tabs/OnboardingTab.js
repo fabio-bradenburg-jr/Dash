@@ -627,12 +627,13 @@ export default function OnboardingTab() {
                 const modalClient = onboardingExpandedClient ? onboardingClients.find((c) => c.id === onboardingExpandedClient) : null
                 if (!modalClient) return null
                 const record = onboardingRecords.find((r) => r.client_id === modalClient.id)
-                const completedTasks = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-                const naTasks = Array.isArray(record?.na_tasks) ? record.na_tasks : []
+                const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter((id) => allValidTaskIds.has(id))
+                const naTasks = (Array.isArray(record?.na_tasks) ? record.na_tasks : []).filter((id) => allValidTaskIds.has(id))
                 const completedCount = completedTasks.length
                 const naCount = naTasks.length
-                const effectiveTotal = totalTasks - naCount
-                const progress = effectiveTotal > 0 ? Math.round((completedCount / effectiveTotal) * 100) : 100
+                const effectiveTotal = Math.max(0, totalTasks - naCount)
+                const progress = effectiveTotal > 0 ? Math.min(100, Math.round((completedCount / effectiveTotal) * 100)) : 100
+                const pendingCount = Math.max(0, effectiveTotal - completedCount)
                 return (
                   <div
                     onClick={() => setOnboardingExpandedClient(null)}
@@ -660,7 +661,7 @@ export default function OnboardingTab() {
                             </div>
                             <div style={{ marginTop: 6, display: 'flex', gap: 12 }}>
                               <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ color: '#22c55e', fontWeight: 700 }}>{completedCount}</span> concluídas</span>
-                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ fontWeight: 700 }}>{effectiveTotal - completedCount}</span> pendentes</span>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ fontWeight: 700 }}>{pendingCount}</span> pendentes</span>
                               {naCount > 0 && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}><span style={{ color: '#94a3b8', fontWeight: 700 }}>{naCount}</span> n/a</span>}
                             </div>
                           </div>

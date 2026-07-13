@@ -78,6 +78,8 @@ export default function OffboardingTab() {
           ]
           const OFFBOARDING_PHASES = offboardingPhaseDefsLoaded ? offboardingPhaseDefs : OFFBOARDING_PHASES_FALLBACK
           const totalTasks = OFFBOARDING_PHASES.reduce((s, p) => s + p.tasks.length, 0)
+          const allValidIds = new Set(OFFBOARDING_PHASES.flatMap((p) => p.tasks.map((t) => t.id)))
+          const doneCount = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter((id) => allValidIds.has(id)).length
           const PHASE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#64748b']
           const churnClients = (clients || []).filter((c) => {
             const status = String(c?.status || '').trim().toLowerCase()
@@ -88,7 +90,7 @@ export default function OffboardingTab() {
             if (offboardingSearch && !String(c.name || '').toLowerCase().includes(offboardingSearch.toLowerCase())) return false
             if (offboardingStatusFilter !== 'all') {
               const rec = offboardingRecords.find((r) => r.client_id === c.id)
-              const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+              const done = doneCount(rec)
               if (offboardingStatusFilter === 'complete' && done < totalTasks) return false
               if (offboardingStatusFilter === 'in_progress' && (done === 0 || done >= totalTasks)) return false
               if (offboardingStatusFilter === 'not_started' && done > 0) return false
@@ -98,20 +100,19 @@ export default function OffboardingTab() {
 
           const totalDone = churnClients.reduce((s, c) => {
             const rec = offboardingRecords.find((r) => r.client_id === c.id)
-            return s + (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0)
+            return s + doneCount(rec)
           }, 0)
           const completeCount = churnClients.filter((c) => {
             const rec = offboardingRecords.find((r) => r.client_id === c.id)
-            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
-            return done >= totalTasks
+            return doneCount(rec) >= totalTasks
           }).length
           const inProgressCount = churnClients.filter((c) => {
             const rec = offboardingRecords.find((r) => r.client_id === c.id)
-            const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
+            const done = doneCount(rec)
             return done > 0 && done < totalTasks
           }).length
           const notStartedCount = churnClients.length - completeCount - inProgressCount
-          const overallProgress = churnClients.length > 0 ? Math.round((totalDone / (churnClients.length * totalTasks)) * 100) : 0
+          const overallProgress = churnClients.length > 0 ? Math.min(100, Math.round((totalDone / (churnClients.length * totalTasks)) * 100)) : 0
 
           return (
             <section className="weekly-dashboard-panel onboarding-panel" style={{ background: 'transparent', border: 'none' }}>
@@ -307,8 +308,8 @@ export default function OffboardingTab() {
                 )}
                 {filteredChurnClients.map((client) => {
                   const rec = offboardingRecords.find((r) => r.client_id === client.id)
-                  const done = Array.isArray(rec?.completed_tasks) ? rec.completed_tasks.length : 0
-                  const pct = Math.round((done / totalTasks) * 100)
+                  const done = doneCount(rec)
+                  const pct = totalTasks > 0 ? Math.min(100, Math.round((done / totalTasks) * 100)) : 0
                   const isComplete = done >= totalTasks
                   return (
                     <button key={client.id} type="button" onClick={() => { setOffboardingExpandedClient(client); setOffboardingExpandedPhases(new Set()) }}
@@ -337,9 +338,9 @@ export default function OffboardingTab() {
               {offboardingExpandedClient && (() => {
                 const client = offboardingExpandedClient
                 const rec = offboardingRecords.find((r) => r.client_id === client.id)
-                const completedSet = new Set(Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : [])
+                const completedSet = new Set((Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter((id) => allValidIds.has(id)))
                 const totalDoneClient = completedSet.size
-                const pct = Math.round((totalDoneClient / totalTasks) * 100)
+                const pct = totalTasks > 0 ? Math.min(100, Math.round((totalDoneClient / totalTasks) * 100)) : 0
                 return (
                   <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                     onClick={() => setOffboardingExpandedClient(null)}>
