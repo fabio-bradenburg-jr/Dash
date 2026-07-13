@@ -27,6 +27,7 @@ import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
 import OffboardingTab from '@/components/dashboard/tabs/OffboardingTab'
+import RotinasTab from '@/components/dashboard/tabs/RotinasTab'
 import UsuariosTab from '@/components/dashboard/tabs/UsuariosTab'
 import SemanalTab from '@/components/dashboard/tabs/SemanalTab'
 import ClientesTab from '@/components/dashboard/tabs/ClientesTab'
@@ -16249,12 +16250,11 @@ export default function DashboardShell({
         )}
 
         {activeTab === 'rotinas' && (isMaster || hasNavAccess('tarefas')) && (
-          <TasksTab
+          <RotinasTab
             clients={clients}
             workspaceUsers={usersList}
             isMaster={isMaster}
             currentUserId={user?.id}
-            mode="rotinas"
           />
         )}
 

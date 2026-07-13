@@ -776,7 +776,7 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
 }
 
 // ---- Main RotinasView ----
-export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack, onDeleteSpace }) {
+export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
@@ -902,9 +902,11 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
     <div style={{ color: '#e2e8f0' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexWrap: 'wrap' }}>
-        <button type="button" onClick={onBack} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
-          <i className="bx bx-chevron-left" style={{ fontSize: 18 }} /> Voltar
-        </button>
+        {!hideBack && (
+          <button type="button" onClick={onBack} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.85rem' }}>
+            <i className="bx bx-chevron-left" style={{ fontSize: 18 }} /> Voltar
+          </button>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: space.color }} />
@@ -942,15 +944,17 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowDeleteModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef444480', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#ef444480' }}
-        >
-          <i className="bx bx-trash" style={{ fontSize: 15 }} /> Excluir
-        </button>
+        {!hideDelete && (
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef444480', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.color = '#ef444480' }}
+          >
+            <i className="bx bx-trash" style={{ fontSize: 15 }} /> Excluir
+          </button>
+        )}
 
         {/* View toggle */}
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>

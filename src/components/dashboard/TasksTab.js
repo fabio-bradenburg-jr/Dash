@@ -1398,7 +1398,7 @@ function RecurrenceModal({ task, onSave, onClose }) {
   )
 }
 
-function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields }) {
+export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields }) {
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
   const [subtasks, setSubtasks] = useState([])
@@ -3157,6 +3157,24 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
 
   useEffect(() => { loadData(); loadStatuses() }, [loadData, loadStatuses])
 
+  // Aba Rotinas: uma única central. Abre direto no board semanal — sem tela de
+  // espaços. Se não existir, cria a central única automaticamente.
+  const rotinasEnsuredRef = useRef(false)
+  useEffect(() => {
+    if (!isRotinasMode || loading) return
+    const rotinasSpaces = spaces.filter(s => s.space_type === 'rotinas')
+    if (rotinasSpaces.length) {
+      if (!selectedSpace || selectedSpace.space_type !== 'rotinas') {
+        setSelectedSpace(rotinasSpaces[0]); setView('space')
+      }
+    } else if (!rotinasEnsuredRef.current) {
+      rotinasEnsuredRef.current = true
+      fetch('/api/tasks/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Rotinas', color: '#8b5cf6', icon: 'bx-refresh', space_type: 'rotinas', is_private: false }) })
+        .then(r => r.json()).then(j => { if (j.space) { setSpaces(prev => [...prev, j.space]); setSelectedSpace(j.space); setView('space') } })
+        .catch(() => {})
+    }
+  }, [isRotinasMode, loading, spaces, selectedSpace])
+
   async function handleAddTask(fields) {
     // Default assignee to current user so the task remains visible under "Minhas tarefas" filter
     const payload = {
@@ -3334,7 +3352,13 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
         </div>
       )}
 
-      {!loading && view === 'home' && (
+      {!loading && view === 'home' && isRotinasMode && (
+        <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+          <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22 }}></i>
+        </div>
+      )}
+
+      {!loading && view === 'home' && !isRotinasMode && (
         <div style={{ paddingTop: 16 }}>
           <HomeView
             tasks={modeTasks}
@@ -3358,6 +3382,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             allTasks={tasks}
             statuses={statuses}
             workspaceUsers={allUsers}
+            hideBack={isRotinasMode}
+            hideDelete={isRotinasMode}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onTaskSaved={(task, type) => {
               if (type === 'create') setTasks(prev => [...prev, task])
