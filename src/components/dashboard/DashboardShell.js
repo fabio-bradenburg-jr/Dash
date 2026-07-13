@@ -16248,10 +16248,19 @@ export default function DashboardShell({
           <PlanilhaLeadsTab />
         )}
 
-        {['home', 'rotinas', 'ia-orbit', 'permissoes', 'centro-master'].includes(activeTab) && isMaster && (() => {
+        {activeTab === 'rotinas' && (isMaster || hasNavAccess('tarefas')) && (
+          <TasksTab
+            clients={clients}
+            workspaceUsers={usersList}
+            isMaster={isMaster}
+            currentUserId={user?.id}
+            mode="rotinas"
+          />
+        )}
+
+        {['home', 'ia-orbit', 'permissoes', 'centro-master'].includes(activeTab) && isMaster && (() => {
           const HUB_PLACEHOLDERS = {
             'home': { group: 'Geral', title: 'Home', icon: 'home' },
-            'rotinas': { group: 'Geral', title: 'Rotinas', icon: 'event_repeat' },
             'ia-orbit': { group: 'Performance', title: 'IA Orbit', icon: 'smart_toy' },
             'permissoes': { group: 'Admin', title: 'Permissões', icon: 'shield' },
             'centro-master': { group: 'Admin', title: 'Centro Master', icon: 'admin_panel_settings' },
@@ -16306,6 +16315,7 @@ export default function DashboardShell({
             workspaceUsers={usersList}
             isMaster={isMaster}
             currentUserId={user?.id}
+            mode="tarefas"
           />
         )}
 

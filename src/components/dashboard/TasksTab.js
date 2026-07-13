@@ -980,8 +980,12 @@ function TemplateSemanalModal({ onClose, onCreate, workspaceUsers, statuses }) {
   )
 }
 
-function NewSpaceModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false, space_type: 'standard' })
+function NewSpaceModal({ onClose, onCreate, forcedType }) {
+  const [form, setForm] = useState(
+    forcedType === 'rotinas'
+      ? { name: '', description: '', color: '#8b5cf6', icon: 'bx-refresh', is_private: false, space_type: 'rotinas' }
+      : { name: '', description: '', color: '#26c281', icon: 'bx-folder', is_private: false, space_type: forcedType || 'standard' }
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e) {
@@ -1080,7 +1084,7 @@ function NewSpaceModal({ onClose, onCreate }) {
             </div>
           </div>
 
-          <div style={{ marginBottom: 22 }}>
+          <div style={{ marginBottom: 22, display: forcedType ? 'none' : 'block' }}>
             <label style={labelStyle}>Tipo de Espaço</label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -3057,7 +3061,8 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
 }
 
 // ---- Main Component ----
-export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId }) {
+export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId, mode = 'tarefas' }) {
+  const isRotinasMode = mode === 'rotinas'
   const [statuses, setStatuses] = useState([])
   const [tasks, setTasks] = useState([])
   const [spaces, setSpaces] = useState([])
@@ -3223,6 +3228,11 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
   // Use users loaded internally if available, otherwise fall back to prop
   const allUsers = internalUsers.length > 0 ? internalUsers : (workspaceUsers || [])
 
+  // Separa Rotinas (space_type 'rotinas') das Tarefas comuns conforme a aba.
+  const modeSpaces = spaces.filter(s => isRotinasMode ? s.space_type === 'rotinas' : s.space_type !== 'rotinas')
+  const modeSpaceIds = new Set(modeSpaces.map(s => s.id))
+  const modeTasks = filteredTasks.filter(t => isRotinasMode ? modeSpaceIds.has(t.space_id) : (!t.space_id || modeSpaceIds.has(t.space_id)))
+
   const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '5px 10px', fontSize: '0.82rem', outline: 'none' }
 
   return (
@@ -3230,8 +3240,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0 14px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, marginRight: 8 }}>
-          <i className="bx bx-task" style={{ marginRight: 8, color: '#26c281' }}></i>
-          {view === 'space' && selectedSpace ? selectedSpace.name : 'Tarefas'}
+          <i className={`bx ${isRotinasMode ? 'bx-refresh' : 'bx-task'}`} style={{ marginRight: 8, color: isRotinasMode ? '#a78bfa' : '#26c281' }}></i>
+          {view === 'space' && selectedSpace ? selectedSpace.name : (isRotinasMode ? 'Rotinas' : 'Tarefas')}
         </h2>
 
         {/* User filter — always visible */}
@@ -3302,7 +3312,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#4ade80', padding: '7px 14px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
           >
             <i className="bx bx-plus" style={{ fontSize: 16 }}></i>
-            Novo Espaco
+            {isRotinasMode ? 'Nova Central de Rotinas' : 'Novo Espaco'}
           </button>
         )}
 
@@ -3327,9 +3337,9 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {!loading && view === 'home' && (
         <div style={{ paddingTop: 16 }}>
           <HomeView
-            tasks={filteredTasks}
+            tasks={modeTasks}
             statuses={statuses}
-            spaces={spaces}
+            spaces={modeSpaces}
             workspaceUsers={allUsers}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
@@ -3423,6 +3433,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
       {/* New space modal */}
       {showNewSpaceModal && (
         <NewSpaceModal
+          forcedType={isRotinasMode ? 'rotinas' : 'standard'}
           onClose={() => setShowNewSpaceModal(false)}
           onCreate={handleSpaceCreated}
         />
