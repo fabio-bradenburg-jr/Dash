@@ -13624,7 +13624,7 @@
 
         .weekly-command-rail {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(120px, 1fr));
           overflow: hidden;
           min-width: 0;
         }
@@ -13632,9 +13632,17 @@
         .weekly-command-rail div {
           display: grid;
           align-content: space-between;
-          gap: 18px;
-          min-height: 154px;
-          padding: 20px;
+          gap: 14px;
+          min-height: 140px;
+          padding: 18px 16px;
+          min-width: 0;
+        }
+
+        /* Labels longas ("Clientes monitorados") quebram em vez de vazar/sobrepor */
+        .weekly-command-rail span {
+          white-space: normal;
+          overflow-wrap: anywhere;
+          line-height: 1.25;
         }
 
         .weekly-command-rail div + div {
@@ -17634,8 +17642,13 @@
         }
 
         .dashboard-container .weekly-dashboard-panel .weekly-command-grid {
-          grid-column: auto !important;
-          padding: 16px 24px !important;
+          /* Linha própria e largura total, para o rail (3 boxes) e o card
+             "Período ativo" não ficarem espremidos ao lado dos filtros. */
+          grid-column: 1 / -1 !important;
+          grid-row: 2 !important;
+          justify-self: stretch !important;
+          grid-template-columns: minmax(0, 1fr) minmax(320px, 460px) !important;
+          padding: 16px 0 0 !important;
         }
 
         /* Onboarding/Offboarding: ensure content fits screen */
