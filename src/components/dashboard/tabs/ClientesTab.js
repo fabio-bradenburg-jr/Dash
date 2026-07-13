@@ -152,6 +152,7 @@ export default function ClientesTab() {
 
           const statDefs = [
             { key: 'todos', label: 'Total de clientes', color: '#26C281', value: counts.todos, sub: 'na carteira', accent: true },
+            { key: 'integration', label: 'Integração / Onboarding', color: '#8b5cf6', value: counts.integration, sub: 'em implantação' },
             { key: 'healthy', label: 'Saudáveis', color: '#22c55e', value: counts.healthy, sub: 'sem riscos' },
             { key: 'with_result', label: 'Com resultado', color: '#3ba3ff', value: counts.with_result, sub: 'entregando ROI' },
             { key: 'attention', label: 'Em atenção', color: '#f59e0b', value: counts.attention, sub: 'monitorar' },
