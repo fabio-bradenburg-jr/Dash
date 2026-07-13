@@ -6,6 +6,11 @@ import { resolveWorkspaceForHost } from '@/lib/server/domain-config'
 const THRESHOLDS = [50, 100, 150] // checked from lowest to highest; zero handled separately
 // How many hours to wait before re-alerting the same account+threshold
 const COOLDOWN_HOURS = 6
+// Payment/account problems persist for days — re-alert less often than low-balance
+const PAYMENT_COOLDOWN_HOURS = 24
+// Sentinel "threshold" codes for payment/account alerts (kept negative so they never
+// collide with the balance thresholds above). Reuses balance_alert_logs for dedup.
+const PAYMENT_CODES = { disabled: -2, problem: -3, pending: -8 }
 // Quiet hours in Brazil time (UTC-3): no alerts from 20:00 to 08:00
 const QUIET_START_HOUR = 20
 const QUIET_END_HOUR = 8
@@ -37,8 +42,9 @@ async function fetchBalance(token: string, adAccountId: string) {
   const url = `https://graph.facebook.com/v19.0/act_${adAccountId}?fields=${fields}&access_token=${encodeURIComponent(token)}`
   const account = await fetchMetaJson(url, 'Meta timeout ao buscar saldo.')
   const currency = account.currency || 'BRL'
+  const accountStatus = Number(account.account_status)
   const isPrepay = account.is_prepay_account === true || account.is_prepay_account === 'true'
-  if (!isPrepay) return { balance: null, currency, isPrepay }
+  if (!isPrepay) return { balance: null, currency, isPrepay, accountStatus }
 
   // Use funding_source_details balance when available (matches what the UI shows)
   const rawBalance = normalizeCurrencyAmount(account.balance, currency)
@@ -61,16 +67,41 @@ async function fetchBalance(token: string, adAccountId: string) {
     }
   }
 
-  return { balance: Math.max(fundsAvailable, 0), currency, isPrepay }
+  return { balance: Math.max(fundsAvailable, 0), currency, isPrepay, accountStatus }
+}
+
+// Maps the Meta account_status to a payment/account problem alert (or null).
+// 2 = disabled, 3 = unsettled charge (payment problem), 8 = pending settlement.
+function resolvePaymentAlert(accountStatus: number, clientName: string, adAccountId: string) {
+  if (accountStatus === 3) {
+    return {
+      code: PAYMENT_CODES.problem,
+      message: `🔴 *Problema de Pagamento - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\n\n⛔ A Meta sinalizou uma cobrança não liquidada. Regularize o pagamento para não pausar as campanhas.`,
+    }
+  }
+  if (accountStatus === 2) {
+    return {
+      code: PAYMENT_CODES.disabled,
+      message: `🚫 *Conta Desativada - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\n\n⛔ A conta foi desativada/impedida de veicular. Verifique pagamento e status na Meta.`,
+    }
+  }
+  if (accountStatus === 8) {
+    return {
+      code: PAYMENT_CODES.pending,
+      message: `🟠 *Pagamento Pendente - Meta Ads*\n\nCliente: *${clientName}*\nConta: act_${adAccountId}\n\n⚠️ Conta aguardando liquidação de pagamento. Fique de olho para evitar pausa.`,
+    }
+  }
+  return null
 }
 
 async function wasAlertedRecently(
   adminSupabase: any,
   workspaceId: string,
   adAccountId: string,
-  threshold: number
+  threshold: number,
+  cooldownHours: number = COOLDOWN_HOURS
 ): Promise<boolean> {
-  const since = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString()
+  const since = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString()
   const { data } = await adminSupabase
     .from('balance_alert_logs')
     .select('id')
@@ -159,10 +190,33 @@ export async function GET(request: Request) {
       if (!adAccountId) continue
 
       try {
-        const { balance, currency, isPrepay } = await fetchBalance(token, adAccountId)
-        if (!isPrepay || balance === null) continue
-
+        const { balance, currency, isPrepay, accountStatus } = await fetchBalance(token, adAccountId)
         const clientName = client.name || client.payload?.name || 'Cliente'
+
+        // Payment/account problem alerts — independentes do saldo e de pré/pós-pago.
+        if (!zeroOnly) {
+          const paymentAlert = resolvePaymentAlert(accountStatus, clientName, adAccountId)
+          if (paymentAlert) {
+            const alreadySent = await wasAlertedRecently(adminSupabase, workspace.id, adAccountId, paymentAlert.code, PAYMENT_COOLDOWN_HOURS)
+            if (!alreadySent) {
+              await recordAlert(adminSupabase, workspace.id, client.id, adAccountId, paymentAlert.code, balance ?? 0)
+              alerts.push({
+                workspaceId: workspace.id,
+                workspaceName: workspace.name,
+                clientId: client.id,
+                clientName,
+                adAccountId,
+                balance: balance ?? 0,
+                currency,
+                threshold: paymentAlert.code,
+                kind: 'payment',
+                message: paymentAlert.message,
+              })
+            }
+          }
+        }
+
+        if (!isPrepay || balance === null) continue
 
         // Zero balance: highest priority, always check independently
         if (balance <= 0) {
