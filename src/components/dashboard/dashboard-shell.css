@@ -11376,7 +11376,8 @@
         .campaign-compact-header,
         .campaign-compact-head {
           display: grid;
-          grid-template-columns: 30px minmax(160px,1fr) 120px 90px 120px 110px minmax(110px,auto) 20px;
+          /* 1ª coluna: bolinha de saúde (antes do nome do cliente) */
+          grid-template-columns: 10px 30px minmax(160px,1fr) 120px 90px 120px 110px minmax(110px,auto) 20px;
           align-items: center;
           gap: 12px;
           width: 100%;

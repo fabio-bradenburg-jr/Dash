@@ -1,8 +1,32 @@
 'use client'
 
+import { useState } from 'react'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
 export default function CampanhasTab() {
+  // Modal de CPL — últimas 12 semanas (dados automáticos da Meta, por objetivo de campanha)
+  const [cplOpen, setCplOpen] = useState(false)
+  const [cplLoading, setCplLoading] = useState(false)
+  const [cplError, setCplError] = useState('')
+  const [cplRows, setCplRows] = useState([])
+
+  const openCpl = async () => {
+    setCplOpen(true)
+    if (cplRows.length) return
+    setCplLoading(true)
+    setCplError('')
+    try {
+      const res = await fetch('/api/meta/cpl-weeks')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Não foi possível carregar o CPL semanal.')
+      setCplRows(json.rows || [])
+    } catch (e) {
+      setCplError(e.message)
+    } finally {
+      setCplLoading(false)
+    }
+  }
+  const closeCpl = () => setCplOpen(false)
   const {
     isMaster,
     formatNumber,
@@ -106,6 +130,10 @@ export default function CampanhasTab() {
                     Média de CPR
                   </button>
                 )}
+                <button type="button" className="btn btn-secondary" onClick={openCpl}>
+                  <i className="bx bx-line-chart"></i>
+                  CPL
+                </button>
               </div>
             </div>
 
@@ -156,6 +184,7 @@ export default function CampanhasTab() {
                 <>
                 {campaignViewMode === 'compact' && (
                   <div className="campaign-compact-header">
+                    <span style={{ width: 10, flexShrink: 0 }} />
                     <span className="campaign-compact-logo" />
                     <span className="campaign-compact-name">Cliente</span>
                     <span className="campaign-compact-cell">Investimento</span>
@@ -211,6 +240,9 @@ export default function CampanhasTab() {
                         <article key={`campaign-client-${row.clientId}`} className={'campaign-grid-card glass-item ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')} style={accentGlow}>
                           <button type="button" className="campaign-grid-card-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
                             <div className="campaign-grid-identity">
+                              {(() => { const hc = healthConfig; return (
+                              <span title={hc ? `Saúde: ${hc.label}` : 'Sem saúde atribuída'} style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: hc ? hc.color : 'rgba(148,163,184,0.35)', boxShadow: hc ? `0 0 8px ${hc.color}88` : 'none' }} />
+                            ) })()}
                               <span className="campaign-grid-logo">
                                 {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt={`Logo ${row.clientName}`} /> : <i className="bx bx-building-house"></i>}
                               </span>
@@ -218,9 +250,6 @@ export default function CampanhasTab() {
                                 <strong>{row.clientName}</strong>
                                 <small>{row.isGhost ? '👻 Fantasma' : `${formatNumber(campaigns.length)} campanha(s)`}</small>
                               </div>
-                              {healthConfig && (
-                                <span className="campaign-grid-health-dot" style={{ background: healthConfig.color }} title={healthConfig.label} />
-                              )}
                             </div>
                             <div className="campaign-grid-metrics">
                               <div className="campaign-grid-metric">
@@ -267,6 +296,9 @@ export default function CampanhasTab() {
                       return (
                         <article key={`campaign-client-${row.clientId}`} className={'campaign-compact-row ' + (isExpanded ? 'expanded' : '') + (healthConfig ? ' health-' + healthConfig.key : '')} style={accentGlow}>
                           <button type="button" className="campaign-compact-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
+                            {(() => { const hc = healthConfig; return (
+                              <span title={hc ? `Saúde: ${hc.label}` : 'Sem saúde atribuída'} style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: hc ? hc.color : 'rgba(148,163,184,0.35)', boxShadow: hc ? `0 0 8px ${hc.color}88` : 'none' }} />
+                            ) })()}
                             <span className="campaign-compact-logo">
                               {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" /> : <i className="bx bx-building-house"></i>}
                             </span>
@@ -403,6 +435,9 @@ export default function CampanhasTab() {
                       <article key={`campaign-client-${row.clientId}`} className={'ads-overview-client-card campaign-overview-client-card glass-item ' + (isExpanded ? 'expanded' : '')} style={accentGlow}>
                         <button type="button" className="ads-overview-client-head ads-overview-client-toggle campaign-overview-client-head" onClick={() => handleToggleCampaignOverviewClient(row.clientId)} aria-expanded={isExpanded}>
                           <div className="ads-overview-client-identity">
+                            {(() => { const hc = healthConfig; return (
+                              <span title={hc ? `Saúde: ${hc.label}` : 'Sem saúde atribuída'} style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: hc ? hc.color : 'rgba(148,163,184,0.35)', boxShadow: hc ? `0 0 8px ${hc.color}88` : 'none' }} />
+                            ) })()}
                             <span className="ads-overview-client-logo">
                               {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt={`Logo ${row.clientName}`} /> : <i className="bx bx-building-house"></i>}
                             </span>
@@ -672,6 +707,120 @@ export default function CampanhasTab() {
                 </div>
               )}
             </section>
+
+            {/* ── Modal CPL — últimas 12 semanas ── */}
+            {cplOpen && (
+              <div className="modal-overlay" onClick={closeCpl}>
+                <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(96vw, 1080px)', maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 18, background: 'var(--panel, #101314)', border: '1px solid var(--border2, rgba(255,255,255,0.1))', boxShadow: '0 32px 90px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <i className="bx bx-line-chart" style={{ fontSize: 19, color: '#26C281' }}></i>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>CPL — últimas 12 semanas</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.78rem', opacity: 0.5 }}>Custo por resultado semanal calculado da Meta (objetivo das campanhas) vs. CPL ideal cadastrado.</p>
+                    </div>
+                    <button type="button" onClick={closeCpl} aria-label="Fechar CPL" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <i className="bx bx-x" style={{ fontSize: 19 }}></i>
+                    </button>
+                  </div>
+
+                  {/* Corpo — uma barra de rolagem horizontal única para todas as linhas */}
+                  <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                    {cplLoading ? (
+                      <div style={{ padding: 40, textAlign: 'center', opacity: 0.55 }}>
+                        <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22 }}></i>
+                        <div style={{ fontSize: '0.82rem', marginTop: 8 }}>Buscando o CPL semanal na Meta…</div>
+                      </div>
+                    ) : cplError ? (
+                      <div className="api-error-banner" style={{ margin: 18 }}><i className="bx bx-error-circle"></i><span>{cplError}</span></div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <div style={{ minWidth: 'max-content', padding: '14px 18px' }}>
+                          {cplRows.map((row) => {
+                            const ideal = Number(cprBenchmarks[row.clientId] || 0)
+                            const weeks = row.weeks || []
+                            const initials = String(row.clientName || '?').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+                            const fmtDM = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+                            return (
+                              <div key={row.clientId} style={{ display: 'flex', alignItems: 'stretch', gap: 5, marginBottom: 8 }}>
+                                {/* Coluna do cliente — sticky */}
+                                <div style={{ width: 150, flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel, #101314)', display: 'flex', alignItems: 'center', gap: 9, paddingRight: 10 }}>
+                                  <span style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#26C281,#4fdf9b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.66rem', color: '#04150d', flexShrink: 0, overflow: 'hidden' }}>
+                                    {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+                                  </span>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.clientName}</div>
+                                    <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)' }}>Ideal: {ideal > 0 ? `R$ ${ideal.toFixed(2)}` : '—'}</div>
+                                  </div>
+                                </div>
+                                {/* 12 caixas de semana */}
+                                {weeks.map((week, idx) => {
+                                  const isCurrent = idx === weeks.length - 1
+                                  const opacity = 0.5 + (idx / Math.max(weeks.length - 1, 1)) * 0.5
+                                  const prev = idx > 0 ? weeks[idx - 1] : null
+                                  let trendIcon = null
+                                  if (prev && week.cpl != null && prev.cpl != null) {
+                                    if (week.cpl > prev.cpl) trendIcon = <i className="bx bx-up-arrow-alt" style={{ fontSize: 12, color: '#ef4444' }}></i>
+                                    else if (week.cpl < prev.cpl) trendIcon = <i className="bx bx-down-arrow-alt" style={{ fontSize: 12, color: '#22c55e' }}></i>
+                                    else trendIcon = <i className="bx bx-minus" style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}></i>
+                                  }
+                                  const valueColor = isCurrent
+                                    ? '#26C281'
+                                    : week.cpl == null
+                                      ? 'rgba(255,255,255,0.35)'
+                                      : ideal > 0
+                                        ? (week.cpl <= ideal ? '#22c55e' : '#ef4444')
+                                        : 'rgba(255,255,255,0.82)'
+                                  return (
+                                    <div key={week.since} title={row.error ? row.error : `${week.results} resultado(s) · R$ ${Number(week.spend || 0).toFixed(2)} investidos`}
+                                      style={{ minWidth: 72, borderRadius: 9, padding: '7px 6px', opacity, flexShrink: 0,
+                                        background: isCurrent ? 'rgba(38,194,129,0.14)' : 'rgba(255,255,255,0.03)',
+                                        border: isCurrent ? '1px solid rgba(38,194,129,0.35)' : '1px solid rgba(255,255,255,0.05)' }}>
+                                      <div style={{ fontFamily: 'Inter', fontSize: '0.56rem', fontWeight: 600, letterSpacing: '0.02em', color: isCurrent ? '#26C281' : 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap', marginBottom: 3 }}>
+                                        {fmtDM(week.since)}–{fmtDM(week.until)}
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                        <span style={{ fontFamily: 'Inter', fontVariantNumeric: 'tabular-nums', fontSize: '0.78rem', fontWeight: 700, color: valueColor, whiteSpace: 'nowrap' }}>
+                                          {week.cpl != null ? `R$ ${week.cpl.toFixed(2)}` : '—'}
+                                        </span>
+                                        {trendIcon}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })}
+                          {!cplRows.length && (
+                            <div style={{ padding: 24, textAlign: 'center', opacity: 0.5, fontSize: '0.84rem' }}>Nenhum cliente com conta Meta vinculada.</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rodapé — legenda */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 22px', borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                      <span style={{ width: 12, height: 12, borderRadius: 4, background: 'rgba(38,194,129,0.14)', border: '1px solid rgba(38,194,129,0.35)' }}></span>
+                      Semana atual
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 99, background: '#22c55e' }}></span>
+                      Dentro do CPL ideal
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 99, background: '#ef4444' }}></span>
+                      Acima do CPL ideal
+                    </span>
+                    <div style={{ flex: 1 }} />
+                    <button type="button" className="btn btn-secondary" onClick={closeCpl}>Fechar</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
   )
 }
