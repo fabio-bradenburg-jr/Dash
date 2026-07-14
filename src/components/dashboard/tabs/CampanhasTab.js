@@ -744,10 +744,13 @@ export default function CampanhasTab() {
                             const weeks = row.weeks || []
                             const initials = String(row.clientName || '?').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
                             const fmtDM = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+                            const cplHealthRecord = latestWeeklyHealthByClientId.get(row.clientId)
+                            const cplHealth = cplHealthRecord ? (WEEKLY_HEALTH_BY_KEY[cplHealthRecord.healthStatus] || WEEKLY_HEALTH_BY_KEY.attention) : null
                             return (
                               <div key={row.clientId} style={{ display: 'flex', alignItems: 'stretch', gap: 5, marginBottom: 8 }}>
                                 {/* Coluna do cliente — sticky */}
-                                <div style={{ width: 170, minWidth: 170, boxSizing: 'border-box', flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel, #101314)', display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px 0 2px' }}>
+                                <div style={{ width: 184, minWidth: 184, boxSizing: 'border-box', flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel, #101314)', display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px 0 2px' }}>
+                                  <span title={cplHealth ? `Saúde: ${cplHealth.label}` : 'Sem saúde atribuída'} style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: cplHealth ? cplHealth.color : 'rgba(148,163,184,0.35)', boxShadow: cplHealth ? `0 0 8px ${cplHealth.color}88` : 'none' }} />
                                   <span style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#26C281,#4fdf9b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.66rem', color: '#04150d', flexShrink: 0, overflow: 'hidden' }}>
                                     {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
                                   </span>
