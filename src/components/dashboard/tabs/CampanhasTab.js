@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
 export default function CampanhasTab() {
@@ -708,9 +709,9 @@ export default function CampanhasTab() {
               )}
             </section>
 
-            {/* ── Modal CPL — últimas 12 semanas ── */}
-            {cplOpen && (
-              <div className="modal-overlay" onClick={closeCpl}>
+            {/* ── Modal CPL — últimas 12 semanas (portal: fixo na tela) ── */}
+            {cplOpen && typeof document !== 'undefined' && createPortal(
+              <div className="modal-overlay" onClick={closeCpl} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'grid', placeItems: 'center', padding: 20 }}>
                 <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(96vw, 1080px)', maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 18, background: 'var(--panel, #101314)', border: '1px solid var(--border2, rgba(255,255,255,0.1))', boxShadow: '0 32px 90px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
@@ -727,7 +728,7 @@ export default function CampanhasTab() {
                   </div>
 
                   {/* Corpo — uma barra de rolagem horizontal única para todas as linhas */}
-                  <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                  <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: 10 }}>
                     {cplLoading ? (
                       <div style={{ padding: 40, textAlign: 'center', opacity: 0.55 }}>
                         <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22 }}></i>
@@ -737,7 +738,7 @@ export default function CampanhasTab() {
                       <div className="api-error-banner" style={{ margin: 18 }}><i className="bx bx-error-circle"></i><span>{cplError}</span></div>
                     ) : (
                       <div style={{ overflowX: 'auto' }}>
-                        <div style={{ minWidth: 'max-content', padding: '14px 18px' }}>
+                        <div style={{ minWidth: 'max-content', padding: '6px 2px' }}>
                           {cplRows.map((row) => {
                             const ideal = Number(cprBenchmarks[row.clientId] || 0)
                             const weeks = row.weeks || []
@@ -746,7 +747,7 @@ export default function CampanhasTab() {
                             return (
                               <div key={row.clientId} style={{ display: 'flex', alignItems: 'stretch', gap: 5, marginBottom: 8 }}>
                                 {/* Coluna do cliente — sticky */}
-                                <div style={{ width: 150, flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel, #101314)', display: 'flex', alignItems: 'center', gap: 9, paddingRight: 10 }}>
+                                <div style={{ width: 170, minWidth: 170, boxSizing: 'border-box', flexShrink: 0, position: 'sticky', left: 0, zIndex: 2, background: 'var(--panel, #101314)', display: 'flex', alignItems: 'center', gap: 9, padding: '0 10px 0 2px' }}>
                                   <span style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#26C281,#4fdf9b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.66rem', color: '#04150d', flexShrink: 0, overflow: 'hidden' }}>
                                     {row.clientLogoUrl ? <img src={row.clientLogoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
                                   </span>
@@ -775,7 +776,7 @@ export default function CampanhasTab() {
                                         : 'rgba(255,255,255,0.82)'
                                   return (
                                     <div key={week.since} title={row.error ? row.error : `${week.results} resultado(s) · R$ ${Number(week.spend || 0).toFixed(2)} investidos`}
-                                      style={{ minWidth: 72, borderRadius: 9, padding: '7px 6px', opacity, flexShrink: 0,
+                                      style={{ width: 92, minWidth: 92, boxSizing: 'border-box', borderRadius: 9, padding: '7px 8px', opacity, flexShrink: 0, overflow: 'hidden',
                                         background: isCurrent ? 'rgba(38,194,129,0.14)' : 'rgba(255,255,255,0.03)',
                                         border: isCurrent ? '1px solid rgba(38,194,129,0.35)' : '1px solid rgba(255,255,255,0.05)' }}>
                                       <div style={{ fontFamily: 'Inter', fontSize: '0.56rem', fontWeight: 600, letterSpacing: '0.02em', color: isCurrent ? '#26C281' : 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap', marginBottom: 3 }}>
@@ -819,7 +820,8 @@ export default function CampanhasTab() {
                     <button type="button" className="btn btn-secondary" onClick={closeCpl}>Fechar</button>
                   </div>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </section>
   )
