@@ -377,6 +377,11 @@ const EMPTY_FORM = (defaultContext = {}) => ({
   recurrence: null,
 })
 
+const DIAS_ROTINA = [
+  { key: 1, label: 'SEG' }, { key: 2, label: 'TER' }, { key: 3, label: 'QUA' },
+  { key: 4, label: 'QUI' }, { key: 5, label: 'SEX' },
+]
+
 export default function NewTaskModal({
   onClose,
   onSaved,
@@ -386,11 +391,19 @@ export default function NewTaskModal({
   workspaceUsers = [],
   statuses = [],
   customFields = [],
+  rotinasMode = false,
+  rotinasSpaceId = null,
+  initialDia = 1,
 }) {
   const [form, setForm] = useState(EMPTY_FORM(defaultContext))
   const [tagInput, setTagInput] = useState('')
   const [checklistItems, setChecklistItems] = useState([])
   const [checklistInput, setChecklistInput] = useState('')
+  const [firstComment, setFirstComment] = useState('')
+  // Campos de rotina (só em rotinasMode)
+  const [dias, setDias] = useState([initialDia || 1])
+  const [horario, setHorario] = useState('')
+  const [recorrenteRotina, setRecorrenteRotina] = useState('weekly')
   const [titleError, setTitleError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingAnother, setSavingAnother] = useState(false)
@@ -448,13 +461,16 @@ export default function NewTaskModal({
         status_id: form.status_id || null,
         assignee_id: form.assignee_id || null,
         client_id: form.client_id || null,
-        space_id: form.space_id || null,
+        space_id: rotinasMode ? rotinasSpaceId : (form.space_id || null),
         priority: form.priority !== 'none' ? form.priority : null,
         due_date: form.due_date || null,
         tags: form.tags.length > 0 ? form.tags : null,
       }
 
-      if (form.recurrence?.is_recurring) {
+      if (rotinasMode) {
+        payload.horario = horario || null
+        payload.recorrente = recorrenteRotina
+      } else if (form.recurrence?.is_recurring) {
         Object.assign(payload, {
           is_recurring: true,
           recurring_type: form.recurrence.recurring_type,
@@ -467,16 +483,20 @@ export default function NewTaskModal({
         })
       }
 
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const json = await res.json()
-      const task = json.task || json
+      // Em rotinas, cria uma tarefa por dia selecionado; fora, uma única
+      const targets = rotinasMode ? dias : [null]
+      let task = null
+      for (const dia of targets) {
+        const res = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dia != null ? { ...payload, dia_semana: Number(dia) } : payload),
+        })
+        const json = await res.json()
+        task = json.task || json
+        if (!task?.id) continue
 
-      // Checklist opcional: cria os itens depois da tarefa
-      if (task?.id && checklistItems.length > 0) {
+        // Checklist opcional
         for (const label of checklistItems) {
           await fetch(`/api/tasks/${task.id}/checklist`, {
             method: 'POST',
@@ -484,15 +504,23 @@ export default function NewTaskModal({
             body: JSON.stringify({ label }),
           }).catch(() => {})
         }
+        // Comentário inicial opcional
+        if (firstComment.trim()) {
+          await fetch('/api/tasks/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task_id: task.id, body: firstComment.trim() }),
+          }).catch(() => {})
+        }
+        if (onSaved) onSaved(task)
       }
-
-      if (onSaved) onSaved(task)
 
       if (saveAnother) {
         setForm(EMPTY_FORM(defaultContext))
         setTagInput('')
         setChecklistItems([])
         setChecklistInput('')
+        setFirstComment('')
         setTitleError(false)
         titleRef.current?.focus()
       } else {
@@ -504,7 +532,7 @@ export default function NewTaskModal({
       setSaving(false)
       setSavingAnother(false)
     }
-  }, [form, checklistItems, defaultContext, onSaved, onClose])
+  }, [form, checklistItems, firstComment, dias, horario, recorrenteRotina, rotinasMode, rotinasSpaceId, defaultContext, onSaved, onClose])
 
   const overlayStyle = {
     position: 'fixed',
@@ -643,8 +671,8 @@ export default function NewTaskModal({
             </div>
           </div>
 
-          {/* Client + Space */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {/* Client + Space (Espaço fixo na central em modo Rotinas) */}
+          <div style={{ display: 'grid', gridTemplateColumns: rotinasMode ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div>
               <label style={LABEL_STYLE}>Cliente</label>
               <CustomSelect
@@ -655,17 +683,57 @@ export default function NewTaskModal({
                 icon="bx-buildings"
               />
             </div>
-            <div>
-              <label style={LABEL_STYLE}>Espaço</label>
-              <CustomSelect
-                options={[{ value: '', label: 'Sem espaço' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
-                value={form.space_id}
-                onChange={v => setForm(prev => ({ ...prev, space_id: v }))}
-                placeholder="Sem espaço"
-                icon="bx-folder"
-              />
-            </div>
+            {!rotinasMode && (
+              <div>
+                <label style={LABEL_STYLE}>Espaço</label>
+                <CustomSelect
+                  options={[{ value: '', label: 'Sem espaço' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
+                  value={form.space_id}
+                  onChange={v => setForm(prev => ({ ...prev, space_id: v }))}
+                  placeholder="Sem espaço"
+                  icon="bx-folder"
+                />
+              </div>
+            )}
           </div>
+
+          {/* Rotina: dias, horário e recorrência */}
+          {rotinasMode && (
+            <>
+              <div>
+                <label style={LABEL_STYLE}>Dias da Semana {dias.length > 1 && <span style={{ color: GREEN, textTransform: 'none', letterSpacing: 0 }}>({dias.length} dias — uma tarefa por dia)</span>}</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {DIAS_ROTINA.map(d => (
+                    <button key={d.key} type="button"
+                      onClick={() => setDias(prev => prev.includes(d.key) ? (prev.length > 1 ? prev.filter(x => x !== d.key) : prev) : [...prev, d.key])}
+                      style={{ flex: 1, padding: '8px 4px', borderRadius: 7, border: `1px solid ${dias.includes(d.key) ? GREEN : 'rgba(255,255,255,0.1)'}`, background: dias.includes(d.key) ? GREEN + '22' : 'rgba(255,255,255,0.03)', color: dias.includes(d.key) ? GREEN : '#94a3b8', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={LABEL_STYLE}>Horário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                  <input type="time" value={horario} onChange={e => setHorario(e.target.value)} style={{ ...INPUT_STYLE, colorScheme: 'dark' }} />
+                </div>
+                <div>
+                  <label style={LABEL_STYLE}>Recorrência</label>
+                  <CustomSelect
+                    options={[
+                      { value: 'weekly', label: 'Toda semana' },
+                      { value: 'biweekly', label: 'A cada 2 semanas' },
+                      { value: 'monthly', label: 'Mensal' },
+                      { value: 'once', label: 'Uma vez' },
+                    ]}
+                    value={recorrenteRotina}
+                    onChange={setRecorrenteRotina}
+                    icon="bx-refresh"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Priority + Due Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -728,11 +796,25 @@ export default function NewTaskModal({
             </div>
           </div>
 
-          {/* Recurrence */}
-          <RecurrenceSection
-            value={form.recurrence}
-            onChange={rec => setForm(prev => ({ ...prev, recurrence: rec }))}
-          />
+          {/* Comentário inicial (opcional) */}
+          <div>
+            <label style={LABEL_STYLE}>Comentário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+            <textarea
+              value={firstComment}
+              onChange={e => setFirstComment(e.target.value)}
+              placeholder="Deixe um comentário inicial na tarefa…"
+              rows={2}
+              style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+            />
+          </div>
+
+          {/* Recurrence (avançada — fora do modo Rotinas) */}
+          {!rotinasMode && (
+            <RecurrenceSection
+              value={form.recurrence}
+              onChange={rec => setForm(prev => ({ ...prev, recurrence: rec }))}
+            />
+          )}
         </div>
 
         {/* Footer */}

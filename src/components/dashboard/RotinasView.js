@@ -854,7 +854,7 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
 }
 
 // ---- Main RotinasView ----
-export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, taskFilter, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels }) {
+export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, taskFilter, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels, onNewTask }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
@@ -1052,7 +1052,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           </button>
         )}
 
-        <button type="button" onClick={() => setTaskModal({ dia: 1, memberId: null })} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#04150d', padding: '6px 14px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+        <button type="button" onClick={() => onNewTask ? onNewTask(1) : setTaskModal({ dia: 1, memberId: null })} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#04150d', padding: '6px 14px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
           <i className="bx bx-plus" style={{ fontSize: 15 }} /> Nova Tarefa
         </button>
 
@@ -1118,7 +1118,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
                     statuses={statuses}
                     onToggle={handleToggle}
                     onOpenPanel={onOpenPanel}
-                    onAddTask={dia => setTaskModal({ dia: dia.key, memberId: filterMemberId !== 'all' ? filterMemberId : '' })}
+                    onAddTask={dia => onNewTask ? onNewTask(dia.key) : setTaskModal({ dia: dia.key, memberId: filterMemberId !== 'all' ? filterMemberId : '' })}
                     onDropTask={handleDropTask}
                   />
                 </div>

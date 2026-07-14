@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import RotinasView from '@/components/dashboard/RotinasView'
 import TaskModelsModal from '@/components/dashboard/TaskModelsModal'
+import NewTaskModal from '@/components/dashboard/NewTaskModal'
 import { TaskDetailPanel } from '@/components/dashboard/TasksTab'
 
 // Aba própria de Rotinas: uma única central, board semanal direto.
@@ -16,6 +17,7 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
   const [space, setSpace] = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [showModels, setShowModels] = useState(false)
+  const [newTaskDia, setNewTaskDia] = useState(null) // dia (1-5) | null
   const [loading, setLoading] = useState(true)
   // Filtros por usuário do app e por função, com visões salvas
   const [filterUser, setFilterUser] = useState('')
@@ -198,12 +200,26 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
           hideDelete
           hideMembers
           onOpenModels={() => setShowModels(true)}
+          onNewTask={(dia) => setNewTaskDia(dia || 1)}
           onOpenPanel={task => setSelectedTaskId(task.id)}
           onTaskSaved={handleTaskSaved}
           onBack={() => {}}
           onDeleteSpace={() => {}}
         />
         </>
+      )}
+
+      {newTaskDia != null && space && (
+        <NewTaskModal
+          rotinasMode
+          rotinasSpaceId={space.id}
+          initialDia={newTaskDia}
+          clients={clients || []}
+          workspaceUsers={allUsers}
+          statuses={statuses}
+          onClose={() => setNewTaskDia(null)}
+          onSaved={(task) => setTasks(prev => [...prev, task])}
+        />
       )}
 
       {showModels && space && (
