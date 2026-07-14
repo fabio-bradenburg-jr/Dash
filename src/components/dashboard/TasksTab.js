@@ -1652,6 +1652,18 @@ export function TaskActivitySidebar({ taskId, statuses, clients, workspaceUsers,
   )
 }
 
+// Label de campo com ícone colorido (painel da tarefa, estilo ClickUp)
+function FieldLabel({ icon, color, children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+      <span style={{ width: 18, height: 18, borderRadius: 5, background: `${color}1c`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`bx ${icon}`} style={{ fontSize: 11, color }} />
+      </span>
+      {children}
+    </div>
+  )
+}
+
 export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields, currentUserId }) {
   const [currentId, setCurrentId] = useState(taskId)
   useEffect(() => { setCurrentId(taskId) }, [taskId])
@@ -1853,7 +1865,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Status</div>
+            <FieldLabel icon="bx-loader-circle" color="#3b82f6">Status</FieldLabel>
             <CustomSelect
               options={[{ value: '', label: 'Sem status' }, ...statuses.map(s => ({ value: s.id, label: s.label, dot: s.color }))]}
               value={task.status_id || ''}
@@ -1864,7 +1876,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Prioridade</div>
+            <FieldLabel icon="bxs-flag-alt" color="#f97316">Prioridade</FieldLabel>
             <CustomSelect
               options={Object.entries(PRIORITY_CONFIG).map(([k, v]) => ({ value: k, label: v.label, color: v.color }))}
               value={task.priority || 'none'}
@@ -1874,7 +1886,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Responsável{assigneeIds.length > 1 ? ` (${assigneeIds.length})` : ''}</div>
+            <FieldLabel icon="bx-user" color="#8b5cf6">Responsável{assigneeIds.length > 1 ? ` (${assigneeIds.length})` : ''}</FieldLabel>
             <AssigneePicker
               assigneeIds={assigneeIds}
               workspaceUsers={workspaceUsers || []}
@@ -1883,7 +1895,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Cliente</div>
+            <FieldLabel icon="bx-buildings" color="#14b8a6">Cliente</FieldLabel>
             <CustomSelect
               options={[{ value: '', label: 'Nenhum' }, ...(clients || []).map(c => ({ value: c.id, label: c.name }))]}
               value={task.client_id || ''}
@@ -1895,7 +1907,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
 
           <div style={{ ...fieldWrap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <div style={labelStyle}>Data de início</div>
+              <FieldLabel icon="bx-calendar-check" color="#22c55e">Data de início</FieldLabel>
               <input
                 type="date"
                 value={task.start_date || ''}
@@ -1904,7 +1916,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
               />
             </div>
             <div>
-              <div style={labelStyle}>Vencimento</div>
+              <FieldLabel icon="bx-calendar-exclamation" color="#eab308">Vencimento</FieldLabel>
               <input
                 type="date"
                 value={task.due_date || ''}
@@ -1926,7 +1938,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Descrição</div>
+            <FieldLabel icon="bx-align-left" color="#94a3b8">Descrição</FieldLabel>
             <textarea
               defaultValue={task.description || ''}
               onBlur={e => { if (e.target.value !== (task.description || '')) updateField('description', e.target.value) }}
@@ -1960,7 +1972,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
 
           <div style={fieldWrap}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={labelStyle}>Checklist {checklist.length > 0 && `${doneCount}/${checklist.length}`}</div>
+              <FieldLabel icon="bx-list-check" color="#22c55e">Checklist {checklist.length > 0 && `${doneCount}/${checklist.length}`}</FieldLabel>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{checkPct}%</span>
             </div>
             {checklist.length > 0 && (
@@ -1999,7 +2011,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           </div>
 
           <div style={fieldWrap}>
-            <div style={labelStyle}>Subtarefas ({subtasks.length})</div>
+            <FieldLabel icon="bx-git-branch" color="#6366f1">Subtarefas ({subtasks.length})</FieldLabel>
             {subtasks.map(s => (
               <div key={s.id} onClick={() => setCurrentId(s.id)} title="Abrir subtarefa"
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.83rem', color: '#cbd5e1', cursor: 'pointer', borderRadius: 6 }}

@@ -377,6 +377,18 @@ const EMPTY_FORM = (defaultContext = {}) => ({
   recurrence: null,
 })
 
+// Label com ícone colorido (mesma linguagem do painel de detalhes)
+function MLabel({ icon, color, children }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+      <span style={{ width: 18, height: 18, borderRadius: 5, background: `${color}1c`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`bx ${icon}`} style={{ fontSize: 11, color }} />
+      </span>
+      <span>{children}</span>
+    </label>
+  )
+}
+
 const DIAS_ROTINA = [
   { key: 1, label: 'SEG' }, { key: 2, label: 'TER' }, { key: 3, label: 'QUA' },
   { key: 4, label: 'QUI' }, { key: 5, label: 'SEX' },
@@ -591,7 +603,7 @@ export default function NewTaskModal({
 
           {/* Title */}
           <div>
-            <label style={LABEL_STYLE}>Título *</label>
+            <MLabel icon="bx-edit-alt" color="#26c281">Título *</MLabel>
             <input
               ref={titleRef}
               type="text"
@@ -610,7 +622,7 @@ export default function NewTaskModal({
 
           {/* Description */}
           <div>
-            <label style={LABEL_STYLE}>Descrição</label>
+            <MLabel icon="bx-align-left" color="#94a3b8">Descrição</MLabel>
             <textarea
               value={form.description}
               onChange={set('description')}
@@ -622,7 +634,7 @@ export default function NewTaskModal({
 
           {/* Checklist (opcional) */}
           <div>
-            <label style={LABEL_STYLE}>Checklist <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+            <MLabel icon="bx-list-check" color="#22c55e">Checklist <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></MLabel>
             {checklistItems.map((item, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
                 <i className="bx bx-checkbox" style={{ color: '#26c281', fontSize: 16, flexShrink: 0 }} />
@@ -650,7 +662,7 @@ export default function NewTaskModal({
           {/* Status + Assignee */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={LABEL_STYLE}>Status</label>
+              <MLabel icon="bx-loader-circle" color="#3b82f6">Status</MLabel>
               <CustomSelect
                 options={[{ value: '', label: 'Sem status' }, ...statuses.map(s => ({ value: s.id, label: s.label, dot: s.color }))]}
                 value={form.status_id}
@@ -660,7 +672,7 @@ export default function NewTaskModal({
               />
             </div>
             <div>
-              <label style={LABEL_STYLE}>Responsável</label>
+              <MLabel icon="bx-user" color="#8b5cf6">Responsável</MLabel>
               <CustomSelect
                 options={[{ value: '', label: 'Sem responsável' }, ...workspaceUsers.map(u => ({ value: u.id, label: u.full_name || u.email }))]}
                 value={form.assignee_id}
@@ -674,7 +686,7 @@ export default function NewTaskModal({
           {/* Client + Space (Espaço fixo na central em modo Rotinas) */}
           <div style={{ display: 'grid', gridTemplateColumns: rotinasMode ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={LABEL_STYLE}>Cliente</label>
+              <MLabel icon="bx-buildings" color="#14b8a6">Cliente</MLabel>
               <CustomSelect
                 options={[{ value: '', label: 'Sem cliente' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
                 value={form.client_id}
@@ -685,7 +697,7 @@ export default function NewTaskModal({
             </div>
             {!rotinasMode && (
               <div>
-                <label style={LABEL_STYLE}>Espaço</label>
+                <MLabel icon="bx-folder" color="#f59e0b">Espaço</MLabel>
                 <CustomSelect
                   options={[{ value: '', label: 'Sem espaço' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
                   value={form.space_id}
@@ -701,7 +713,7 @@ export default function NewTaskModal({
           {rotinasMode && (
             <>
               <div>
-                <label style={LABEL_STYLE}>Dias da Semana {dias.length > 1 && <span style={{ color: GREEN, textTransform: 'none', letterSpacing: 0 }}>({dias.length} dias — uma tarefa por dia)</span>}</label>
+                <MLabel icon="bx-calendar-week" color="#26c281">Dias da Semana {dias.length > 1 && <span style={{ color: GREEN, textTransform: 'none', letterSpacing: 0 }}>({dias.length} dias — uma tarefa por dia)</span>}</MLabel>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {DIAS_ROTINA.map(d => (
                     <button key={d.key} type="button"
@@ -714,11 +726,11 @@ export default function NewTaskModal({
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={LABEL_STYLE}>Horário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                  <MLabel icon="bx-time-five" color="#eab308">Horário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></MLabel>
                   <input type="time" value={horario} onChange={e => setHorario(e.target.value)} style={{ ...INPUT_STYLE, colorScheme: 'dark' }} />
                 </div>
                 <div>
-                  <label style={LABEL_STYLE}>Recorrência</label>
+                  <MLabel icon="bx-refresh" color="#8b5cf6">Recorrência</MLabel>
                   <CustomSelect
                     options={[
                       { value: 'weekly', label: 'Toda semana' },
@@ -738,7 +750,7 @@ export default function NewTaskModal({
           {/* Priority + Due Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={LABEL_STYLE}>Prioridade</label>
+              <MLabel icon="bxs-flag-alt" color="#f97316">Prioridade</MLabel>
               <CustomSelect
                 options={[
                   { value: 'none', label: 'Sem prioridade', color: '#64748b' },
@@ -753,14 +765,14 @@ export default function NewTaskModal({
               />
             </div>
             <div>
-              <label style={LABEL_STYLE}>Data de entrega</label>
+              <MLabel icon="bx-calendar-exclamation" color="#eab308">Data de entrega</MLabel>
               <DatePicker value={form.due_date} onChange={v => setForm(prev => ({ ...prev, due_date: v }))} />
             </div>
           </div>
 
           {/* Tags */}
           <div>
-            <label style={LABEL_STYLE}>Tags</label>
+            <MLabel icon="bx-purchase-tag-alt" color="#ec4899">Tags</MLabel>
             <div style={{
               ...INPUT_STYLE,
               display: 'flex', flexWrap: 'wrap', gap: 6, minHeight: 38,
@@ -798,7 +810,7 @@ export default function NewTaskModal({
 
           {/* Comentário inicial (opcional) */}
           <div>
-            <label style={LABEL_STYLE}>Comentário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+            <MLabel icon="bx-message-rounded-dots" color="#3b82f6">Comentário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></MLabel>
             <textarea
               value={firstComment}
               onChange={e => setFirstComment(e.target.value)}
