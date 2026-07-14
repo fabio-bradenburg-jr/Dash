@@ -543,19 +543,19 @@ export default function NewTaskModal({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 0,
+    padding: '24px 16px',
     opacity: mounted ? 1 : 0,
     transition: 'opacity 0.18s ease',
   }
 
+  // Mesmo porte do modal de checklist do Onboarding: 720px, centralizado
   const modalStyle = {
     background: '#111113',
     border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 14,
+    borderRadius: 24,
     width: '100%',
-    maxWidth: '100%',
-    height: '100%',
-    maxHeight: '100%',
+    maxWidth: 720,
+    maxHeight: '90vh',
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'hidden',
