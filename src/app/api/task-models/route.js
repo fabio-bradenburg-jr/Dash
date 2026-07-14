@@ -24,6 +24,7 @@ function sanitizeItems(items) {
   return items
     .map((it) => ({
       title: String(it?.title || '').trim(),
+      description: String(it?.description || '').trim(),
       subtasks: Array.isArray(it?.subtasks) ? it.subtasks.map((s) => String(s || '').trim()).filter(Boolean) : [],
     }))
     .filter((it) => it.title)
