@@ -253,13 +253,14 @@ function ProdBar({ pct, color = '#26c281' }) {
 }
 
 // ---- Add/Edit Task Modal for Rotinas ----
-function RotinasTaskModal({ spaceId, members, workspaceUsers, statuses, initialDia, initialMemberId, onClose, onSave, existing }) {
+function RotinasTaskModal({ spaceId, members, workspaceUsers, clients, statuses, initialDia, initialMemberId, onClose, onSave, existing }) {
   const [form, setForm] = useState({
     title: existing?.title || '',
     dia_semana: existing?.dia_semana ?? initialDia ?? 1,
     horario: existing?.horario || '',
     recorrente: existing?.recorrente || 'weekly',
     assignee_id: existing?.assignee_id || initialMemberId || '',
+    client_id: existing?.client_id || '',
     priority: existing?.priority || 'none',
   })
   const [saving, setSaving] = useState(false)
@@ -276,6 +277,7 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, statuses, initialD
         horario: form.horario || null,
         recorrente: form.recorrente,
         assignee_id: form.assignee_id || null,
+        client_id: form.client_id || null,
         priority: form.priority,
       }
       const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
@@ -367,6 +369,17 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, statuses, initialD
               onChange={v => setForm(f => ({ ...f, assignee_id: v }))}
               placeholder="Sem responsável"
               icon="bx-user"
+            />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={lbl}>Cliente</label>
+            <CustomSelect
+              options={[{ value: '', label: 'Sem cliente' }, ...((clients || []).map(c => ({ value: c.id, label: c.name })))]}
+              value={form.client_id}
+              onChange={v => setForm(f => ({ ...f, client_id: v }))}
+              placeholder="Sem cliente"
+              icon="bx-buildings"
             />
           </div>
 
@@ -776,7 +789,7 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
 }
 
 // ---- Main RotinasView ----
-export default function RotinasView({ space, allTasks, statuses, workspaceUsers, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete }) {
+export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
@@ -968,9 +981,17 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           ))}
         </div>
 
-        <button type="button" onClick={() => setShowMembersPanel(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}>
-          <i className="bx bx-group" style={{ fontSize: 15 }} /> Membros ({members.filter(m => m.ativo).length})
-        </button>
+        {onOpenModels && (
+          <button type="button" onClick={onOpenModels} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.3)', color: '#26c281', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
+            <i className="bx bx-package" style={{ fontSize: 15 }} /> Modelos
+          </button>
+        )}
+
+        {!hideMembers && (
+          <button type="button" onClick={() => setShowMembersPanel(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}>
+            <i className="bx bx-group" style={{ fontSize: 15 }} /> Membros ({members.filter(m => m.ativo).length})
+          </button>
+        )}
       </div>
 
       {/* Stats bar */}
@@ -1097,6 +1118,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           spaceId={space.id}
           members={members}
           workspaceUsers={workspaceUsers}
+          clients={clients}
           statuses={statuses}
           initialDia={taskModal.dia}
           initialMemberId={taskModal.memberId}
@@ -1110,6 +1132,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
           spaceId={space.id}
           members={members}
           workspaceUsers={workspaceUsers}
+          clients={clients}
           statuses={statuses}
           onClose={() => setEditTask(null)}
           onSave={(task, type) => { onTaskSaved(task, type); setEditTask(null) }}

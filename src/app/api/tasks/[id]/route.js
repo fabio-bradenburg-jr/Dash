@@ -59,6 +59,14 @@ export async function PUT(request, { params }) {
       if (body[f] !== undefined) updates[f] = body[f]
     }
 
+    // Snapshot antes da mudança, para o log de atividade (estilo ClickUp)
+    const { data: before } = await ctx.adminSupabase
+      .from('tasks')
+      .select('title, description, status_id, priority, assignee_id, client_id, due_date, start_date')
+      .eq('id', id)
+      .eq('workspace_id', ctx.accessContext.workspaceId)
+      .maybeSingle()
+
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
       .update(updates)
@@ -68,6 +76,25 @@ export async function PUT(request, { params }) {
       .single()
 
     if (error) throw error
+
+    // Registra mudanças relevantes no task_activity_log (não bloqueia a resposta em caso de falha)
+    try {
+      if (before) {
+        const TRACKED = ['status_id', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'title', 'description']
+        const logs = TRACKED
+          .filter(f => body[f] !== undefined && String(before[f] ?? '') !== String(body[f] ?? ''))
+          .map(f => ({
+            task_id: id,
+            workspace_id: ctx.accessContext.workspaceId,
+            actor_id: ctx.user.id,
+            action: `${f}_changed`,
+            metadata: { field: f, from: before[f] ?? null, to: body[f] ?? null },
+          }))
+        if (logs.length) await ctx.adminSupabase.from('task_activity_log').insert(logs)
+      }
+    } catch (logError) {
+      console.warn('task activity log failed:', logError?.message)
+    }
 
     // Sync multi-assignees if provided
     if (Array.isArray(body.assignee_ids)) {

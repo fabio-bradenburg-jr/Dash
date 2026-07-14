@@ -1398,18 +1398,264 @@ function RecurrenceModal({ task, onSave, onClose }) {
   )
 }
 
-export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields }) {
+// ---- Atividade / Comentários (sidebar estilo ClickUp) ----
+function relativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'agora'
+  if (min < 60) return `há ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `há ${h}h`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `há ${d}d`
+  return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
+
+// Renderiza corpo do comentário destacando menções @[Nome](id)
+function CommentBody({ body }) {
+  const parts = []
+  let last = 0
+  const re = /@\[([^\]]+)\]\(([^)]+)\)/g
+  let m
+  while ((m = re.exec(body)) !== null) {
+    if (m.index > last) parts.push(body.slice(last, m.index))
+    parts.push(<span key={m.index} style={{ color: '#26c281', fontWeight: 600 }}>@{m[1]}</span>)
+    last = m.index + m[0].length
+  }
+  if (last < body.length) parts.push(body.slice(last))
+  return <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{parts}</span>
+}
+
+const ACTIVITY_META = {
+  created: { icon: 'bx-plus-circle', color: '#26c281', text: () => 'criou a tarefa' },
+  archived: { icon: 'bx-archive', color: '#f59e0b', text: () => 'arquivou a tarefa' },
+  deleted: { icon: 'bx-trash', color: '#ef4444', text: () => 'excluiu a tarefa' },
+  status_id_changed: { icon: 'bx-transfer', color: '#3b82f6', text: (md, ctx) => `alterou o status para "${ctx.statusLabel(md.to) || '—'}"` },
+  priority_changed: { icon: 'bx-flag', color: '#f97316', text: (md) => `alterou a prioridade para "${PRIORITY_CONFIG[md.to]?.label || md.to || '—'}"` },
+  assignee_id_changed: { icon: 'bx-user', color: '#8b5cf6', text: (md, ctx) => md.to ? `atribuiu para ${ctx.userName(md.to)}` : 'removeu o responsável' },
+  client_id_changed: { icon: 'bx-buildings', color: '#14b8a6', text: (md, ctx) => md.to ? `vinculou ao cliente ${ctx.clientName(md.to)}` : 'removeu o cliente' },
+  due_date_changed: { icon: 'bx-calendar', color: '#eab308', text: (md) => md.to ? `definiu o vencimento para ${formatDate(md.to)}` : 'removeu o vencimento' },
+  start_date_changed: { icon: 'bx-calendar-check', color: '#22c55e', text: (md) => md.to ? `definiu o início para ${formatDate(md.to)}` : 'removeu a data de início' },
+  title_changed: { icon: 'bx-edit', color: '#94a3b8', text: () => 'renomeou a tarefa' },
+  description_changed: { icon: 'bx-align-left', color: '#94a3b8', text: () => 'atualizou a descrição' },
+}
+
+export function TaskActivitySidebar({ taskId, statuses, clients, workspaceUsers, currentUserId }) {
+  const [tab, setTab] = useState('comments')
+  const [activity, setActivity] = useState([])
+  const [loadingC, setLoadingC] = useState(true)
+  const [loadingA, setLoadingA] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [replyTo, setReplyTo] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editVal, setEditVal] = useState('')
+  const [showMentions, setShowMentions] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const listRef = useRef(null)
+
+  const userName = useCallback((id) => {
+    const u = (workspaceUsers || []).find(x => x.id === id)
+    return u?.full_name || u?.email || 'Usuário'
+  }, [workspaceUsers])
+  const statusLabel = useCallback((id) => statuses.find(s => s.id === id)?.label, [statuses])
+  const clientName = useCallback((id) => (clients || []).find(c => c.id === id)?.name || 'cliente', [clients])
+
+  const loadComments = useCallback(async () => {
+    setLoadingC(true)
+    try {
+      const res = await fetch(`/api/tasks/comments?task_id=${taskId}`)
+      const json = await res.json()
+      setComments((json.comments || []).filter(c => !c.is_deleted))
+    } finally { setLoadingC(false) }
+  }, [taskId])
+
+  const loadActivity = useCallback(async () => {
+    setLoadingA(true)
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/activity`)
+      const json = await res.json()
+      setActivity(json.entries || [])
+    } finally { setLoadingA(false) }
+  }, [taskId])
+
+  useEffect(() => { loadComments() }, [loadComments])
+  useEffect(() => { if (tab === 'activity') loadActivity() }, [tab, loadActivity])
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
+  }, [comments.length])
+
+  async function sendComment() {
+    const body = draft.trim()
+    if (!body || busy) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/tasks/comments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId, body, parent_id: replyTo?.id || null }),
+      })
+      const json = await res.json()
+      if (json.comment) { setComments(prev => [...prev, json.comment]); setDraft(''); setReplyTo(null) }
+    } finally { setBusy(false) }
+  }
+  async function saveEdit(id) {
+    const body = editVal.trim()
+    if (!body) return
+    const res = await fetch('/api/tasks/comments', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, body }) })
+    const json = await res.json()
+    if (json.comment) setComments(prev => prev.map(c => c.id === id ? json.comment : c))
+    setEditingId(null)
+  }
+  async function removeComment(id) {
+    await fetch(`/api/tasks/comments?id=${id}`, { method: 'DELETE' })
+    setComments(prev => prev.filter(c => c.id !== id))
+  }
+  function insertMention(u) {
+    setDraft(prev => `${prev}${prev && !prev.endsWith(' ') ? ' ' : ''}@[${u.full_name || u.email}](${u.id}) `)
+    setShowMentions(false)
+  }
+
+  const roots = comments.filter(c => !c.parent_id)
+  const childrenOf = (id) => comments.filter(c => c.parent_id === id)
+
+  const renderComment = (c, depth = 0) => {
+    const own = c.user_id === currentUserId
+    const name = userName(c.user_id)
+    return (
+      <div key={c.id} style={{ marginLeft: depth ? 26 : 0, marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 9 }}>
+          <Avatar name={name} size={26} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#e2e8f0' }}>{name}</span>
+              <span style={{ fontSize: '0.68rem', color: '#475569' }}>{relativeTime(c.created_at)}{c.edited_at ? ' · editado' : ''}</span>
+            </div>
+            {editingId === c.id ? (
+              <div style={{ marginTop: 4 }}>
+                <textarea value={editVal} onChange={e => setEditVal(e.target.value)} rows={2} autoFocus
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(38,194,129,0.4)', borderRadius: 7, color: '#e2e8f0', padding: '6px 9px', fontSize: '0.82rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <button type="button" onClick={() => saveEdit(c.id)} style={{ background: '#26c281', border: 'none', color: '#fff', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Salvar</button>
+                  <button type="button" onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.75rem' }}>Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginTop: 3, fontSize: '0.84rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px 10px 10px 10px', padding: '7px 10px' }}>
+                <CommentBody body={c.body} />
+              </div>
+            )}
+            {editingId !== c.id && (
+              <div style={{ display: 'flex', gap: 12, marginTop: 3 }}>
+                <button type="button" onClick={() => { setReplyTo(c); setTab('comments') }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.7rem', padding: 0 }}>Responder</button>
+                {own && <button type="button" onClick={() => { setEditingId(c.id); setEditVal(c.body) }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.7rem', padding: 0 }}>Editar</button>}
+                {own && <button type="button" onClick={() => removeComment(c.id)} style={{ background: 'none', border: 'none', color: '#7f1d1d', cursor: 'pointer', fontSize: '0.7rem', padding: 0 }}>Excluir</button>}
+              </div>
+            )}
+          </div>
+        </div>
+        {childrenOf(c.id).map(child => renderComment(child, depth + 1))}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', minHeight: 0, background: 'rgba(255,255,255,0.012)' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        {[{ key: 'comments', label: `Comentários${comments.length ? ` (${comments.length})` : ''}`, icon: 'bx-message-rounded-dots' }, { key: 'activity', label: 'Atividade', icon: 'bx-history' }].map(t => (
+          <button key={t.key} type="button" onClick={() => setTab(t.key)}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 8px', background: 'none', border: 'none', borderBottom: tab === t.key ? '2px solid #26c281' : '2px solid transparent', color: tab === t.key ? '#26c281' : '#64748b', cursor: 'pointer', fontSize: '0.8rem', fontWeight: tab === t.key ? 700 : 500, marginBottom: -1 }}>
+            <i className={`bx ${t.icon}`} style={{ fontSize: 15 }} />{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Feed */}
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', minHeight: 0 }}>
+        {tab === 'comments' && (
+          loadingC ? (
+            <div style={{ textAlign: 'center', color: '#475569', padding: 20 }}><i className="bx bx-loader-alt bx-spin" /></div>
+          ) : roots.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#475569', padding: '30px 12px' }}>
+              <i className="bx bx-message-rounded-dots" style={{ fontSize: 26, display: 'block', marginBottom: 8, opacity: 0.5 }} />
+              <div style={{ fontSize: '0.8rem' }}>Nenhum comentário ainda.<br />Comece a conversa abaixo.</div>
+            </div>
+          ) : roots.map(c => renderComment(c))
+        )}
+        {tab === 'activity' && (
+          loadingA ? (
+            <div style={{ textAlign: 'center', color: '#475569', padding: 20 }}><i className="bx bx-loader-alt bx-spin" /></div>
+          ) : activity.map(ev => {
+            const meta = ACTIVITY_META[ev.action] || { icon: 'bx-info-circle', color: '#64748b', text: () => ev.action }
+            return (
+              <div key={ev.id} style={{ display: 'flex', gap: 9, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <span style={{ width: 24, height: 24, borderRadius: 7, background: `${meta.color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <i className={`bx ${meta.icon}`} style={{ fontSize: 13, color: meta.color }} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0, fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                  <strong style={{ color: '#cbd5e1' }}>{ev.actor_id ? userName(ev.actor_id) : 'Sistema'}</strong>{' '}
+                  {meta.text(ev.metadata || {}, { userName, statusLabel, clientName })}
+                  <div style={{ fontSize: '0.66rem', color: '#475569', marginTop: 1 }}>{relativeTime(ev.created_at)}</div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Composer */}
+      {tab === 'comments' && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 12px', flexShrink: 0, position: 'relative' }}>
+          {replyTo && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: '0.72rem', color: '#94a3b8', background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.2)', borderRadius: 7, padding: '4px 8px' }}>
+              <i className="bx bx-reply" style={{ color: '#26c281' }} />
+              Respondendo a <strong style={{ color: '#cbd5e1' }}>{userName(replyTo.user_id)}</strong>
+              <button type="button" onClick={() => setReplyTo(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex' }}><i className="bx bx-x" /></button>
+            </div>
+          )}
+          {showMentions && (
+            <div style={{ position: 'absolute', bottom: '100%', left: 12, right: 12, marginBottom: 4, background: '#0d0d10', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.5)', maxHeight: 180, overflowY: 'auto', zIndex: 10 }}>
+              {(workspaceUsers || []).map(u => (
+                <button key={u.id} type="button" onClick={() => insertMention(u)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 11px', background: 'none', border: 'none', cursor: 'pointer', color: '#e2e8f0', fontSize: '0.8rem', textAlign: 'left' }}>
+                  <Avatar name={u.full_name || u.email} size={20} />{u.full_name || u.email}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 7, alignItems: 'flex-end' }}>
+            <button type="button" onClick={() => setShowMentions(v => !v)} title="Mencionar alguém"
+              style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: showMentions ? 'rgba(38,194,129,0.15)' : 'rgba(255,255,255,0.04)', color: showMentions ? '#26c281' : '#64748b', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>@</button>
+            <textarea
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment() } }}
+              placeholder="Escrever comentário… (Enter envia)"
+              rows={draft.includes('\n') ? 3 : 1}
+              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9, color: '#e2e8f0', padding: '7px 10px', fontSize: '0.83rem', outline: 'none', resize: 'none', fontFamily: 'inherit', minWidth: 0 }}
+            />
+            <button type="button" onClick={sendComment} disabled={busy || !draft.trim()}
+              style={{ width: 32, height: 32, borderRadius: 9, border: 'none', background: draft.trim() ? '#26c281' : 'rgba(255,255,255,0.06)', color: draft.trim() ? '#fff' : '#475569', cursor: draft.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className="bx bx-send" style={{ fontSize: 15 }} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields, currentUserId }) {
+  const [currentId, setCurrentId] = useState(taskId)
+  useEffect(() => { setCurrentId(taskId) }, [taskId])
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
   const [subtasks, setSubtasks] = useState([])
-  const [comments, setComments] = useState([])
   const [assigneeIds, setAssigneeIds] = useState([])
   const [fieldValues, setFieldValues] = useState([])
   const [loading, setLoading] = useState(true)
   const [editTitle, setEditTitle] = useState(false)
   const [titleVal, setTitleVal] = useState('')
   const [newCheckItem, setNewCheckItem] = useState('')
-  const [newComment, setNewComment] = useState('')
   const [newSubtask, setNewSubtask] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmHardDelete, setConfirmHardDelete] = useState(false)
@@ -1419,7 +1665,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
   async function handleHardDelete() {
     setHardDeleting(true)
     try {
-      await fetch(`/api/tasks/${taskId}?hard=true`, { method: 'DELETE' })
+      await fetch(`/api/tasks/${currentId}?hard=true`, { method: 'DELETE' })
       onClose()
     } finally {
       setHardDeleting(false)
@@ -1429,42 +1675,41 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/tasks/${taskId}`)
+      const res = await fetch(`/api/tasks/${currentId}`)
       const json = await res.json()
       if (json.task) {
         setTask(json.task)
         setTitleVal(json.task.title)
         setChecklist(json.checklist || [])
         setSubtasks(json.subtasks || [])
-        setComments(json.comments || [])
         setAssigneeIds(json.assignees || (json.task.assignee_id ? [json.task.assignee_id] : []))
         setFieldValues(json.fieldValues || [])
       }
     } finally {
       setLoading(false)
     }
-  }, [taskId])
+  }, [currentId])
 
   useEffect(() => { load() }, [load])
 
   async function updateField(field, value) {
     setSaving(true)
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) })
+      const res = await fetch(`/api/tasks/${currentId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) })
       const json = await res.json()
       if (json.task) {
         setTask(json.task)
         onUpdated(json.task)
         // Trigger recurring generation when task is closed
         if (field === 'status_id' && json.task.is_recurring && json.task.create_when === 'on_completion' && json.task.closed_at) {
-          fetch('/api/tasks/recurring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId }) }).catch(() => {})
+          fetch('/api/tasks/recurring', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: currentId }) }).catch(() => {})
         }
       }
     } finally { setSaving(false) }
   }
 
   async function saveRecurrence(fields) {
-    const res = await fetch(`/api/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...fields }) })
+    const res = await fetch(`/api/tasks/${currentId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...fields }) })
     const json = await res.json()
     if (json.task) { setTask(json.task); onUpdated(json.task) }
   }
@@ -1475,7 +1720,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
     const primaryId = ids[0] || null
     setSaving(true)
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await fetch(`/api/tasks/${currentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignee_id: primaryId, assignee_ids: ids }),
@@ -1493,7 +1738,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
     await fetch('/api/tasks/custom-fields/values', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task_id: taskId, field_id: fieldId, value }),
+      body: JSON.stringify({ task_id: currentId, field_id: fieldId, value }),
     })
   }
 
@@ -1519,36 +1764,27 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
     const label = newCheckItem.trim()
     if (!label) return
     setNewCheckItem('')
-    const res = await fetch(`/api/tasks/${taskId}/checklist`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label }) })
+    const res = await fetch(`/api/tasks/${currentId}/checklist`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label }) })
     const json = await res.json()
     if (json.item) setChecklist(prev => [...prev, json.item])
   }
 
   async function toggleCheckItem(item) {
-    const res = await fetch(`/api/tasks/${taskId}/checklist`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, is_done: !item.is_done }) })
+    const res = await fetch(`/api/tasks/${currentId}/checklist`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: item.id, is_done: !item.is_done }) })
     const json = await res.json()
     if (json.item) setChecklist(prev => prev.map(c => c.id === item.id ? json.item : c))
   }
 
   async function deleteCheckItem(itemId) {
-    await fetch(`/api/tasks/${taskId}/checklist?id=${itemId}`, { method: 'DELETE' })
+    await fetch(`/api/tasks/${currentId}/checklist?id=${itemId}`, { method: 'DELETE' })
     setChecklist(prev => prev.filter(c => c.id !== itemId))
-  }
-
-  async function addComment() {
-    const body = newComment.trim()
-    if (!body) return
-    setNewComment('')
-    const res = await fetch(`/api/tasks/${taskId}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body }) })
-    const json = await res.json()
-    if (json.comment) setComments(prev => [...prev, json.comment])
   }
 
   async function addSubtask() {
     const title = newSubtask.trim()
     if (!title) return
     setNewSubtask('')
-    const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, parent_task_id: taskId, status_id: task?.status_id || null }) })
+    const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, parent_task_id: currentId, status_id: task?.status_id || null }) })
     const json = await res.json()
     if (json.task) setSubtasks(prev => [...prev, json.task])
   }
@@ -1561,9 +1797,15 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
   const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', width: '100%', outline: 'none' }
 
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 480, background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 'min(96vw, 920px)', background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        {task?.task_public_id && (
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#26c281', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.25)', borderRadius: 6, padding: '2px 8px', letterSpacing: '0.03em' }}>{task.task_public_id}</span>
+        )}
         <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Detalhes da tarefa</span>
+        {task?.created_at && <span style={{ fontSize: '0.7rem', color: '#334155' }}>· criada em {new Date(task.created_at).toLocaleDateString('pt-BR')}</span>}
+        {saving && <span style={{ fontSize: '0.72rem', color: '#26c281' }}><i className="bx bx-loader-alt bx-spin" style={{ marginRight: 3 }} />Salvando…</span>}
+        <div style={{ flex: 1 }} />
         <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 20, padding: 4, borderRadius: 4 }}>
           <i className="bx bx-x"></i>
         </button>
@@ -1574,7 +1816,14 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
       ) : !task ? (
         <div style={{ padding: 24, color: '#ef4444', fontSize: '0.85rem' }}>Tarefa não encontrada.</div>
       ) : (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '16px 22px' }}>
+          {task.parent_task_id && (
+            <button type="button" onClick={() => setCurrentId(task.parent_task_id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#26c281', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, padding: 0, marginBottom: 10 }}>
+              <i className="bx bx-chevron-left" style={{ fontSize: 16 }} /> Voltar para a tarefa principal
+            </button>
+          )}
           <div style={{ marginBottom: 20 }}>
             {editTitle ? (
               <input
@@ -1636,14 +1885,25 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
             />
           </div>
 
-          <div style={fieldWrap}>
-            <div style={labelStyle}>Data de vencimento</div>
-            <input
-              type="date"
-              value={task.due_date || ''}
-              onChange={e => updateField('due_date', e.target.value || null)}
-              style={{ ...selectStyle, colorScheme: 'dark' }}
-            />
+          <div style={{ ...fieldWrap, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <div style={labelStyle}>Data de início</div>
+              <input
+                type="date"
+                value={task.start_date || ''}
+                onChange={e => updateField('start_date', e.target.value || null)}
+                style={{ ...selectStyle, colorScheme: 'dark' }}
+              />
+            </div>
+            <div>
+              <div style={labelStyle}>Vencimento</div>
+              <input
+                type="date"
+                value={task.due_date || ''}
+                onChange={e => updateField('due_date', e.target.value || null)}
+                style={{ ...selectStyle, colorScheme: 'dark' }}
+              />
+            </div>
           </div>
 
           <div style={fieldWrap}>
@@ -1733,9 +1993,13 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           <div style={fieldWrap}>
             <div style={labelStyle}>Subtarefas ({subtasks.length})</div>
             {subtasks.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.83rem', color: '#cbd5e1' }}>
+              <div key={s.id} onClick={() => setCurrentId(s.id)} title="Abrir subtarefa"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.83rem', color: '#cbd5e1', cursor: 'pointer', borderRadius: 6 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                 <StatusDot color={statuses.find(st => st.id === s.status_id)?.color} size={8} />
-                {s.title}
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</span>
+                <i className="bx bx-chevron-right" style={{ color: '#475569', fontSize: 15, flexShrink: 0 }} />
               </div>
             ))}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
@@ -1750,35 +2014,6 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
                 <i className="bx bx-plus"></i>
               </button>
             </div>
-          </div>
-
-          <div style={fieldWrap}>
-            <div style={labelStyle}>Comentários ({comments.length})</div>
-            {comments.map(c => (
-              <div key={c.id} style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: 3 }}>
-                  {new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </div>
-                <div style={{ fontSize: '0.83rem', color: '#cbd5e1' }}>{c.body}</div>
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              <input
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addComment()}
-                placeholder="Escrever comentário..."
-                style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.82rem', outline: 'none' }}
-              />
-              <button type="button" onClick={addComment} style={{ background: '#26c281', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.82rem' }}>
-                Enviar
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#334155' }}>
-            Criado em {new Date(task.created_at).toLocaleDateString('pt-BR')}
-            {saving && <span style={{ marginLeft: 8, color: '#26c281' }}>Salvando...</span>}
           </div>
 
           {showRecurrence && (
@@ -1821,6 +2056,17 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
               )}
             </div>
           )}
+        </div>
+
+        {/* Sidebar de Comentários / Atividade (estilo ClickUp) */}
+        <TaskActivitySidebar
+          key={currentId}
+          taskId={currentId}
+          statuses={statuses}
+          clients={clients}
+          workspaceUsers={workspaceUsers}
+          currentUserId={currentUserId}
+        />
         </div>
       )}
     </div>
@@ -3382,6 +3628,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             allTasks={tasks}
             statuses={statuses}
             workspaceUsers={allUsers}
+            clients={clients}
             hideBack={isRotinasMode}
             hideDelete={isRotinasMode}
             onOpenPanel={task => setSelectedTaskId(task.id)}
@@ -3438,6 +3685,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             onUpdated={handlePanelUpdate}
             isMaster={isMaster}
             customFields={customFields}
+            currentUserId={currentUserId}
           />
         </>
       )}

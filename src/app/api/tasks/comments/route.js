@@ -64,7 +64,7 @@ export async function POST(request) {
       .from('task_comments')
       .insert({
         task_id,
-        author_id: ctx.user.id,
+        user_id: ctx.user.id,
         parent_id: parent_id || null,
         body: commentBody.trim(),
       })
@@ -142,7 +142,7 @@ export async function PUT(request) {
       .from('task_comments')
       .update({ body: commentBody.trim(), edited_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('author_id', ctx.user.id)
+      .eq('user_id', ctx.user.id)
       .select('*')
       .single()
 
@@ -165,7 +165,7 @@ export async function DELETE(request) {
       .from('task_comments')
       .update({ is_deleted: true, body: '[comentário removido]' })
       .eq('id', id)
-      .eq('author_id', ctx.user.id)
+      .eq('user_id', ctx.user.id)
 
     if (error) throw error
     return NextResponse.json({ ok: true })

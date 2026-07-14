@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import RotinasView from '@/components/dashboard/RotinasView'
+import TaskModelsModal from '@/components/dashboard/TaskModelsModal'
 import { TaskDetailPanel } from '@/components/dashboard/TasksTab'
 
 // Aba própria de Rotinas: uma única central, board semanal direto.
@@ -14,6 +15,7 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
   const [internalUsers, setInternalUsers] = useState([])
   const [space, setSpace] = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
+  const [showModels, setShowModels] = useState(false)
   const [loading, setLoading] = useState(true)
   const ensuredRef = useRef(false)
 
@@ -91,12 +93,26 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
           allTasks={tasks}
           statuses={statuses}
           workspaceUsers={allUsers}
+          clients={clients}
           hideBack
           hideDelete
+          hideMembers
+          onOpenModels={() => setShowModels(true)}
           onOpenPanel={task => setSelectedTaskId(task.id)}
           onTaskSaved={handleTaskSaved}
           onBack={() => {}}
           onDeleteSpace={() => {}}
+        />
+      )}
+
+      {showModels && space && (
+        <TaskModelsModal
+          spaceId={space.id}
+          clients={clients}
+          workspaceUsers={allUsers}
+          statuses={statuses}
+          onClose={() => setShowModels(false)}
+          onApplied={(created) => setTasks(prev => [...prev, ...created])}
         />
       )}
 
@@ -112,6 +128,7 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
             onUpdated={handlePanelUpdate}
             isMaster={isMaster}
             customFields={customFields}
+            currentUserId={currentUserId}
           />
         </>
       )}
