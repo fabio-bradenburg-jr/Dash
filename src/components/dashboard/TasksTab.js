@@ -1449,6 +1449,7 @@ const ACTIVITY_META = {
 
 export function TaskActivitySidebar({ taskId, statuses, clients, workspaceUsers, currentUserId }) {
   const [tab, setTab] = useState('comments')
+  const [comments, setComments] = useState([])
   const [activity, setActivity] = useState([])
   const [loadingC, setLoadingC] = useState(true)
   const [loadingA, setLoadingA] = useState(false)
