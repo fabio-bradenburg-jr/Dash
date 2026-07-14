@@ -1243,6 +1243,7 @@ function RecurrenceModal({ task, onSave, onClose }) {
   const [copyAttachments, setCopyAttachments] = useState(task.copy_attachments || false)
   const [copySubtasks, setCopySubtasks] = useState(task.copy_subtasks || false)
   const [copyTags, setCopyTags] = useState(task.copy_tags !== false)
+  const [horario, setHorario] = useState(task.horario || '')
   const [saving, setSaving] = useState(false)
 
   function toggleDay(d) {
@@ -1256,6 +1257,7 @@ function RecurrenceModal({ task, onSave, onClose }) {
         is_recurring: true,
         recurring_type: type,
         recurring_interval: interval,
+        horario: horario || null,
         recurring_days: type === 'weekly' ? days : [],
         recurring_end_type: endType,
         recurring_end_date: endType === 'on_date' ? endDate : null,
@@ -1328,6 +1330,11 @@ function RecurrenceModal({ task, onSave, onClose }) {
             </div>
           </div>
         )}
+
+        <div style={sect}>
+          <span style={label}>Horário <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></span>
+          <input type="time" value={horario} onChange={e => setHorario(e.target.value)} style={{ ...sel, colorScheme: 'dark', width: 140 }} />
+        </div>
 
         <div style={sect}>
           <span style={label}>Término</span>

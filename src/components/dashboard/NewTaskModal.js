@@ -389,6 +389,8 @@ export default function NewTaskModal({
 }) {
   const [form, setForm] = useState(EMPTY_FORM(defaultContext))
   const [tagInput, setTagInput] = useState('')
+  const [checklistItems, setChecklistItems] = useState([])
+  const [checklistInput, setChecklistInput] = useState('')
   const [titleError, setTitleError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingAnother, setSavingAnother] = useState(false)
@@ -473,11 +475,24 @@ export default function NewTaskModal({
       const json = await res.json()
       const task = json.task || json
 
+      // Checklist opcional: cria os itens depois da tarefa
+      if (task?.id && checklistItems.length > 0) {
+        for (const label of checklistItems) {
+          await fetch(`/api/tasks/${task.id}/checklist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label }),
+          }).catch(() => {})
+        }
+      }
+
       if (onSaved) onSaved(task)
 
       if (saveAnother) {
         setForm(EMPTY_FORM(defaultContext))
         setTagInput('')
+        setChecklistItems([])
+        setChecklistInput('')
         setTitleError(false)
         titleRef.current?.focus()
       } else {
@@ -489,7 +504,7 @@ export default function NewTaskModal({
       setSaving(false)
       setSavingAnother(false)
     }
-  }, [form, defaultContext, onSaved, onClose])
+  }, [form, checklistItems, defaultContext, onSaved, onClose])
 
   const overlayStyle = {
     position: 'fixed',
@@ -575,6 +590,33 @@ export default function NewTaskModal({
               rows={3}
               style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
             />
+          </div>
+
+          {/* Checklist (opcional) */}
+          <div>
+            <label style={LABEL_STYLE}>Checklist <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+            {checklistItems.map((item, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                <i className="bx bx-checkbox" style={{ color: '#26c281', fontSize: 16, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: '0.83rem', color: '#cbd5e1', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+                <button type="button" onClick={() => setChecklistItems(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                  <i className="bx bx-x" style={{ fontSize: 14 }} />
+                </button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                value={checklistInput}
+                onChange={e => setChecklistInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && checklistInput.trim()) { e.preventDefault(); setChecklistItems(prev => [...prev, checklistInput.trim()]); setChecklistInput('') } }}
+                placeholder="Adicionar item da checklist…"
+                style={{ ...INPUT_STYLE, fontSize: '0.83rem' }}
+              />
+              <button type="button" onClick={() => { if (checklistInput.trim()) { setChecklistItems(prev => [...prev, checklistInput.trim()]); setChecklistInput('') } }}
+                style={{ background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#26c281', borderRadius: 7, padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}>
+                <i className="bx bx-plus" />
+              </button>
+            </div>
           </div>
 
           {/* Status + Assignee */}

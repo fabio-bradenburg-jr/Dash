@@ -263,17 +263,24 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, clients, statuses,
     client_id: existing?.client_id || '',
     priority: existing?.priority || 'none',
   })
+  // Na criação, permite selecionar vários dias — cria uma tarefa por dia
+  const [dias, setDias] = useState([initialDia ?? 1])
+  const [checklistItems, setChecklistItems] = useState([])
+  const [checklistInput, setChecklistInput] = useState('')
   const [saving, setSaving] = useState(false)
+
+  function toggleDia(key) {
+    setDias(prev => prev.includes(key) ? (prev.length > 1 ? prev.filter(d => d !== key) : prev) : [...prev, key])
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.title.trim()) return
     setSaving(true)
     try {
-      const payload = {
+      const basePayload = {
         title: form.title.trim(),
         space_id: spaceId,
-        dia_semana: Number(form.dia_semana),
         horario: form.horario || null,
         recorrente: form.recorrente,
         assignee_id: form.assignee_id || null,
@@ -281,24 +288,34 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, clients, statuses,
         priority: form.priority,
       }
       const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
-      if (initialStatus && !existing) payload.status_id = initialStatus.id
 
       if (existing) {
         const res = await fetch('/api/tasks', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: existing.id, ...payload }),
+          body: JSON.stringify({ id: existing.id, ...basePayload, dia_semana: Number(form.dia_semana) }),
         })
         const json = await res.json()
         if (json.task) { onSave(json.task, 'update'); onClose() }
       } else {
-        const res = await fetch('/api/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const json = await res.json()
-        if (json.task) { onSave(json.task, 'create'); onClose() }
+        for (const dia of dias) {
+          const res = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...basePayload, dia_semana: Number(dia), status_id: initialStatus?.id || null }),
+          })
+          const json = await res.json()
+          if (json.task) {
+            for (const label of checklistItems) {
+              await fetch(`/api/tasks/${json.task.id}/checklist`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label }),
+              }).catch(() => {})
+            }
+            onSave(json.task, 'create')
+          }
+        }
+        onClose()
       }
     } finally { setSaving(false) }
   }
@@ -324,21 +341,41 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, clients, statuses,
             <input autoFocus value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Nome da tarefa..." style={inp} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div>
-              <label style={lbl}>Dia da Semana</label>
-              <CustomSelect
-                options={DIAS_SEMANA.map(d => ({ value: d.key, label: d.label }))}
-                value={form.dia_semana}
-                onChange={v => setForm(f => ({ ...f, dia_semana: Number(v) }))}
-                icon="bx-calendar"
-              />
+          {existing ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={lbl}>Dia da Semana</label>
+                <CustomSelect
+                  options={DIAS_SEMANA.map(d => ({ value: d.key, label: d.label }))}
+                  value={form.dia_semana}
+                  onChange={v => setForm(f => ({ ...f, dia_semana: Number(v) }))}
+                  icon="bx-calendar"
+                />
+              </div>
+              <div>
+                <label style={lbl}>Horário</label>
+                <input type="time" value={form.horario} onChange={e => setForm(f => ({ ...f, horario: e.target.value }))} style={inp} />
+              </div>
             </div>
-            <div>
-              <label style={lbl}>Horário</label>
-              <input type="time" value={form.horario} onChange={e => setForm(f => ({ ...f, horario: e.target.value }))} style={inp} />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 14 }}>
+                <label style={lbl}>Dias da Semana {dias.length > 1 && <span style={{ color: '#26c281', textTransform: 'none', letterSpacing: 0 }}>({dias.length} dias — uma tarefa por dia)</span>}</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {DIAS_SEMANA.map(d => (
+                    <button key={d.key} type="button" onClick={() => toggleDia(d.key)}
+                      style={{ flex: 1, padding: '7px 4px', borderRadius: 7, border: `1px solid ${dias.includes(d.key) ? '#26c281' : 'rgba(255,255,255,0.1)'}`, background: dias.includes(d.key) ? 'rgba(38,194,129,0.13)' : 'rgba(255,255,255,0.03)', color: dias.includes(d.key) ? '#26c281' : '#94a3b8', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 700 }}>
+                      {String(d.label).slice(0, 3).toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={lbl}>Horário</label>
+                <input type="time" value={form.horario} onChange={e => setForm(f => ({ ...f, horario: e.target.value }))} style={inp} />
+              </div>
+            </>
+          )}
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Recorrência</label>
@@ -382,6 +419,34 @@ function RotinasTaskModal({ spaceId, members, workspaceUsers, clients, statuses,
               icon="bx-buildings"
             />
           </div>
+
+          {!existing && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Checklist <span style={{ opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+              {checklistItems.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                  <i className="bx bx-checkbox" style={{ color: '#26c281', fontSize: 16, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: '0.82rem', color: '#cbd5e1', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item}</span>
+                  <button type="button" onClick={() => setChecklistItems(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, flexShrink: 0 }}>
+                    <i className="bx bx-x" style={{ fontSize: 14 }} />
+                  </button>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  value={checklistInput}
+                  onChange={e => setChecklistInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && checklistInput.trim()) { e.preventDefault(); setChecklistItems(prev => [...prev, checklistInput.trim()]); setChecklistInput('') } }}
+                  placeholder="Adicionar item da checklist…"
+                  style={{ ...inp, fontSize: '0.82rem' }}
+                />
+                <button type="button" onClick={() => { if (checklistInput.trim()) { setChecklistItems(prev => [...prev, checklistInput.trim()]); setChecklistInput('') } }}
+                  style={{ background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', color: '#26c281', borderRadius: 7, padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}>
+                  <i className="bx bx-plus" />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
             <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}>
@@ -789,7 +854,7 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
 }
 
 // ---- Main RotinasView ----
-export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels }) {
+export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, taskFilter, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels }) {
   const [members, setMembers] = useState([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [mondayDate, setMondayDate] = useState(() => getMonday(new Date()))
@@ -801,7 +866,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
   const [editTask, setEditTask] = useState(null)
 
   const weekDates = getWeekDates(mondayDate)
-  const spaceTasks = allTasks.filter(t => t.space_id === space.id)
+  const spaceTasks = allTasks.filter(t => t.space_id === space.id).filter(t => !taskFilter || taskFilter(t))
 
   const loadMembers = useCallback(async () => {
     setLoadingMembers(true)
@@ -986,6 +1051,10 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
             <i className="bx bx-package" style={{ fontSize: 15 }} /> Modelos
           </button>
         )}
+
+        <button type="button" onClick={() => setTaskModal({ dia: 1, memberId: null })} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#26c281', border: 'none', color: '#04150d', padding: '6px 14px', borderRadius: 7, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+          <i className="bx bx-plus" style={{ fontSize: 15 }} /> Nova Tarefa
+        </button>
 
         {!hideMembers && (
           <button type="button" onClick={() => setShowMembersPanel(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '6px 12px', borderRadius: 7, fontSize: '0.82rem', cursor: 'pointer' }}>
