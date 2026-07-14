@@ -396,22 +396,29 @@ function TaskRow({ task, statuses, clients, workspaceUsers, onOpenPanel, onQuick
       >
         {task.title}
         {task.subtask_count > 0 && (
-          <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#64748b', background: 'rgba(100,116,139,0.15)', borderRadius: 8, padding: '1px 6px' }}>
-            {task.subtask_count}
+          <span title={`${task.subtask_count} subtarefa(s)`} style={{ marginLeft: 8, fontSize: '0.72rem', color: '#818cf8', background: 'rgba(99,102,241,0.14)', borderRadius: 8, padding: '1px 7px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <i className="bx bx-git-branch" style={{ fontSize: 11 }}></i>{task.subtask_count}
           </span>
+        )}
+        {(task.is_recurring || (task.recorrente && task.recorrente !== 'once')) && (
+          <i className="bx bx-refresh" title="Tarefa recorrente" style={{ marginLeft: 6, fontSize: 13, color: '#26c281', verticalAlign: 'middle' }}></i>
         )}
       </div>
       {/* Client */}
-      <div style={{ width: 110, flexShrink: 0, fontSize: '0.78rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {client?.name || <span style={{ color: '#334155' }}>—</span>}
+      <div style={{ width: 110, flexShrink: 0, fontSize: '0.78rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+        {client?.name
+          ? <><i className="bx bx-buildings" style={{ fontSize: 12, color: '#14b8a6', flexShrink: 0 }}></i><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</span></>
+          : <span style={{ color: '#334155' }}>—</span>}
       </div>
       {/* Assignee inline picker */}
       <div style={{ width: 36, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
         <InlineAssigneePicker task={task} workspaceUsers={workspaceUsers} onChange={val => onQuickUpdate(task.id, { assignee_id: val })} />
       </div>
       {/* Due date */}
-      <div style={{ width: 90, flexShrink: 0, fontSize: '0.78rem', color: overdue ? '#ef4444' : (dueDateStr ? '#94a3b8' : '#334155'), textAlign: 'center' }}>
-        {dueDateStr || '—'}
+      <div style={{ width: 96, flexShrink: 0, fontSize: '0.78rem', color: overdue ? '#ef4444' : (dueDateStr ? '#94a3b8' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        {dueDateStr
+          ? <><i className={`bx ${overdue ? 'bx-calendar-exclamation' : 'bx-calendar'}`} style={{ fontSize: 12, color: overdue ? '#ef4444' : '#eab308' }}></i>{dueDateStr}</>
+          : '—'}
       </div>
       {/* Priority inline picker */}
       <div style={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
@@ -461,6 +468,11 @@ function PriorityTaskRow({ task, statuses, spaces, workspaceUsers, onOpenPanel, 
       )}
       <div style={{ flex: 1, minWidth: 0, fontSize: '0.84rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#e2e8f0' }}>
         {task.title}
+        {task.subtask_count > 0 && (
+          <span title={`${task.subtask_count} subtarefa(s)`} style={{ marginLeft: 7, fontSize: '0.7rem', color: '#818cf8', background: 'rgba(99,102,241,0.14)', borderRadius: 8, padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <i className="bx bx-git-branch" style={{ fontSize: 10 }}></i>{task.subtask_count}
+          </span>
+        )}
       </div>
       {space && (
         <div style={{ flexShrink: 0, fontSize: '0.72rem', color: space.color, background: space.color + '20', borderRadius: 8, padding: '1px 7px', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -473,8 +485,10 @@ function PriorityTaskRow({ task, statuses, spaces, workspaceUsers, onOpenPanel, 
       <div style={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
         <PriorityFlag priority={task.priority} size={13} />
       </div>
-      <div style={{ width: 80, flexShrink: 0, fontSize: '0.75rem', color: overdue ? '#ef4444' : '#64748b', textAlign: 'right' }}>
-        {dueDateStr || '—'}
+      <div style={{ width: 86, flexShrink: 0, fontSize: '0.75rem', color: overdue ? '#ef4444' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+        {dueDateStr
+          ? <><i className={`bx ${overdue ? 'bx-calendar-exclamation' : 'bx-calendar'}`} style={{ fontSize: 11, color: overdue ? '#ef4444' : '#eab308' }}></i>{dueDateStr}</>
+          : '—'}
       </div>
       <div style={{ flexShrink: 0 }}>
         <StatusPill status={status} />
