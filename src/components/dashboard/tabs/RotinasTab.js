@@ -19,9 +19,11 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
   const [showModels, setShowModels] = useState(false)
   const [newTaskDia, setNewTaskDia] = useState(null) // dia (1-5) | null
   const [loading, setLoading] = useState(true)
-  // Filtros por usuário do app e por função, com visões salvas
-  const [filterUser, setFilterUser] = useState('')
+  // Filtros por usuário do app e por função, com visões salvas.
+  // Por padrão, mostra primeiro só as tarefas do próprio usuário logado.
+  const [filterUser, setFilterUser] = useState(currentUserId || '')
   const [filterRole, setFilterRole] = useState('')
+  const defaultUserFilterRef = useRef(false)
   const [savedViews, setSavedViews] = useState([])
   const [savingView, setSavingView] = useState(false)
   const [viewName, setViewName] = useState('')
@@ -79,6 +81,12 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
   }, [])
 
   useEffect(() => { loadStatuses(); ensureSpace(); loadData() }, [loadStatuses, ensureSpace, loadData])
+
+  // Aplica o filtro padrão (usuário logado) assim que o id estiver disponível — só uma vez.
+  useEffect(() => {
+    if (defaultUserFilterRef.current) return
+    if (currentUserId) { setFilterUser(currentUserId); defaultUserFilterRef.current = true }
+  }, [currentUserId])
 
   const allUsers = internalUsers.length > 0 ? internalUsers : (workspaceUsers || [])
 
