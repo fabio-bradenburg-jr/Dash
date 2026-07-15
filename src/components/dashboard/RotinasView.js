@@ -853,6 +853,109 @@ function DeleteSpaceModal({ space, onClose, onDeleted }) {
   )
 }
 
+// ---- List View (formato de lista, com subtarefas expansíveis) ----
+function ListMiniAvatar({ user }) {
+  if (!user) return null
+  const name = user.full_name || user.email || '?'
+  return (
+    <div title={name} style={{ width: 20, height: 20, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+      {initials(name)}
+    </div>
+  )
+}
+
+function ListTaskRow({ task, statuses, workspaceUsers, clients, onToggle, onOpenPanel, depth = 0 }) {
+  const status = statuses.find(s => s.id === task.status_id)
+  const isCompleted = status?.is_completed || status?.is_closed
+  const [hovered, setHovered] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [children, setChildren] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const assignee = (workspaceUsers || []).find(u => u.id === task.assignee_id)
+  const client = (clients || []).find(c => c.id === task.client_id)
+
+  const loadChildren = useCallback(async () => {
+    setLoading(true)
+    try { const res = await fetch(`/api/tasks/${task.id}`); const json = await res.json(); const k = json.subtasks || []; setChildren(k); return k }
+    catch { setChildren([]); return [] } finally { setLoading(false) }
+  }, [task.id])
+
+  const toggleExpand = async (e) => { e.stopPropagation(); if (children === null) { await loadChildren(); setExpanded(true) } else setExpanded(v => !v) }
+  const maybeHasChildren = children === null || children.length > 0
+
+  return (
+    <div>
+      <div
+        onClick={() => onOpenPanel(task)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', paddingLeft: 12 + depth * 20, borderRadius: 8, background: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 4, cursor: 'pointer', transition: 'background 0.1s' }}
+      >
+        <button type="button" onClick={toggleExpand} title={maybeHasChildren ? (expanded ? 'Recolher' : 'Expandir subtarefas') : 'Sem subtarefas'}
+          style={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#64748b', cursor: maybeHasChildren ? 'pointer' : 'default', padding: 0 }}>
+          {loading ? <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 12 }} />
+            : maybeHasChildren ? <i className={`bx bx-chevron-${expanded ? 'down' : 'right'}`} style={{ fontSize: 15 }} />
+              : <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#334155' }} />}
+        </button>
+        <div onClick={e => { e.stopPropagation(); onToggle(task) }} title="Concluir/reabrir"
+          style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${isCompleted ? status?.color || '#26c281' : 'rgba(255,255,255,0.2)'}`, background: isCompleted ? status?.color || '#26c281' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
+          {isCompleted && <i className="bx bx-check" style={{ fontSize: 10, color: '#fff' }} />}
+        </div>
+        <span style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: isCompleted ? '#475569' : '#e2e8f0', textDecoration: isCompleted ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+        {children && children.length > 0 && (
+          <span style={{ fontSize: '0.66rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', borderRadius: 8, padding: '1px 6px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <i className="bx bx-git-branch" style={{ fontSize: 11 }} />{children.length}
+          </span>
+        )}
+        {task.horario && <span style={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}><i className="bx bx-time" style={{ fontSize: 12 }} />{task.horario}</span>}
+        {client && <span style={{ fontSize: '0.72rem', color: '#5eead4', background: 'rgba(20,184,166,0.1)', borderRadius: 8, padding: '1px 8px', flexShrink: 0, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</span>}
+        <ListMiniAvatar user={assignee} />
+        {status && <span title={status.label} style={{ width: 8, height: 8, borderRadius: '50%', background: status.color, flexShrink: 0 }} />}
+      </div>
+      {expanded && children && children.map(c => (
+        <ListTaskRow key={c.id} task={c} statuses={statuses} workspaceUsers={workspaceUsers} clients={clients} onToggle={onToggle} onOpenPanel={onOpenPanel} depth={depth + 1} />
+      ))}
+    </div>
+  )
+}
+
+function ListView({ tasks, statuses, workspaceUsers, clients, weekDates, onToggle, onOpenPanel, onAddTask }) {
+  const closedIds = new Set(statuses.filter(s => s.is_completed || s.is_closed).map(s => s.id))
+  const groups = weekDates.map(d => ({ ...d, tasks: tasks.filter(t => t.dia_semana === d.key) }))
+  const noDay = tasks.filter(t => !weekDates.some(d => d.key === t.dia_semana))
+
+  function renderGroup(label, dateDisplay, dayKey, groupTasks) {
+    const done = groupTasks.filter(t => closedIds.has(t.status_id)).length
+    return (
+      <div key={label} style={{ marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', marginBottom: 6 }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+          {dateDisplay && <span style={{ fontSize: '0.72rem', color: '#475569' }}>{dateDisplay}</span>}
+          <span style={{ fontSize: '0.7rem', color: '#64748b', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '1px 8px' }}>{done}/{groupTasks.length}</span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)' }} />
+          {dayKey != null && onAddTask && (
+            <button type="button" onClick={() => onAddTask(dayKey)} title="Adicionar tarefa" style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 16, padding: 2, display: 'flex' }}>
+              <i className="bx bx-plus" />
+            </button>
+          )}
+        </div>
+        {groupTasks.length === 0 ? (
+          <div style={{ padding: '6px 12px', fontSize: '0.78rem', color: '#334155' }}>Nenhuma tarefa neste dia.</div>
+        ) : groupTasks.map(t => (
+          <ListTaskRow key={t.id} task={t} statuses={statuses} workspaceUsers={workspaceUsers} clients={clients} onToggle={onToggle} onOpenPanel={onOpenPanel} />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ paddingTop: 12 }}>
+      {groups.map(g => renderGroup(g.label, g.display, g.key, g.tasks))}
+      {noDay.length > 0 && renderGroup('Sem dia definido', null, null, noDay)}
+    </div>
+  )
+}
+
 // ---- Main RotinasView ----
 export default function RotinasView({ space, allTasks, statuses, workspaceUsers, clients, taskFilter, onOpenPanel, onTaskSaved, onBack, onDeleteSpace, hideBack, hideDelete, hideMembers, onOpenModels, onNewTask }) {
   const [members, setMembers] = useState([])
@@ -1038,6 +1141,7 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: 2, gap: 2 }}>
           {[
             { key: 'week', icon: 'bx-calendar-week', label: 'Semana' },
+            { key: 'list', icon: 'bx-list-ul', label: 'Lista' },
             { key: 'overview', icon: 'bx-grid-alt', label: 'Visão Geral' },
           ].map(({ key, icon, label }) => (
             <button key={key} type="button" onClick={() => setViewMode(key)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.15s', background: viewMode === key ? '#26c281' : 'transparent', color: viewMode === key ? '#fff' : '#64748b' }}>
@@ -1126,6 +1230,20 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
             })}
           </div>
         </div>
+      )}
+
+      {/* List view */}
+      {viewMode === 'list' && (
+        <ListView
+          tasks={spaceTasks}
+          statuses={statuses}
+          workspaceUsers={workspaceUsers}
+          clients={clients}
+          weekDates={weekDates}
+          onToggle={handleToggle}
+          onOpenPanel={onOpenPanel}
+          onAddTask={dayKey => onNewTask ? onNewTask(dayKey) : setTaskModal({ dia: dayKey, memberId: '' })}
+        />
       )}
 
       {/* Overview grid */}
