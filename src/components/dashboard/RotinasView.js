@@ -982,15 +982,29 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
 
   useEffect(() => { loadMembers() }, [loadMembers])
 
-  // Auto-renewal: reset recurring tasks at start of each new week
+  // Auto-renovação: reabre as tarefas recorrentes concluídas no início de cada
+  // NOVA semana real (independente da semana que o usuário está visualizando).
+  // Respeita a cadência: semanal toda semana, quinzenal a cada 2 semanas,
+  // mensal na 1ª semana do mês. Só reseta as que estão concluídas.
   useEffect(() => {
-    const weekKey = fmtDate(mondayDate)
+    const realMonday = getMonday(new Date())
+    const realWeekKey = fmtDate(realMonday)
     const storageKey = `rotinas_renewed_${space.id}`
-    const lastRenewed = localStorage.getItem(storageKey)
-    if (lastRenewed === weekKey) return
+    if (localStorage.getItem(storageKey) === realWeekKey) return
 
-    const recurringTasks = allTasks.filter(t => t.space_id === space.id && t.recorrente && t.recorrente !== 'once')
-    if (recurringTasks.length === 0) { localStorage.setItem(storageKey, weekKey); return }
+    // cadência
+    const EPOCH_MONDAY = getMonday(new Date(2024, 0, 1)) // segunda de referência
+    const weeksSinceEpoch = Math.round((realMonday - EPOCH_MONDAY) / (7 * 86400000))
+    const isFirstWeekOfMonth = realMonday.getDate() <= 7
+    const dueForReset = (recorrente) => {
+      if (recorrente === 'weekly') return true
+      if (recorrente === 'biweekly') return weeksSinceEpoch % 2 === 0
+      if (recorrente === 'monthly') return isFirstWeekOfMonth
+      return false // 'once' e desconhecidos não renovam
+    }
+
+    const recurringTasks = allTasks.filter(t => t.space_id === space.id && t.recorrente && t.recorrente !== 'once' && dueForReset(t.recorrente))
+    if (recurringTasks.length === 0) { localStorage.setItem(storageKey, realWeekKey); return }
 
     const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
     if (!initialStatus) return
@@ -1005,9 +1019,9 @@ export default function RotinasView({ space, allTasks, statuses, workspaceUsers,
       }).then(r => r.json()).then(json => json.task || null)
     })).then(results => {
       results.forEach(task => { if (task) onTaskSaved(task, 'update') })
-      localStorage.setItem(storageKey, weekKey)
+      localStorage.setItem(storageKey, realWeekKey)
     })
-  }, [space.id, mondayDate, allTasks, statuses, onTaskSaved])
+  }, [space.id, allTasks, statuses, onTaskSaved])
 
   function getTasksForCell(diaKey, memberId) {
     return spaceTasks.filter(t => {

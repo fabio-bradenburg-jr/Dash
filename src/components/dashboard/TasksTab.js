@@ -1916,7 +1916,7 @@ function SubtaskItem({ node, statuses, onOpen, depth = 0 }) {
   )
 }
 
-export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields, currentUserId }) {
+export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, onDeleted, isMaster, customFields, currentUserId }) {
   const [currentId, setCurrentId] = useState(taskId)
   useEffect(() => { setCurrentId(taskId) }, [taskId])
   const [rootId, setRootId] = useState(null)
@@ -1951,6 +1951,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
     setHardDeleting(true)
     try {
       await fetch(`/api/tasks/${currentId}?hard=true`, { method: 'DELETE' })
+      onDeleted?.(currentId)
       onClose()
     } finally {
       setHardDeleting(false)
@@ -4081,6 +4082,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             workspaceUsers={allUsers}
             onClose={() => setSelectedTaskId(null)}
             onUpdated={handlePanelUpdate}
+            onDeleted={(id) => setTasks(prev => prev.filter(t => t.id !== id))}
             isMaster={isMaster}
             customFields={customFields}
             currentUserId={currentUserId}

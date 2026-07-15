@@ -243,6 +243,7 @@ export default function RotinasTab({ clients, workspaceUsers, isMaster, currentU
             workspaceUsers={allUsers}
             onClose={() => setSelectedTaskId(null)}
             onUpdated={handlePanelUpdate}
+            onDeleted={(id) => setTasks(prev => prev.filter(t => t.id !== id))}
             isMaster={isMaster}
             customFields={customFields}
             currentUserId={currentUserId}
