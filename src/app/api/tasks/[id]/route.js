@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
 
     const { data: task, error } = await ctx.adminSupabase
       .from('tasks')
-      .select('*, task_statuses(id, label, color)')
+      .select('*, task_status_items(id, name, color)')
       .eq('id', id)
       .eq('workspace_id', ctx.accessContext.workspaceId)
       .single()
@@ -27,16 +27,22 @@ export async function GET(request, { params }) {
 
     const [{ data: checklist }, { data: subtasks }, { data: comments }, { data: assignees }, { data: fieldValues }] = await Promise.all([
       ctx.adminSupabase.from('task_checklist_items').select('*').eq('task_id', id).order('sort_order'),
-      ctx.adminSupabase.from('tasks').select('*, task_statuses(id, label, color)').eq('parent_task_id', id).eq('is_archived', false).order('sort_order'),
+      ctx.adminSupabase.from('tasks').select('*, task_status_items(id, name, color)').eq('parent_task_id', id).eq('is_archived', false).order('sort_order'),
       ctx.adminSupabase.from('task_comments').select('*').eq('task_id', id).order('created_at'),
       ctx.adminSupabase.from('task_assignees').select('user_id, assigned_at').eq('task_id', id),
       ctx.adminSupabase.from('task_custom_field_values').select('field_id, value_text, value_number, value_date, value_bool, value_json').eq('task_id', id),
     ])
 
+    // Expõe status_item_id como status_id para o frontend (modelo canônico task_status_items)
+    const mapStatus = (t) => {
+      const si = t.task_status_items
+      return { ...t, status_id: t.status_item_id ?? t.status_id ?? null, status: si ? { id: si.id, label: si.name, color: si.color } : null }
+    }
+
     return NextResponse.json({
-      task: { ...task, status: task.task_statuses || null },
+      task: mapStatus(task),
       checklist: checklist || [],
-      subtasks: (subtasks || []).map(s => ({ ...s, status: s.task_statuses || null })),
+      subtasks: (subtasks || []).map(mapStatus),
       comments: comments || [],
       assignees: (assignees || []).map(a => a.user_id),
       fieldValues: fieldValues || [],
@@ -54,25 +60,50 @@ export async function PUT(request, { params }) {
     const body = await request.json()
 
     const updates = { updated_at: new Date().toISOString() }
-    const fields = ['title', 'description', 'status_id', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived']
+    const fields = ['title', 'description', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'sort_order', 'is_archived']
     for (const f of fields) {
       if (body[f] !== undefined) updates[f] = body[f]
     }
+    // status_id vindo do frontend mapeia para status_item_id no banco (modelo canônico)
+    if (body.status_id !== undefined) updates.status_item_id = body.status_id
+    if (body.status_item_id !== undefined) updates.status_item_id = body.status_item_id
 
     // Snapshot antes da mudança, para o log de atividade (estilo ClickUp)
     const { data: before } = await ctx.adminSupabase
       .from('tasks')
-      .select('title, description, status_id, priority, assignee_id, client_id, due_date, start_date')
+      .select('title, description, status_item_id, priority, assignee_id, client_id, due_date, start_date, closed_at')
       .eq('id', id)
       .eq('workspace_id', ctx.accessContext.workspaceId)
       .maybeSingle()
+
+    // Rastreia fechamento/reabertura quando o status muda para/de um status "closed"
+    const newStatusItemId = updates.status_item_id
+    if (newStatusItemId !== undefined) {
+      if (newStatusItemId) {
+        const { data: statusItem } = await ctx.adminSupabase
+          .from('task_status_items')
+          .select('is_closed')
+          .eq('id', newStatusItemId)
+          .single()
+        if (statusItem?.is_closed && !before?.closed_at) {
+          updates.closed_at = new Date().toISOString()
+          updates.closed_by = ctx.user.id
+        } else if (!statusItem?.is_closed && before?.closed_at) {
+          updates.closed_at = null
+          updates.closed_by = null
+        }
+      } else if (before?.closed_at) {
+        updates.closed_at = null
+        updates.closed_by = null
+      }
+    }
 
     const { data, error } = await ctx.adminSupabase
       .from('tasks')
       .update(updates)
       .eq('id', id)
       .eq('workspace_id', ctx.accessContext.workspaceId)
-      .select('*, task_statuses(id, label, color)')
+      .select('*, task_status_items(id, name, color)')
       .single()
 
     if (error) throw error
@@ -80,15 +111,16 @@ export async function PUT(request, { params }) {
     // Registra mudanças relevantes no task_activity_log (não bloqueia a resposta em caso de falha)
     try {
       if (before) {
+        const beforeCompat = { ...before, status_id: before.status_item_id }
         const TRACKED = ['status_id', 'priority', 'assignee_id', 'client_id', 'due_date', 'start_date', 'title', 'description']
         const logs = TRACKED
-          .filter(f => body[f] !== undefined && String(before[f] ?? '') !== String(body[f] ?? ''))
+          .filter(f => body[f] !== undefined && String(beforeCompat[f] ?? '') !== String(body[f] ?? ''))
           .map(f => ({
             task_id: id,
             workspace_id: ctx.accessContext.workspaceId,
             actor_id: ctx.user.id,
             action: `${f}_changed`,
-            metadata: { field: f, from: before[f] ?? null, to: body[f] ?? null },
+            metadata: { field: f, from: beforeCompat[f] ?? null, to: body[f] ?? null },
           }))
         if (logs.length) await ctx.adminSupabase.from('task_activity_log').insert(logs)
       }
@@ -106,7 +138,12 @@ export async function PUT(request, { params }) {
       }
     }
 
-    return NextResponse.json({ task: { ...data, status: data.task_statuses || null } })
+    const si = data.task_status_items
+    return NextResponse.json({ task: {
+      ...data,
+      status_id: data.status_item_id ?? null,
+      status: si ? { id: si.id, label: si.name, color: si.color } : null,
+    } })
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
