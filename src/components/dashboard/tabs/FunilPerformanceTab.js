@@ -130,7 +130,8 @@ export default function FunilPerformanceTab({
     [campaignOverviewRows, client],
   )
   const campaigns = campaignRow?.campaigns || []
-  const hasPgl = !!client?.leadsSheetUrl
+  // Planilha de leads removida do funil — funil agora usa apenas dados do Meta Ads.
+  const hasPgl = false
 
   // sheet source config — the client's cadastro mapping is the default (shared across
   // cadastro + funil); a local per-session override in the funil wins when set.
@@ -159,7 +160,7 @@ export default function FunilPerformanceTab({
 
   /* leads-analytics fetch (per client + chosen tab/columns) */
   useEffect(() => {
-    if (!client?.leadsSheetUrl) { setSheetData(null); return }
+    if (!hasPgl || !client?.leadsSheetUrl) { setSheetData(null); return }
     if (dateRange === 'custom' && (!customSince || !customUntil)) return
     let cancelled = false
     setSheetLoading(true)
@@ -183,7 +184,7 @@ export default function FunilPerformanceTab({
 
   /* discover tabs + columns of the leads sheet */
   useEffect(() => {
-    if (!client?.leadsSheetUrl) { setSheetMeta({ tabs: [], columns: [], detected: {}, values: [] }); return }
+    if (!hasPgl || !client?.leadsSheetUrl) { setSheetMeta({ tabs: [], columns: [], detected: {}, values: [] }); return }
     let cancelled = false
     const params = new URLSearchParams({ url: client.leadsSheetUrl })
     if (client.googleSheetsHeaderRow) params.set('header_row', String(client.googleSheetsHeaderRow))
@@ -421,9 +422,6 @@ export default function FunilPerformanceTab({
     { label: 'CTR', icon: 'bx-mouse', color: C.sClk, value: ctr.toFixed(2).replace('.', ',') + '%', sub: 'cliques/impr.' },
     { label: 'CPC', icon: 'bx-mouse-alt', color: C.meta, value: money2(cpc), sub: 'custo/clique' },
     { label: 'CPL', icon: 'bx-user-plus', color: C.sLead, value: metaLeads ? money2(cpl) : '—', sub: metaLeads + ' leads (Meta)' },
-    { label: 'Taxa Qualif.', icon: 'bx-badge-check', color: C.sQual, value: hasPgl ? Math.round(txQual) + '%' : '—', sub: 'leads → qualif.' },
-    { label: 'Taxa Conversão', icon: 'bx-trophy', color: C.sConv, value: hasPgl ? Math.round(txConv) + '%' : '—', sub: 'leads → vendas' },
-    { label: 'Taxa Perda', icon: 'bx-trending-down', color: C.err, value: hasPgl ? Math.round(perdaPct) + '%' : '—', sub: 'leads → perda' },
   ]
 
   /* ── alerts ── */
@@ -504,7 +502,7 @@ export default function FunilPerformanceTab({
               <i className="bx bx-filter-alt" style={{ fontSize: 14 }} />Funil de Performance
             </div>
             <h1 style={{ margin: 0, fontWeight: 800, fontSize: 'clamp(1.5rem,2.6vw,2rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{client.name}</h1>
-            <p style={{ margin: '8px 0 0', color: C.text2, fontSize: '0.86rem' }}>{hasPgl ? 'Meta Ads + planilha de leads unidos no funil.' : 'Planilha não configurada — apenas dados Meta.'}</p>
+            <p style={{ margin: '8px 0 0', color: C.text2, fontSize: '0.86rem' }}>Jornada de performance com dados do Meta Ads.</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <div style={{ position: 'relative' }}>
@@ -553,7 +551,6 @@ export default function FunilPerformanceTab({
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.62rem', color: C.text2 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: C.meta }} />Meta Ads</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.62rem', color: C.text2 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: C.pgl }} />Planilha de leads</span>
             </div>
           </div>
           {sheetLoading && !sheetData ? (
@@ -587,22 +584,6 @@ export default function FunilPerformanceTab({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-          {hasPgl && (lossCards.length > 0 || effPglTotal > 0) && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-              {lossCards.map((lc, i) => (
-                <div key={i} style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 11, background: hexA(lc.color, 0.08), border: `1px solid ${hexA(lc.color, 0.22)}` }}>
-                  <i className={'bx ' + lc.icon} style={{ fontSize: 20, color: lc.color }} />
-                  <div><div style={{ fontWeight: 800, fontSize: '1.15rem', color: lc.color, fontVariantNumeric: 'tabular-nums' }}>{lc.value}</div><div style={{ fontFamily: 'Inter', fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: C.text3 }}>{lc.label} · {lc.pct}</div></div>
-                </div>
-              ))}
-              {[{ label: 'Qualificação', icon: 'bx-badge-check', color: C.sQual, value: Math.round(txQual) + '%' }, { label: 'Conversão', icon: 'bx-trophy', color: C.sConv, value: Math.round(txConv) + '%' }].map((rt, i) => (
-                <div key={'r' + i} style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 11, background: C.field, border: `1px solid ${C.border}` }}>
-                  <i className={'bx ' + rt.icon} style={{ fontSize: 20, color: rt.color }} />
-                  <div><div style={{ fontWeight: 800, fontSize: '1.15rem', color: rt.color, fontVariantNumeric: 'tabular-nums' }}>{rt.value}</div><div style={{ fontFamily: 'Inter', fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: C.text3 }}>{rt.label}</div></div>
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -641,8 +622,8 @@ export default function FunilPerformanceTab({
           </div>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 760 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2.1fr 0.9fr 0.7fr 0.9fr 0.6fr 0.6fr 0.6fr 0.6fr 0.6fr', gap: 8, padding: '9px 16px', borderBottom: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.02)', fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>
-                <span>Campanha</span><span style={{ textAlign: 'right' }}>Invest.</span><span style={{ textAlign: 'right' }}>Result.</span><span style={{ textAlign: 'right' }}>CPR</span><span style={{ textAlign: 'right' }}>Leads</span><span style={{ textAlign: 'right' }}>Púb.</span><span style={{ textAlign: 'right' }}>Qual.</span><span style={{ textAlign: 'right' }}>Conv.</span><span style={{ textAlign: 'right' }}>Tx.Q</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '2.6fr 0.9fr 0.7fr 0.9fr', gap: 8, padding: '9px 16px', borderBottom: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.02)', fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>
+                <span>Campanha</span><span style={{ textAlign: 'right' }}>Invest.</span><span style={{ textAlign: 'right' }}>Result.</span><span style={{ textAlign: 'right' }}>CPR</span>
               </div>
               {campaignOverviewLoading && !campaigns.length ? (
                 <div style={{ padding: '30px 0', textAlign: 'center', color: C.text3 }}><i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22 }} /></div>
@@ -650,7 +631,7 @@ export default function FunilPerformanceTab({
                 <div style={{ padding: '30px 16px', textAlign: 'center', color: C.text3, fontSize: '0.84rem' }}>Sem campanhas no período.</div>
               ) : treeRows.map((r) => (
                 <div key={r.path}>
-                  <div onClick={(e) => selectNode(r.path, e)} style={{ display: 'grid', gridTemplateColumns: '2.1fr 0.9fr 0.7fr 0.9fr 0.6fr 0.6fr 0.6fr 0.6fr 0.6fr', gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: r.selected ? hexA('#26c281', 0.1) : 'transparent', boxShadow: r.selected ? `inset 2px 0 0 ${C.accent}` : 'none' }}>
+                  <div onClick={(e) => selectNode(r.path, e)} style={{ display: 'grid', gridTemplateColumns: '2.6fr 0.9fr 0.7fr 0.9fr', gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: r.selected ? hexA('#26c281', 0.1) : 'transparent', boxShadow: r.selected ? `inset 2px 0 0 ${C.accent}` : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, paddingLeft: r.indent }}>
                       {r.expandable ? <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded((x) => ({ ...x, [r.path]: !isExp(r.path) })) }} style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex', flex: 'none' }}><i className={'bx ' + (r.exp ? 'bx-chevron-down' : 'bx-chevron-right')} style={{ fontSize: 16 }} /></button> : <span style={{ width: 16, flex: 'none' }} />}
                       <span style={badgeStyle(r.kind)}>{r.badge}</span>
@@ -661,11 +642,6 @@ export default function FunilPerformanceTab({
                     <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontVariantNumeric: 'tabular-nums' }}>{r.inv}</span>
                     <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontVariantNumeric: 'tabular-nums' }}>{r.res}</span>
                     <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: r.cprColor }}>{r.cpr}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.74rem', color: C.text2, fontVariantNumeric: 'tabular-nums' }}>{r.leads}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.74rem', color: C.text2, fontVariantNumeric: 'tabular-nums' }}>{r.alvo}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.74rem', color: C.text2, fontVariantNumeric: 'tabular-nums' }}>{r.qual}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.74rem', color: C.text2, fontVariantNumeric: 'tabular-nums' }}>{r.conv}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.74rem', color: C.sQual, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{r.txq}</span>
                   </div>
                 </div>
               ))}
@@ -720,142 +696,6 @@ export default function FunilPerformanceTab({
           </div>
         </div>
 
-        {/* TIMELINE */}
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.card, padding: '16px 18px', marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><i className="bx bx-line-chart" style={{ fontSize: 18, color: C.accent }} /><span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Evolução Temporal</span></div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{tSeries.map((l, i) => <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.66rem', color: C.text2 }}><span style={{ width: 12, height: 3, borderRadius: 2, background: l.color }} />{l.label}</span>)}</div>
-          </div>
-          {hasPgl ? <TimelineChart series={tSeries} /> : <div style={{ padding: '30px 0', textAlign: 'center', color: C.text3, fontSize: '0.84rem' }}>Sem planilha de leads para a linha do tempo.</div>}
-        </div>
-
-        {/* WEEKLY CPL */}
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.card, padding: '16px 18px', marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><i className="bx bx-dollar-circle" style={{ fontSize: 18, color: C.sLead }} /><span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Custo por lead · semana a semana</span><span style={{ fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 600, padding: '4px 11px', borderRadius: 99, background: hexA('#26c281', 0.12), border: `1px solid ${hexA('#26c281', 0.3)}`, color: C.accent }}>{filterBadge}</span></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>CPL médio</span><span style={{ fontWeight: 800, fontSize: '1.1rem', fontVariantNumeric: 'tabular-nums', color: C.sLead }}>{avgCpl}</span></div>
-          </div>
-          {weekly.length ? (
-            <div style={{ overflowX: 'auto' }}>
-              <div style={{ display: 'flex', gap: 10, minWidth: 640 }}>
-                {weekly.map((w, i) => (
-                  <div key={i} style={{ flex: 1, minWidth: 96, border: `1px solid ${C.border}`, borderRadius: 12, background: C.field, padding: '12px 12px 10px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontFamily: 'Inter', fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 700 }}>{w.label}</div>
-                    <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', color: C.text4, marginBottom: 9 }}>{w.range}</div>
-                    <div style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', color: w.cplColor, lineHeight: 1 }}>{w.cpl}</div>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', marginTop: 10, minHeight: 44 }}><div style={{ width: '100%', height: w.barPct + '%', minHeight: 4, borderRadius: '6px 6px 0 0', background: w.cplColor, opacity: 0.85 }} /></div>
-                    <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', color: C.text3, marginTop: 9, display: 'flex', justifyContent: 'space-between' }}><span>{w.leads} leads</span><span style={{ color: C.text4 }}>{w.inv}</span></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : <div style={{ padding: '30px 20px', textAlign: 'center', color: C.text3, fontFamily: 'Inter', fontSize: '0.84rem' }}><i className="bx bx-line-chart-down" style={{ fontSize: 26, display: 'block', marginBottom: 8 }} />Sem leads no recorte selecionado.</div>}
-        </div>
-
-        {/* SHEET SOURCE (tab + qualification/counter columns) */}
-        {hasPgl && (
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.card, padding: '16px 18px', marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, flexWrap: 'wrap' }}>
-              <i className="bx bx-table" style={{ fontSize: 18, color: C.pgl }} />
-              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Fonte da planilha</span>
-              <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>{num(totalPgl)} leads contabilizados{diag ? ` de ${num(diag.rawRows)} linhas` : ''}{sheetMeta.columns.length ? ` · ${sheetMeta.columns.length} colunas` : ''}</span>
-            </div>
-            {zeroButHasRows && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 13px', borderRadius: 10, background: hexA('#f59e0b', 0.08), border: `1px solid ${hexA('#f59e0b', 0.22)}`, marginBottom: 12 }}>
-                <i className="bx bx-error" style={{ fontSize: 17, color: C.warn, flex: 'none', marginTop: 1 }} />
-                <span style={{ fontSize: '0.78rem', color: C.text2, lineHeight: 1.45 }}>
-                  A planilha tem <strong style={{ color: C.text }}>{num(diag.rawRows)}</strong> linhas, mas <strong style={{ color: C.warn }}>0</strong> estão sendo contabilizadas.
-                  {effCounter ? <> A <strong style={{ color: C.text }}>coluna contabilizadora</strong> (“{effCounter}”) só conta linhas com valor nela — se ela estiver vazia nesses leads, troque para <strong style={{ color: C.text }}>“Todas as linhas”</strong> ou outra coluna.</> : null}
-                  {diag.sheetHasDate && diag.afterDateRows === 0 ? <> Nenhuma linha caiu no período selecionado (coluna de data) — amplie o período.</> : null}
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 11 }}>
-              {[
-                { label: 'Aba', value: effGid, onChange: (v) => setSheetCfg({ gid: v }), options: [{ v: 'all', l: 'Todas as abas' }, ...sheetMeta.tabs.map((t) => ({ v: t.gid, l: t.name }))] },
-                { label: 'Coluna de qualificação', value: effQual, onChange: (v) => setSheetCfg({ qualCol: v }), options: [{ v: '', l: '— detecção automática —' }, ...sheetMeta.columns.map((c) => ({ v: c, l: c }))] },
-                { label: 'Coluna contabilizadora (total de leads)', value: effCounter, onChange: (v) => setSheetCfg({ counterCol: v }), options: [{ v: '', l: 'Todas as linhas' }, ...sheetMeta.columns.map((c) => ({ v: c, l: c }))] },
-              ].map((f, i) => (
-                <label key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-                  <span style={{ fontFamily: 'Inter', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>{f.label}</span>
-                  <select value={f.value} onChange={(e) => f.onChange(e.target.value)}
-                    style={{ height: 36, padding: '0 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.field, color: C.text2, fontFamily: 'Inter', fontSize: '0.78rem', outline: 'none', cursor: 'pointer', width: '100%' }}>
-                    {f.options.map((o) => <option key={o.v} value={o.v} style={{ color: '#000' }}>{o.l}</option>)}
-                  </select>
-                </label>
-              ))}
-            </div>
-            <p style={{ margin: '11px 0 0', fontFamily: 'Inter', fontSize: '0.7rem', color: C.text3, lineHeight: 1.5 }}>
-              O padrão vem do <strong style={{ color: C.text2 }}>cadastro do cliente</strong> (Planilha de Leads); aqui você pode sobrescrever só nesta sessão. A <strong style={{ color: C.text2 }}>coluna de qualificação</strong> define os status que você mapeia nas etapas abaixo; a <strong style={{ color: C.text2 }}>contabilizadora</strong> define quais linhas contam como lead (só linhas com valor nela).
-            </p>
-          </div>
-        )}
-
-        {/* STATUS ATTRIBUTION */}
-        {hasPgl && (
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.card, padding: '16px 18px', marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><i className="bx bx-list-check" style={{ fontSize: 18, color: C.pgl }} /><span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Atribuição de status (PGL)</span></div>
-              <button type="button" onClick={() => { setAddOpen((v) => !v); setNewStage('') }} style={{ height: 32, padding: '0 12px', borderRadius: 99, border: `1px solid ${C.border2}`, background: C.field, color: C.text, fontFamily: 'inherit', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><i className="bx bx-plus" style={{ fontSize: 15 }} />Estágio</button>
-            </div>
-            <p style={{ margin: '0 0 12px', fontFamily: 'Inter', fontSize: '0.72rem', color: C.text3, lineHeight: 1.5 }}>Cada estágio soma os leads cujos status crus da planilha você atribuir. Clique em "Atribuir status" para escolher.</p>
-            {addOpen && (
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                <input value={newStage} onChange={(e) => setNewStage(e.target.value)} placeholder="Nome do novo estágio (ex.: Reunião marcada)" style={{ flex: 1, height: 38, padding: '0 13px', borderRadius: 10, border: `1px solid ${C.border2}`, background: C.field, color: C.text, fontFamily: 'inherit', fontSize: '0.84rem', outline: 'none' }} />
-                <button type="button" onClick={addStage} style={{ height: 38, padding: '0 16px', borderRadius: 99, border: 'none', background: C.accent, color: C.onAccent, fontFamily: 'inherit', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><i className="bx bx-check" style={{ fontSize: 16 }} />Adicionar</button>
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 11 }}>
-              {cfg.stages.map((st) => {
-                const total = stageSum(st); const open = statusMenu === st.key
-                const sheetTotal = (st.statuses || []).reduce((a, l) => a + optCount(l), 0)
-                const removable = st.kind === 'funnel' && !['alvo', 'qual', 'conv'].includes(st.key)
-                return (
-                  <div key={st.key} style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.field, padding: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <span style={{ width: 26, height: 26, borderRadius: 7, background: hexA(st.color, 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}><i className={'bx ' + st.icon} style={{ fontSize: 15, color: st.color }} /></span>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.label}</span>
-                      <span style={{ fontFamily: 'Inter', fontSize: '0.52rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 99, background: hexA(st.color, 0.16), color: st.color }}>{st.kind === 'loss' ? 'Perda' : 'Funil'}</span>
-                      {removable && <button type="button" onClick={() => removeStage(st.key)} title="Remover" style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex' }}><i className="bx bx-trash" style={{ fontSize: 15 }} /></button>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}><span style={{ fontWeight: 800, fontSize: '1.3rem', fontVariantNumeric: 'tabular-nums', color: st.color }}>{num(total)}</span><span style={{ fontFamily: 'Inter', fontSize: '0.6rem', color: C.text3 }}>{pglFallback ? 'na planilha' : `no período${sheetTotal !== total ? ` · ${num(sheetTotal)} na planilha` : ''}`}</span></div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                      {(st.statuses || []).length ? st.statuses.map((label) => (
-                        <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.68rem', padding: '3px 8px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}` }}>
-                          <span>{label}</span><span style={{ color: C.text3 }}>{num(optCount(label))}</span>
-                          <button type="button" onClick={() => toggleStatus(st.key, label)} style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex' }}><i className="bx bx-x" style={{ fontSize: 13 }} /></button>
-                        </span>
-                      )) : <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text4 }}>Nenhum status atribuído</span>}
-                    </div>
-                    <button type="button" onClick={() => setStatusMenu(open ? null : st.key)} style={{ width: '100%', height: 32, borderRadius: 9, border: `1px dashed ${C.border2}`, background: 'transparent', color: C.text2, fontFamily: 'Inter', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}><i className={'bx ' + (open ? 'bx-chevron-up' : 'bx-plus-circle')} style={{ fontSize: 15 }} />Atribuir status</button>
-                    {open && (
-                      <div style={{ marginTop: 8, border: `1px solid ${C.border2}`, borderRadius: 10, background: C.panel, overflow: 'hidden' }}>
-                        {statusOptions.map((o) => {
-                          const on = (st.statuses || []).indexOf(o.label) >= 0
-                          return (
-                            <button key={o.label} type="button" onClick={() => toggleStatus(st.key, o.label)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px', border: 'none', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', fontFamily: 'inherit', color: C.text, background: on ? hexA(st.color, 0.08) : 'transparent' }}>
-                              <span style={{ width: 16, height: 16, borderRadius: 5, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? st.color : 'transparent', border: `1px solid ${on ? st.color : C.border2}` }}>{on && <i className="bx bx-check" style={{ fontSize: 12, color: '#fff' }} />}</span>
-                              <span style={{ flex: 1, textAlign: 'left', fontSize: '0.78rem' }}>{o.label}</span>
-                              <span style={{ fontFamily: 'Inter', fontSize: '0.68rem', color: C.text3 }}>{num(o.count)}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            {unmapped.length > 0 && (
-              <div style={{ marginTop: 12, padding: '11px 13px', borderRadius: 11, background: hexA('#f59e0b', 0.08), border: `1px solid ${hexA('#f59e0b', 0.22)}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.warn, fontWeight: 700, marginBottom: 7 }}><i className="bx bx-error" style={{ fontSize: 14 }} />Status sem estágio</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {unmapped.map((u) => <span key={u.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.7rem', padding: '3px 9px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, color: C.text2 }}>{u.label} <span style={{ color: C.text3 }}>{num(u.count)}</span></span>)}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* CREATIVE MODAL */}
