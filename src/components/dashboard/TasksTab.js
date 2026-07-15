@@ -1811,6 +1811,111 @@ function TaskTreeSidebar({ rootId, currentId, onNavigate, onAddSubtask, statuses
   )
 }
 
+// Item de subtarefa expansível (aninha subtarefas de subtarefas, estilo ClickUp)
+function SubtaskItem({ node, statuses, onOpen, depth = 0 }) {
+  const [expanded, setExpanded] = useState(false)
+  const [children, setChildren] = useState(null) // null = ainda não carregado
+  const [loading, setLoading] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const st = statuses.find(s => s.id === node.status_id)
+
+  const loadChildren = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/tasks/${node.id}`)
+      const json = await res.json()
+      const kids = json.subtasks || []
+      setChildren(kids)
+      return kids
+    } catch { setChildren([]); return [] }
+    finally { setLoading(false) }
+  }, [node.id])
+
+  const toggle = async (e) => {
+    e.stopPropagation()
+    if (children === null) { await loadChildren(); setExpanded(true) }
+    else setExpanded(v => !v)
+  }
+
+  async function openAdd(e) {
+    e.stopPropagation()
+    if (children === null) await loadChildren()
+    setExpanded(true)
+    setAdding(true)
+  }
+
+  async function addChild() {
+    const title = newTitle.trim()
+    if (!title) return
+    setNewTitle('')
+    const res = await fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, parent_task_id: node.id, status_id: node.status_id || null }) })
+    const json = await res.json()
+    if (json.task) { setChildren(prev => [...(prev || []), json.task]); setExpanded(true) }
+  }
+
+  const maybeHasChildren = children === null || children.length > 0
+
+  return (
+    <div>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 6px', paddingLeft: 6 + depth * 18, borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.83rem', color: '#cbd5e1', borderRadius: 6, transition: 'background 0.1s' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+      >
+        <button type="button" onClick={toggle} title={maybeHasChildren ? (expanded ? 'Recolher' : 'Expandir') : 'Sem subtarefas'}
+          style={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#64748b', cursor: maybeHasChildren ? 'pointer' : 'default', padding: 0 }}>
+          {loading
+            ? <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 12 }} />
+            : maybeHasChildren
+              ? <i className={`bx bx-chevron-${expanded ? 'down' : 'right'}`} style={{ fontSize: 15 }} />
+              : <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#334155' }} />}
+        </button>
+        <StatusDot color={st?.color} size={8} />
+        <span onClick={() => onOpen(node.id)} title="Abrir subtarefa"
+          style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>{node.title}</span>
+        {children && children.length > 0 && (
+          <span style={{ fontSize: '0.68rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', borderRadius: 8, padding: '0 6px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+            <i className="bx bx-git-branch" style={{ fontSize: 11 }} />{children.length}
+          </span>
+        )}
+        <button type="button" onClick={openAdd} title="Adicionar subtarefa"
+          style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, flexShrink: 0, fontSize: 14 }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#4fdf9b' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}>
+          <i className="bx bx-plus" />
+        </button>
+        <button type="button" onClick={() => onOpen(node.id)} title="Abrir subtarefa"
+          style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 0, flexShrink: 0, fontSize: 15 }}>
+          <i className="bx bx-chevron-right" />
+        </button>
+      </div>
+      {expanded && (
+        <div>
+          {children && children.map(c => (
+            <SubtaskItem key={c.id} node={c} statuses={statuses} onOpen={onOpen} depth={depth + 1} />
+          ))}
+          {adding && (
+            <div style={{ display: 'flex', gap: 6, padding: '6px 6px', paddingLeft: 6 + (depth + 1) * 18 }}>
+              <input
+                value={newTitle}
+                autoFocus
+                onChange={e => setNewTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addChild(); if (e.key === 'Escape') { setAdding(false); setNewTitle('') } }}
+                placeholder="Nova subtarefa..."
+                style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: '#e2e8f0', padding: '5px 8px', fontSize: '0.8rem', outline: 'none' }}
+              />
+              <button type="button" onClick={addChild} style={{ background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                <i className="bx bx-plus"></i>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields, currentUserId }) {
   const [currentId, setCurrentId] = useState(taskId)
   useEffect(() => { setCurrentId(taskId) }, [taskId])
@@ -2213,14 +2318,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
           <div style={fieldWrap}>
             <FieldLabel icon="bx-git-branch" color="#6366f1">Subtarefas ({subtasks.length})</FieldLabel>
             {subtasks.map(s => (
-              <div key={s.id} onClick={() => setCurrentId(s.id)} title="Abrir subtarefa"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '0.83rem', color: '#cbd5e1', cursor: 'pointer', borderRadius: 6 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-                <StatusDot color={statuses.find(st => st.id === s.status_id)?.color} size={8} />
-                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</span>
-                <i className="bx bx-chevron-right" style={{ color: '#475569', fontSize: 15, flexShrink: 0 }} />
-              </div>
+              <SubtaskItem key={s.id} node={s} statuses={statuses} onOpen={setCurrentId} depth={0} />
             ))}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               <input
