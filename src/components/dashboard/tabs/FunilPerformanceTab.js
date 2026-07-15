@@ -121,9 +121,16 @@ export default function FunilPerformanceTab({
   const [modal, setModal] = useState(null)
   const [sheetMeta, setSheetMeta] = useState({ tabs: [], columns: [], detected: {}, values: [] })  // discovered tabs/columns/values
   const [sheetCfgMap, setSheetCfgMap] = useState({})  // clientId → { gid, qualCol, counterCol }
+  const [extraCols, setExtraCols] = useState([])      // métricas extras na árvore (por cliente)
+  const [colMenuOpen, setColMenuOpen] = useState(false)
 
   const client = useMemo(() => clients.find((c) => c.id === selectedId) || clients[0] || null, [clients, selectedId])
   useEffect(() => { if (!selectedId && clients[0]) setSelectedId(clients[0].id) }, [clients, selectedId])
+  // colunas extras da árvore persistidas por cliente
+  useEffect(() => {
+    if (!client?.id) return
+    try { const s = window.localStorage.getItem('funilTreeCols_' + client.id); setExtraCols(s ? JSON.parse(s) : []) } catch (e) { setExtraCols([]) }
+  }, [client?.id])
 
   const campaignRow = useMemo(
     () => campaignOverviewRows.find((r) => r.clientId === client?.id) || null,
@@ -383,6 +390,27 @@ export default function FunilPerformanceTab({
   })
   const lossCards = hasPgl ? cfg.stages.filter((x) => x.kind === 'loss').map((st) => { const v = stageSum(st); return { label: st.label, icon: st.icon, color: st.color, value: num(v), pct: effPglTotal ? Math.round(v / effPglTotal * 100) + '%' : '—' } }) : []
 
+  /* ── colunas de métrica da árvore (puxadas do Meta) ── */
+  const TREE_METRICS = {
+    spend:       { label: 'Invest.',  get: (n) => ({ text: money0(n.spend || 0) }) },
+    results:     { label: 'Result.',  get: (n) => ({ text: num(getResults(n)) }) },
+    cpr:         { label: 'CPR',      get: (n) => { const r = getResults(n); const v = r > 0 ? (n.spend || 0) / r : null; return { text: v != null ? money2(v) : '—', color: cprColor(v), bold: true } } },
+    impressions: { label: 'Impr.',    get: (n) => ({ text: num(n.impressions || 0) }) },
+    clicks:      { label: 'Cliques',  get: (n) => ({ text: num(n.clicks || 0) }) },
+    ctr:         { label: 'CTR',      get: (n) => { const v = n.impressions > 0 ? (n.clicks || 0) / n.impressions * 100 : 0; return { text: v.toFixed(2).replace('.', ',') + '%' } } },
+    cpc:         { label: 'CPC',      get: (n) => { const v = n.clicks > 0 ? (n.spend || 0) / n.clicks : 0; return { text: v ? money2(v) : '—' } } },
+    cpm:         { label: 'CPM',      get: (n) => { const v = n.impressions > 0 ? (n.spend || 0) / n.impressions * 1000 : 0; return { text: v ? money2(v) : '—' } } },
+  }
+  const BASE_COLS = ['spend', 'results', 'cpr']
+  const OPTIONAL_COLS = ['impressions', 'clicks', 'ctr', 'cpc', 'cpm']
+  const treeCols = [...BASE_COLS, ...extraCols.filter((k) => TREE_METRICS[k])]
+  const toggleCol = (k) => setExtraCols((prev) => {
+    const next = prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+    try { window.localStorage.setItem('funilTreeCols_' + client?.id, JSON.stringify(next)) } catch (e) { /* ignore */ }
+    return next
+  })
+  const treeGridCols = `minmax(180px,2.4fr) ${treeCols.map(() => 'minmax(66px,0.8fr)').join(' ')}`
+
   /* ── tree rows ── */
   const treeRows = []
   const badgeStyle = (kind) => { const map = { Camp: [C.primary, 0.16], Conj: [C.sClk, 0.16], Ad: [C.sAlvo, 0.16] }; const [col, a] = map[kind]; return { fontFamily: 'Inter', fontSize: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 6px', borderRadius: 5, background: hexA(col, a), color: col, flex: 'none' } }
@@ -390,16 +418,10 @@ export default function FunilPerformanceTab({
   const pushRow = (node, path, level, kind) => {
     const kids = node.adsets || node.ads || []
     const exp = isExp(path)
-    const p = pglFor(node)
-    const res = getResults(node)
-    const cpr = res > 0 ? (node.spend || 0) / res : null
     treeRows.push({
       path, badge: kind, kind, level, name: node.name || 'Sem nome',
       active: (node.effectiveStatus === 'ACTIVE') || (node.status === 'ativa'),
-      inv: money0(node.spend || 0), res: num(res), cpr: cpr ? money2(cpr) : '—', cprColor: cprColor(cpr),
-      leads: hasPgl ? num(p?.total || 0) : '—', alvo: hasPgl ? num(bucketStageSum(p, 'alvo')) : '—',
-      qual: hasPgl ? num(bucketStageSum(p, 'qual')) : '—', conv: hasPgl ? num(bucketStageSum(p, 'conv')) : '—',
-      txq: hasPgl && p?.total ? Math.round(bucketStageSum(p, 'qual') / p.total * 100) + '%' : '—',
+      cells: treeCols.map((k) => TREE_METRICS[k].get(node)),
       expandable: kids.length > 0, exp, selected: !!selected[path], indent: level * 22,
     })
     if (exp) kids.forEach((k) => pushRow(k, path + '>' + (k.adsetId || k.adId || k.name), level + 1, kind === 'Camp' ? 'Conj' : 'Ad'))
@@ -618,12 +640,41 @@ export default function FunilPerformanceTab({
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <span style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>{nSel === 0 ? 'Nenhuma seleção — funil do cliente' : (nSel + ' selecionada' + (nSel > 1 ? 's' : ''))}</span>
               {nSel > 0 && <button type="button" onClick={() => setSelected({})} style={{ height: 26, padding: '0 10px', borderRadius: 99, border: `1px solid ${C.border2}`, background: 'transparent', color: C.text2, fontFamily: 'Inter', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer' }}>Limpar</button>}
+              <div style={{ position: 'relative' }}>
+                <button type="button" onClick={() => setColMenuOpen((v) => !v)} style={{ height: 28, padding: '0 11px', borderRadius: 99, border: `1px solid ${colMenuOpen ? C.accent : C.border2}`, background: colMenuOpen ? hexA('#26c281', 0.1) : C.field, color: colMenuOpen ? C.accent : C.text2, fontFamily: 'Inter', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <i className="bx bx-columns" style={{ fontSize: 14 }} />Colunas{extraCols.length ? ` (${extraCols.length})` : ''}
+                </button>
+                {colMenuOpen && (
+                  <>
+                    <div onClick={() => setColMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                    <div style={{ position: 'absolute', top: 34, right: 0, zIndex: 41, width: 230, background: C.panel, border: `1px solid ${C.border2}`, borderRadius: 12, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 13px', borderBottom: `1px solid ${C.border}`, fontFamily: 'Inter', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 700 }}>Métricas do Meta</div>
+                      <div style={{ padding: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 9px', borderRadius: 9, opacity: 0.6 }}>
+                          <span style={{ width: 16, height: 16, borderRadius: 5, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.accent, border: `1px solid ${C.accent}` }}><i className="bx bx-check" style={{ fontSize: 12, color: '#fff' }} /></span>
+                          <span style={{ flex: 1, fontSize: '0.78rem', color: C.text2 }}>Invest. · Result. · CPR</span>
+                          <span style={{ fontFamily: 'Inter', fontSize: '0.58rem', color: C.text3 }}>fixas</span>
+                        </div>
+                        {OPTIONAL_COLS.map((k) => {
+                          const on = extraCols.includes(k)
+                          return (
+                            <button key={k} type="button" onClick={() => toggleCol(k)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '8px 9px', borderRadius: 9, border: 'none', cursor: 'pointer', background: on ? hexA('#26c281', 0.08) : 'transparent', color: C.text }}>
+                              <span style={{ width: 16, height: 16, borderRadius: 5, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? C.accent : 'transparent', border: `1px solid ${on ? C.accent : C.border2}` }}>{on && <i className="bx bx-check" style={{ fontSize: 12, color: '#fff' }} />}</span>
+                              <span style={{ flex: 1, textAlign: 'left', fontSize: '0.8rem' }}>{TREE_METRICS[k].label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 760 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2.6fr 0.9fr 0.7fr 0.9fr', gap: 8, padding: '9px 16px', borderBottom: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.02)', fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>
-                <span>Campanha</span><span style={{ textAlign: 'right' }}>Invest.</span><span style={{ textAlign: 'right' }}>Result.</span><span style={{ textAlign: 'right' }}>CPR</span>
+            <div style={{ minWidth: Math.max(760, 300 + treeCols.length * 92) }}>
+              <div style={{ display: 'grid', gridTemplateColumns: treeGridCols, gap: 8, padding: '9px 16px', borderBottom: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.02)', fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: C.text3, fontWeight: 600 }}>
+                <span>Campanha</span>{treeCols.map((k) => <span key={k} style={{ textAlign: 'right' }}>{TREE_METRICS[k].label}</span>)}
               </div>
               {campaignOverviewLoading && !campaigns.length ? (
                 <div style={{ padding: '30px 0', textAlign: 'center', color: C.text3 }}><i className="bx bx-loader-alt bx-spin" style={{ fontSize: 22 }} /></div>
@@ -631,7 +682,7 @@ export default function FunilPerformanceTab({
                 <div style={{ padding: '30px 16px', textAlign: 'center', color: C.text3, fontSize: '0.84rem' }}>Sem campanhas no período.</div>
               ) : treeRows.map((r) => (
                 <div key={r.path}>
-                  <div onClick={(e) => selectNode(r.path, e)} style={{ display: 'grid', gridTemplateColumns: '2.6fr 0.9fr 0.7fr 0.9fr', gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: r.selected ? hexA('#26c281', 0.1) : 'transparent', boxShadow: r.selected ? `inset 2px 0 0 ${C.accent}` : 'none' }}>
+                  <div onClick={(e) => selectNode(r.path, e)} style={{ display: 'grid', gridTemplateColumns: treeGridCols, gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', background: r.selected ? hexA('#26c281', 0.1) : 'transparent', boxShadow: r.selected ? `inset 2px 0 0 ${C.accent}` : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, paddingLeft: r.indent }}>
                       {r.expandable ? <button type="button" onClick={(e) => { e.stopPropagation(); setExpanded((x) => ({ ...x, [r.path]: !isExp(r.path) })) }} style={{ border: 'none', background: 'none', color: C.text3, cursor: 'pointer', padding: 0, display: 'flex', flex: 'none' }}><i className={'bx ' + (r.exp ? 'bx-chevron-down' : 'bx-chevron-right')} style={{ fontSize: 16 }} /></button> : <span style={{ width: 16, flex: 'none' }} />}
                       <span style={badgeStyle(r.kind)}>{r.badge}</span>
@@ -639,9 +690,9 @@ export default function FunilPerformanceTab({
                       <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
                       {r.selected && <i className="bx bx-check-circle" style={{ fontSize: 14, color: C.accent, flex: 'none' }} />}
                     </div>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontVariantNumeric: 'tabular-nums' }}>{r.inv}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontVariantNumeric: 'tabular-nums' }}>{r.res}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: r.cprColor }}>{r.cpr}</span>
+                    {r.cells.map((cell, ci) => (
+                      <span key={ci} style={{ textAlign: 'right', fontFamily: 'Inter', fontSize: '0.76rem', fontWeight: cell.bold ? 600 : 400, fontVariantNumeric: 'tabular-nums', color: cell.color || C.text }}>{cell.text}</span>
+                    ))}
                   </div>
                 </div>
               ))}
