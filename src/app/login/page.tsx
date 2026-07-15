@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Building2, LockKeyhole, Mail, ShieldCheck, Sparkles, User2 } from 'lucide-react'
+import { Building2, LockKeyhole, Mail, User2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import LpBirdLogo from '@/components/brand/LpBirdLogo'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -86,74 +87,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.18),transparent_24%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.16),transparent_22%),linear-gradient(180deg,#eff6ff,#ffffff)] px-4 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-[36px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(255,255,255,0.6))] p-8 shadow-[0_30px_100px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--saas-accent)]" />
-            Assessoria LP
-          </div>
-          <h1 className="mt-6 font-manrope text-5xl font-extrabold tracking-[-0.05em] text-slate-950">
-            Inteligência de marketing com operação de clientes no mesmo sistema.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-            Entre com a sua conta ou crie um novo ambiente para acessar métricas unificadas, sync com CRM, gestão de clientes e operação em uma interface só.
-          </p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                title: 'Acesso multi-tenant',
-                copy: 'Cada usuário enxerga apenas o tenant e a carteira que pode operar.',
-                icon: ShieldCheck,
-              },
-              {
-                title: 'Camada de dados',
-                copy: 'Meta Ads, Google Ads, LinkedIn Ads e Agendor normalizados no mesmo modelo.',
-                icon: Sparkles,
-              },
-              {
-                title: 'Visibilidade operacional',
-                copy: 'Checklist, tarefas, integrações e entrega conectados à operação.',
-                icon: LockKeyhole,
-              },
-            ].map((item) => {
-              const Icon = item.icon
-              return (
-                <div key={item.title} className="rounded-[28px] border border-slate-200/70 bg-white/80 p-5 shadow-sm">
-                  <div className="mb-4 inline-flex rounded-2xl bg-slate-950 p-3 text-white">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <p className="font-manrope text-lg font-extrabold text-slate-950">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.copy}</p>
-                </div>
-              )
-            })}
-          </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(38,194,129,0.14),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(38,194,129,0.08),transparent_24%),#0a0c0b] px-4 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        {/* Painel esquerdo — logo LED do pássaro LP */}
+        <section className="relative hidden items-center justify-center overflow-hidden rounded-[36px] border border-[rgba(38,194,129,0.14)] bg-[radial-gradient(circle_at_30%_30%,rgba(38,194,129,0.06),transparent_60%),#0d0f0e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.5)] md:p-12 lg:flex">
+          <LpBirdLogo />
         </section>
 
-        <section className="rounded-[36px] border border-slate-200/80 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-10">
+        <section className="rounded-[36px] border border-[rgba(255,255,255,0.08)] bg-[#131615] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] md:p-10">
           <div className="mb-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#26c281]/70">
               {mode === 'login' ? 'Entrar com segurança' : 'Criar nova conta'}
             </p>
-            <h2 className="mt-3 font-manrope text-3xl font-extrabold tracking-tight text-slate-950">
+            <h2 className="mt-3 font-manrope text-3xl font-extrabold tracking-tight text-white">
               {mode === 'login' ? 'Acesse seu ambiente' : 'Crie seu ambiente'}
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
+            <p className="mt-3 text-sm leading-6 text-slate-400">
               {mode === 'login'
                 ? 'Use seu e-mail e sua senha para entrar no sistema.'
                 : 'Cadastre sua conta de administrador e criamos um novo workspace para sua operação.'}
             </p>
-            <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+            <div className="mt-5 inline-flex rounded-full border border-white/10 bg-white/5 p-1">
               <button
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === 'login' ? 'bg-slate-950 text-white' : 'text-slate-500'}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === 'login' ? 'bg-[#26c281] text-[#04150d]' : 'text-slate-400'}`}
                 onClick={() => setMode('login')}
                 type="button"
               >
                 Entrar
               </button>
               <button
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === 'register' ? 'bg-slate-950 text-white' : 'text-slate-500'}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === 'register' ? 'bg-[#26c281] text-[#04150d]' : 'text-slate-400'}`}
                 onClick={() => setMode('register')}
                 type="button"
               >
@@ -165,12 +128,12 @@ export default function LoginPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             {mode === 'register' ? (
               <>
-                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                <label className="grid gap-2 text-sm font-medium text-slate-300">
                   Nome completo
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                    <User2 className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 focus-within:border-[#26c281]/50">
+                    <User2 className="h-4 w-4 text-slate-500" />
                     <input
-                      className="w-full bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+                      className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                       type="text"
                       value={fullName}
                       onChange={(event) => setFullName(event.target.value)}
@@ -180,12 +143,12 @@ export default function LoginPage() {
                   </div>
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                <label className="grid gap-2 text-sm font-medium text-slate-300">
                   Empresa ou agência
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                    <Building2 className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 focus-within:border-[#26c281]/50">
+                    <Building2 className="h-4 w-4 text-slate-500" />
                     <input
-                      className="w-full bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+                      className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                       type="text"
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
@@ -197,12 +160,12 @@ export default function LoginPage() {
               </>
             ) : null}
 
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-slate-300">
               E-mail
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                <Mail className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 focus-within:border-[#26c281]/50">
+                <Mail className="h-4 w-4 text-slate-500" />
                 <input
-                  className="w-full bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -212,12 +175,12 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
+            <label className="grid gap-2 text-sm font-medium text-slate-300">
               Senha
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                <LockKeyhole className="h-4 w-4 text-slate-400" />
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 focus-within:border-[#26c281]/50">
+                <LockKeyhole className="h-4 w-4 text-slate-500" />
                 <input
-                  className="w-full bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400"
+                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -228,12 +191,12 @@ export default function LoginPage() {
             </label>
 
             {error ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-300">
                 {error}
               </div>
             ) : null}
 
-            <Button className="h-12 w-full text-base" disabled={loading} type="submit">
+            <Button className="h-12 w-full bg-[#26c281] text-base font-semibold text-[#04150d] hover:bg-[#26c281]/90" disabled={loading} type="submit">
               {loading
                 ? mode === 'login'
                   ? 'Entrando...'

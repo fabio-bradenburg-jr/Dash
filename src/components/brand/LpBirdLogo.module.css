@@ -1,0 +1,141 @@
+/* Logo LED do pássaro LP — mesma do primeiro container da aba Integração */
+@property --led { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@property --led2 { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+.wrap {
+  position: relative;
+  width: clamp(240px, 26vw, 380px);
+  height: clamp(240px, 26vw, 380px);
+}
+
+.logoImg {
+  position: absolute;
+  inset: 0;
+  width: 68%;
+  height: 68%;
+  margin: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(38, 194, 129, 0.35));
+  z-index: 4;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 28%;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--led),
+    transparent 0deg,
+    rgba(38, 194, 129, 0) 240deg,
+    rgba(38, 194, 129, 0.4) 290deg,
+    rgba(74, 222, 128, 0.9) 318deg,
+    rgba(134, 239, 172, 1) 332deg,
+    rgba(74, 222, 128, 0.9) 346deg,
+    rgba(38, 194, 129, 0.4) 375deg,
+    rgba(38, 194, 129, 0) 410deg,
+    transparent 410deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ledSpin 4s linear infinite;
+}
+
+.ringInner {
+  position: absolute;
+  inset: 12px;
+  border-radius: 22%;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--led2),
+    transparent 0deg,
+    rgba(38, 194, 129, 0) 200deg,
+    rgba(38, 194, 129, 0.25) 310deg,
+    rgba(74, 222, 128, 0.6) 340deg,
+    rgba(38, 194, 129, 0.25) 370deg,
+    rgba(38, 194, 129, 0) 400deg,
+    transparent 400deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ledSpin2 6.5s linear infinite reverse;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 28%;
+  background: radial-gradient(ellipse at 35% 40%, rgba(38, 194, 129, 0.08) 0%, rgba(6, 8, 10, 0.95) 65%);
+  border: 1px solid rgba(38, 194, 129, 0.08);
+}
+
+.corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #26c281;
+  box-shadow: 0 0 8px rgba(38, 194, 129, 0.8), 0 0 16px rgba(38, 194, 129, 0.4);
+  animation: pulse 2.5s ease-in-out infinite;
+}
+.corner:nth-child(3) { top: 18px; left: 18px; animation-delay: 0s; }
+.corner:nth-child(4) { top: 18px; right: 18px; animation-delay: 0.6s; }
+.corner:nth-child(5) { bottom: 18px; left: 18px; animation-delay: 1.2s; }
+.corner:nth-child(6) { bottom: 18px; right: 18px; animation-delay: 1.8s; }
+
+.circuit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0.55;
+}
+
+.glowCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(38, 194, 129, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.trail1 { animation: travelLine1 3s ease-in-out infinite; animation-delay: 0s; }
+.trail2 { animation: travelLine2 3s ease-in-out infinite; animation-delay: 1s; }
+.trail3 { animation: travelLine3 3s ease-in-out infinite; animation-delay: 2s; }
+
+@keyframes ledSpin { to { --led: 360deg; } }
+@keyframes ledSpin2 { to { --led2: 360deg; } }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.3); }
+}
+@keyframes travelLine1 {
+  0% { stroke-dashoffset: 300; opacity: 0; }
+  5% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes travelLine2 {
+  0% { stroke-dashoffset: 260; opacity: 0; }
+  5% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes travelLine3 {
+  0% { stroke-dashoffset: 220; opacity: 0; }
+  5% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
