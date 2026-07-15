@@ -2942,10 +2942,75 @@ function getWeekDates(offsetWeeks = 0) {
   })
 }
 
+// Linha compacta e recursiva de subtarefa para a visão Semana (expande subtarefas de subtarefas)
+function WeekSubtaskRow({ node, statuses, onOpenPanel, onQuickUpdate, depth }) {
+  const status = statuses.find(s => s.id === node.status_id)
+  const isCompleted = status?.is_completed || status?.is_closed
+  const [hovered, setHovered] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [children, setChildren] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const loadChildren = useCallback(async () => {
+    setLoading(true)
+    try { const res = await fetch(`/api/tasks/${node.id}`); const json = await res.json(); const k = json.subtasks || []; setChildren(k); return k }
+    catch { setChildren([]); return [] } finally { setLoading(false) }
+  }, [node.id])
+
+  const toggle = async (e) => { e.stopPropagation(); if (children === null) { await loadChildren(); setExpanded(true) } else setExpanded(v => !v) }
+  const maybeHasChildren = children === null || children.length > 0
+
+  function handleCheck(e) {
+    e.stopPropagation()
+    const closedStatus = statuses.find(s => s.is_closed) || statuses.find(s => s.is_completed)
+    const initialStatus = statuses.find(s => s.is_initial) || statuses[0]
+    const targetId = isCompleted ? initialStatus?.id : closedStatus?.id
+    if (targetId) onQuickUpdate(node.id, { status_id: targetId })
+  }
+
+  return (
+    <div>
+      <div
+        onClick={() => onOpenPanel(node)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px', paddingLeft: 6 + depth * 13, borderRadius: 6, marginBottom: 2, background: hovered ? 'rgba(255,255,255,0.05)' : 'transparent', cursor: 'pointer', transition: 'background 0.1s' }}
+      >
+        <button type="button" onClick={toggle} style={{ width: 14, height: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#64748b', cursor: maybeHasChildren ? 'pointer' : 'default', padding: 0 }}>
+          {loading ? <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 11 }} />
+            : maybeHasChildren ? <i className={`bx bx-chevron-${expanded ? 'down' : 'right'}`} style={{ fontSize: 13 }} />
+              : <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#334155' }} />}
+        </button>
+        <div onClick={handleCheck} title="Concluir/reabrir"
+          style={{ width: 13, height: 13, borderRadius: '50%', flexShrink: 0, border: `2px solid ${isCompleted ? status?.color || '#26c281' : 'rgba(255,255,255,0.2)'}`, background: isCompleted ? status?.color || '#26c281' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          {isCompleted && <i className="bx bx-check" style={{ fontSize: 8, color: '#fff' }} />}
+        </div>
+        <span style={{ flex: 1, minWidth: 0, fontSize: '0.75rem', color: isCompleted ? '#475569' : '#cbd5e1', textDecoration: isCompleted ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.title}</span>
+        {children && children.length > 0 && <span style={{ fontSize: '0.62rem', color: '#818cf8', flexShrink: 0 }}>{children.length}</span>}
+      </div>
+      {expanded && children && children.map(c => (
+        <WeekSubtaskRow key={c.id} node={c} statuses={statuses} onOpenPanel={onOpenPanel} onQuickUpdate={onQuickUpdate} depth={depth + 1} />
+      ))}
+    </div>
+  )
+}
+
 function WeekDayTaskRow({ task, statuses, onOpenPanel, onQuickUpdate }) {
   const status = statuses.find(s => s.id === task.status_id)
   const isCompleted = status?.is_completed || status?.is_closed
   const [hovered, setHovered] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [children, setChildren] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const loadChildren = useCallback(async () => {
+    setLoading(true)
+    try { const res = await fetch(`/api/tasks/${task.id}`); const json = await res.json(); const k = json.subtasks || []; setChildren(k); return k }
+    catch { setChildren([]); return [] } finally { setLoading(false) }
+  }, [task.id])
+
+  const toggleExpand = async (e) => { e.stopPropagation(); if (children === null) { await loadChildren(); setExpanded(true) } else setExpanded(v => !v) }
+  const maybeHasChildren = children === null || children.length > 0
 
   function handleToggle(e) {
     e.stopPropagation()
@@ -2956,43 +3021,57 @@ function WeekDayTaskRow({ task, statuses, onOpenPanel, onQuickUpdate }) {
   }
 
   return (
-    <div
-      onClick={() => onOpenPanel(task)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '6px 8px', borderRadius: 7, marginBottom: 4,
-        background: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        cursor: 'pointer', transition: 'background 0.1s',
-      }}
-    >
+    <div style={{ marginBottom: 4 }}>
       <div
-        onClick={handleToggle}
+        onClick={() => onOpenPanel(task)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-          border: `2px solid ${isCompleted ? status?.color || '#26c281' : 'rgba(255,255,255,0.2)'}`,
-          background: isCompleted ? status?.color || '#26c281' : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 0.15s',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 8px', borderRadius: 7,
+          background: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          cursor: 'pointer', transition: 'background 0.1s',
         }}
       >
-        {isCompleted && <i className="bx bx-check" style={{ fontSize: 10, color: '#fff' }} />}
+        <button type="button" onClick={toggleExpand} title={maybeHasChildren ? (expanded ? 'Recolher subtarefas' : 'Expandir subtarefas') : 'Sem subtarefas'}
+          style={{ width: 15, height: 15, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#64748b', cursor: maybeHasChildren ? 'pointer' : 'default', padding: 0 }}>
+          {loading ? <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 12 }} />
+            : maybeHasChildren ? <i className={`bx bx-chevron-${expanded ? 'down' : 'right'}`} style={{ fontSize: 14 }} />
+              : <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#334155' }} />}
+        </button>
+        <div
+          onClick={handleToggle}
+          style={{
+            width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+            border: `2px solid ${isCompleted ? status?.color || '#26c281' : 'rgba(255,255,255,0.2)'}`,
+            background: isCompleted ? status?.color || '#26c281' : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}
+        >
+          {isCompleted && <i className="bx bx-check" style={{ fontSize: 10, color: '#fff' }} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: '0.8rem', color: isCompleted ? '#475569' : '#e2e8f0',
+            textDecoration: isCompleted ? 'line-through' : 'none',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{task.title}</div>
+        </div>
+        {children && children.length > 0 && (
+          <span style={{ fontSize: '0.62rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', borderRadius: 7, padding: '0 5px', flexShrink: 0 }}>{children.length}</span>
+        )}
+        {status && (
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: status.color, flexShrink: 0 }} />
+        )}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: '0.8rem', color: isCompleted ? '#475569' : '#e2e8f0',
-          textDecoration: isCompleted ? 'line-through' : 'none',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{task.title}</div>
-        {task.assignee_id && (() => {
-          const assignee = null // workspaceUsers not available here; shown in panel
-          return null
-        })()}
-      </div>
-      {status && (
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: status.color, flexShrink: 0 }} />
+      {expanded && children && (
+        <div style={{ marginTop: 2 }}>
+          {children.map(c => (
+            <WeekSubtaskRow key={c.id} node={c} statuses={statuses} onOpenPanel={onOpenPanel} onQuickUpdate={onQuickUpdate} depth={1} />
+          ))}
+        </div>
       )}
     </div>
   )
