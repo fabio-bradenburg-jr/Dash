@@ -90,7 +90,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(38,194,129,0.14),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(38,194,129,0.08),transparent_24%),#0a0c0b] px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         {/* Painel esquerdo — logo LED do pássaro LP */}
-        <section className="relative hidden items-center justify-center overflow-hidden rounded-[36px] border border-[rgba(38,194,129,0.14)] bg-[radial-gradient(circle_at_30%_30%,rgba(38,194,129,0.06),transparent_60%),#0d0f0e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.5)] md:p-12 lg:flex">
+        <section className="relative hidden items-center justify-center overflow-hidden rounded-[36px] border border-transparent bg-[radial-gradient(circle_at_30%_30%,rgba(38,194,129,0.06),transparent_60%),#0d0f0e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.5)] md:p-12 lg:flex">
           <LpBirdLogo />
         </section>
 
