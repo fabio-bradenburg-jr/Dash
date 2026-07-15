@@ -15949,6 +15949,11 @@ export default function DashboardShell({
                   <span className="mi">event_repeat</span><span className="hub-nav-label">Rotinas</span>
                 </button>
               )}
+              {(isMaster || hasNavAccess('tarefas')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => { setActiveTab('tarefas'); setIsHubNavOpen(false) }}>
+                  <span className="mi">checklist</span><span className="hub-nav-label">Tarefas</span>
+                </button>
+              )}
               {(isMaster || hasNavAccess('settings')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setIsHubNavOpen(false) }}>
                   <span className="mi">tune</span><span className="hub-nav-label">Configurações</span>
@@ -16023,11 +16028,6 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('funil')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => { setActiveTab('funil'); setIsHubNavOpen(false) }}>
                   <span className="mi">filter_alt</span><span className="hub-nav-label">Funil</span>
-                </button>
-              )}
-              {(isMaster || hasNavAccess('tarefas')) && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'tarefas' ? 'active' : ''}`} onClick={() => { setActiveTab('tarefas'); setIsHubNavOpen(false) }}>
-                  <span className="mi">checklist</span><span className="hub-nav-label">Tarefas</span>
                 </button>
               )}
               {isMaster && (
