@@ -1678,9 +1678,155 @@ function FieldLabel({ icon, color, children }) {
   )
 }
 
+// Nó recursivo da árvore de hierarquia de tarefas (mini menu estilo ClickUp)
+function TaskTreeNode({ node, currentId, onNavigate, statuses, depth, seededChildren = null }) {
+  const [children, setChildren] = useState(seededChildren)
+  const [expanded, setExpanded] = useState(depth === 0)
+  const [loading, setLoading] = useState(false)
+  const isCurrent = node.id === currentId
+
+  const loadChildren = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/tasks/${node.id}`)
+      const json = await res.json()
+      setChildren(json.subtasks || [])
+      return json.subtasks || []
+    } catch { setChildren([]); return [] }
+    finally { setLoading(false) }
+  }, [node.id])
+
+  const toggle = async (e) => {
+    e.stopPropagation()
+    if (children === null) {
+      const kids = await loadChildren()
+      setExpanded(kids.length > 0)
+    } else {
+      setExpanded(v => !v)
+    }
+  }
+
+  const st = statuses.find(s => s.id === node.status_id)
+  const maybeHasChildren = children === null || children.length > 0
+
+  return (
+    <div>
+      <div
+        onClick={() => onNavigate(node.id)}
+        title={node.title}
+        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', paddingLeft: 6 + depth * 13, borderRadius: 7, cursor: 'pointer', background: isCurrent ? 'rgba(38,194,129,0.12)' : 'transparent', color: isCurrent ? '#4fdf9b' : '#cbd5e1', fontSize: '0.82rem', fontWeight: isCurrent ? 600 : 500, transition: 'background 0.1s' }}
+        onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+        onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = 'transparent' }}
+      >
+        <button
+          type="button"
+          onClick={toggle}
+          style={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#64748b', cursor: maybeHasChildren ? 'pointer' : 'default', padding: 0 }}
+        >
+          {loading
+            ? <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 12 }} />
+            : maybeHasChildren
+              ? <i className={`bx bx-chevron-${expanded ? 'down' : 'right'}`} style={{ fontSize: 15 }} />
+              : <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#334155' }} />}
+        </button>
+        <StatusDot color={st?.color} size={8} />
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.title}</span>
+      </div>
+      {expanded && children && children.map(c => (
+        <TaskTreeNode key={c.id} node={c} currentId={currentId} onNavigate={onNavigate} statuses={statuses} depth={depth + 1} />
+      ))}
+    </div>
+  )
+}
+
+// Mini menu lateral colapsável com a hierarquia da tarefa (estilo ClickUp)
+function TaskTreeSidebar({ rootId, currentId, onNavigate, onAddSubtask, statuses, collapsed, onToggleCollapsed }) {
+  const [root, setRoot] = useState(null)
+  const [rootChildren, setRootChildren] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancel = false
+    async function load() {
+      if (!rootId) return
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/tasks/${rootId}`)
+        const json = await res.json()
+        if (!cancel) { setRoot(json.task || null); setRootChildren(json.subtasks || []) }
+      } finally { if (!cancel) setLoading(false) }
+    }
+    load()
+    return () => { cancel = true }
+  }, [rootId, currentId])
+
+  if (collapsed) {
+    return (
+      <div style={{ width: 40, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12, background: 'rgba(255,255,255,0.012)' }}>
+        <button type="button" onClick={onToggleCollapsed} title="Expandir hierarquia"
+          style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+          <i className="bx bx-chevrons-right" />
+        </button>
+        <div style={{ marginTop: 14, writingMode: 'vertical-rl', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#475569', userSelect: 'none' }}>
+          Hierarquia
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ width: 236, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', minHeight: 0, background: 'rgba(255,255,255,0.012)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 10px 10px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <i className="bx bx-sitemap" style={{ fontSize: 15, color: '#6366f1' }} />
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94a3b8', flex: 1 }}>Hierarquia</span>
+        <button type="button" onClick={onToggleCollapsed} title="Recolher"
+          style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 17, padding: 2, display: 'flex', alignItems: 'center' }}>
+          <i className="bx bx-chevrons-left" />
+        </button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 6px' }}>
+        {loading && !root ? (
+          <div style={{ padding: 12, fontSize: '0.78rem', color: '#64748b' }}>Carregando…</div>
+        ) : root ? (
+          <TaskTreeNode
+            key={`${rootId}-${currentId}`}
+            node={root}
+            currentId={currentId}
+            onNavigate={onNavigate}
+            statuses={statuses}
+            depth={0}
+            seededChildren={rootChildren}
+          />
+        ) : null}
+      </div>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '8px 8px', flexShrink: 0 }}>
+        <button type="button" onClick={onAddSubtask}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px dashed rgba(255,255,255,0.12)', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#4fdf9b' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8' }}>
+          <i className="bx bx-git-branch" style={{ fontSize: 15 }} /> Adicionar subtarefa
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onClose, onUpdated, isMaster, customFields, currentUserId }) {
   const [currentId, setCurrentId] = useState(taskId)
   useEffect(() => { setCurrentId(taskId) }, [taskId])
+  const [rootId, setRootId] = useState(null)
+  const [treeCollapsed, setTreeCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('taskTreeCollapsed') === '1'
+  })
+  const toggleTree = useCallback(() => {
+    setTreeCollapsed(v => {
+      const next = !v
+      if (typeof window !== 'undefined') window.localStorage.setItem('taskTreeCollapsed', next ? '1' : '0')
+      return next
+    })
+  }, [])
+  const subtaskInputRef = useRef(null)
   const [task, setTask] = useState(null)
   const [checklist, setChecklist] = useState([])
   const [subtasks, setSubtasks] = useState([])
@@ -1725,6 +1871,37 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
   }, [currentId])
 
   useEffect(() => { load() }, [load])
+
+  // Descobre a tarefa raiz (topo da hierarquia) para montar o mini menu lateral
+  useEffect(() => {
+    let cancel = false
+    async function findRoot() {
+      if (!task) return
+      if (!task.parent_task_id) { if (!cancel) setRootId(task.id); return }
+      let pid = task.parent_task_id
+      let last = task
+      let safety = 0
+      while (pid && safety < 25) {
+        try {
+          const res = await fetch(`/api/tasks/${pid}`)
+          const json = await res.json()
+          if (!json.task) break
+          last = json.task
+          if (!json.task.parent_task_id) break
+          pid = json.task.parent_task_id
+        } catch { break }
+        safety++
+      }
+      if (!cancel) setRootId(last.id)
+    }
+    findRoot()
+    return () => { cancel = true }
+  }, [task?.id, task?.parent_task_id])
+
+  const focusSubtaskInput = useCallback(() => {
+    const el = subtaskInputRef.current
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.focus(), 250) }
+  }, [])
 
   async function updateField(field, value) {
     setSaving(true)
@@ -1831,7 +2008,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
   const selectStyle = { background: 'var(--bg-panel, #111113)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: '0.85rem', width: '100%', outline: 'none' }
 
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 'min(96vw, 920px)', background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
+    <div style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 'min(97vw, 1180px)', background: 'var(--bg-dark, #050506)', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 1000, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 32px rgba(0,0,0,0.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
         {task?.task_public_id && (
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#26c281', background: 'rgba(38,194,129,0.1)', border: '1px solid rgba(38,194,129,0.25)', borderRadius: 6, padding: '2px 8px', letterSpacing: '0.03em' }}>{task.task_public_id}</span>
@@ -1851,6 +2028,15 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
         <div style={{ padding: 24, color: '#ef4444', fontSize: '0.85rem' }}>Tarefa não encontrada.</div>
       ) : (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <TaskTreeSidebar
+          rootId={rootId}
+          currentId={currentId}
+          onNavigate={setCurrentId}
+          onAddSubtask={focusSubtaskInput}
+          statuses={statuses}
+          collapsed={treeCollapsed}
+          onToggleCollapsed={toggleTree}
+        />
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '16px 22px' }}>
           {task.parent_task_id && (
             <button type="button" onClick={() => setCurrentId(task.parent_task_id)}
@@ -2038,6 +2224,7 @@ export function TaskDetailPanel({ taskId, statuses, clients, workspaceUsers, onC
             ))}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               <input
+                ref={subtaskInputRef}
                 value={newSubtask}
                 onChange={e => setNewSubtask(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addSubtask()}
