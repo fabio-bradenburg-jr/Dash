@@ -259,3 +259,46 @@ Use **Material Symbols Outlined**. Icons should be placed in circular containers
 
 ### Input Fields & Chips
 Inputs should mirror the glass-card style: dark, semi-transparent backgrounds with thin borders. Chips/Tags use the `label-sm` typography, all-caps, with high letter spacing to resemble industrial serial numbers.
+---
+
+## Referência de tela — Clientes (Gestão de carteira)
+
+Tokens extraídos da tela **Clientes** exportada do app. Use como referência ao
+criar/ajustar telas de gestão (Clientes, Onboarding, Comunicação, etc.).
+
+### Tipografia da tela
+- **Headlines / números:** `Plus Jakarta Sans` (400·500·600·700·800), tracking `-0.02em` nos títulos e valores grandes.
+- **Labels / kickers / chips:** `Inter` (400·500·600·700), UPPERCASE, `letter-spacing` entre `0.08em` e `0.14em`.
+- **Ícones:** `Material Symbols Outlined` (grade `opsz,wght,FILL,GRAD@20..48,400,0,0`) — em containers circulares/arredondados com fundo do acento a ~12–16% de opacidade.
+
+### Paleta de acento (categórica / status)
+Além do emerald da marca, a tela usa uma paleta categórica para status, chips e ícones:
+
+| Uso | Hex |
+|---|---|
+| Emerald primário / sucesso | `#26C281` |
+| Emerald brilhante (destaque) | `#4fdf9b` |
+| Verde (saudável) | `#22c55e` |
+| Azul (Meta / info) | `#3ba3ff` |
+| Índigo | `#6366f1` |
+| Roxo | `#8b5cf6` |
+| Rosa | `#ec4899` |
+| Âmbar (atenção) | `#f59e0b` |
+| Vermelho (erro / risco) | `#ef4444` |
+
+Backgrounds da tela: `#131313` (base), `#0e0e0e` / `#0a0a0a` (camadas mais profundas).
+
+### Raios de borda observados
+- **Pills / tags interativas:** `99px` (uso dominante).
+- **Cards / painéis:** `14px`–`18px` (bento).
+- **Controles (inputs, selects, botões-ícone):** `8px`–`12px`.
+- **Chips pequenos / células:** `5px`–`7px`.
+
+### Vidro e elevação
+- **Cards glass:** `backdrop-filter: blur(12px)`; painéis elevados `blur(14px)`; overlays de modal `blur(2–4px)`.
+- **Emerald glow (hover/ativo):** `box-shadow: 0 8px 24px rgba(38,194,129,0.28)` e, em destaques, `0 0 22px rgba(38,194,129,0.35)`.
+- **Bordas:** `1px solid rgba(255,255,255,0.06)` padrão; acento no topo de blocos primários `3px solid #26C281`.
+
+### Padrão de kicker/hero
+- Kicker: chip Inter UPPERCASE emerald (`#26C281`), `letter-spacing 0.12–0.14em`, com ícone à esquerda.
+- Hero: `border-top: 3px solid #26C281`, fundo `linear-gradient(135deg, rgba(38,194,129,0.08), rgba(38,194,129,0.01))` e decoração radial emerald no canto.
