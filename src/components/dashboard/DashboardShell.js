@@ -26,6 +26,7 @@ import CampanhasTab from '@/components/dashboard/tabs/CampanhasTab'
 import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab'
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
+import ComunicacaoTab from '@/components/dashboard/tabs/ComunicacaoTab'
 import OffboardingTab from '@/components/dashboard/tabs/OffboardingTab'
 import RotinasTab from '@/components/dashboard/tabs/RotinasTab'
 import UsuariosTab from '@/components/dashboard/tabs/UsuariosTab'
@@ -15980,6 +15981,11 @@ export default function DashboardShell({
                   <span className="mi">logout</span><span className="hub-nav-label">Offboarding</span>
                 </button>
               )}
+              {(isMaster || hasNavAccess('comunicacao')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => { setActiveTab('comunicacao'); setIsHubNavOpen(false) }}>
+                  <span className="mi">forum</span><span className="hub-nav-label">Comunicação</span>
+                </button>
+              )}
               {(isMaster || hasNavAccess('acessos')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => { setActiveTab('acessos'); setIsHubNavOpen(false) }}>
                   <span className="mi">database</span><span className="hub-nav-label">Dados</span>
@@ -16243,6 +16249,15 @@ export default function DashboardShell({
 
         {activeTab === 'onboarding' && isMaster && (
           <OnboardingTab />
+        )}
+
+        {activeTab === 'comunicacao' && (isMaster || hasNavAccess('comunicacao')) && (
+          <ComunicacaoTab
+            clients={clients}
+            workspaceUsers={usersList}
+            currentUserId={user?.id}
+            isMaster={isMaster}
+          />
         )}
 
         {activeTab === 'planilha-leads' && (isMaster || hasNavAccess('planilha-leads')) && (
