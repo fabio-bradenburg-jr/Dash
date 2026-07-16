@@ -15955,6 +15955,11 @@ export default function DashboardShell({
                   <span className="mi">checklist</span><span className="hub-nav-label">Tarefas</span>
                 </button>
               )}
+              {(isMaster || hasNavAccess('comunicacao')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => { setActiveTab('comunicacao'); setIsHubNavOpen(false) }}>
+                  <span className="mi">forum</span><span className="hub-nav-label">Comunicação</span>
+                </button>
+              )}
               {(isMaster || hasNavAccess('settings')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setIsHubNavOpen(false) }}>
                   <span className="mi">tune</span><span className="hub-nav-label">Configurações</span>
@@ -15979,11 +15984,6 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('offboarding')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'offboarding' ? 'active' : ''}`} onClick={() => { setActiveTab('offboarding'); setIsHubNavOpen(false) }}>
                   <span className="mi">logout</span><span className="hub-nav-label">Offboarding</span>
-                </button>
-              )}
-              {(isMaster || hasNavAccess('comunicacao')) && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => { setActiveTab('comunicacao'); setIsHubNavOpen(false) }}>
-                  <span className="mi">forum</span><span className="hub-nav-label">Comunicação</span>
                 </button>
               )}
               {(isMaster || hasNavAccess('acessos')) && (
