@@ -18,15 +18,38 @@ const STATUS_META = {
   invited: { label: 'Convidado', color: '#f59e0b' },
   inactive: { label: 'Inativo', color: '#7b8794' },
 }
+// Todas as páginas/abas do app (mesmas chaves usadas pelo hasNavAccess da sidebar).
+// A permissão do app é por página: liberar a página dá acesso a tudo que ela mostra.
 const MODULES = [
-  { key: 'clientes', label: 'Clientes' },
-  { key: 'onboarding', label: 'Onboarding' },
-  { key: 'offboarding', label: 'Offboarding' },
-  { key: 'acessos', label: 'Dados' },
-  { key: 'campanhas', label: 'Campanhas' },
-  { key: 'anuncios', label: 'Anúncios' },
-  { key: 'saldos', label: 'Saldos' },
-  { key: 'funil', label: 'Funil' },
+  // Geral
+  { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
+  { key: 'tarefas', label: 'Rotinas & Tarefas', group: 'Geral' },
+  { key: 'comunicacao', label: 'Comunicação', group: 'Geral' },
+  { key: 'settings', label: 'Configurações', group: 'Geral' },
+  // Sucesso do Cliente
+  { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
+  { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
+  { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
+  { key: 'acessos', label: 'Dados', group: 'Sucesso do Cliente' },
+  // Comercial
+  { key: 'comercial', label: 'Processo Comercial', group: 'Comercial' },
+  // Performance
+  { key: 'apresentacao', label: 'Dash', group: 'Performance' },
+  { key: 'campanhas', label: 'Campanhas', group: 'Performance' },
+  { key: 'anuncios', label: 'Anúncios', group: 'Performance' },
+  { key: 'saldos', label: 'Saldos', group: 'Performance' },
+  { key: 'funil', label: 'Funil', group: 'Performance' },
+  { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
+  { key: 'relatorio-manual', label: 'Relatório Manual', group: 'Performance' },
+  { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
+  // Social Media
+  { key: 'editorial-dash', label: 'Social · Painel', group: 'Social Media' },
+  { key: 'editorial', label: 'Social · Calendário', group: 'Social Media' },
+  { key: 'editorial-plans', label: 'Social · Planejamentos', group: 'Social Media' },
+  // PAC
+  { key: 'pac-dash', label: 'PAC · Painel', group: 'PAC' },
+  { key: 'pac-calendario', label: 'PAC · Calendário', group: 'PAC' },
+  { key: 'pac-tipos', label: 'PAC · Tipos', group: 'PAC' },
 ]
 const EDIT_ROLE_OPTIONS = [
   ['admin', 'Admin'], ['analista', 'Analista'], ['operador', 'Operador'],
@@ -359,8 +382,10 @@ export default function UsuariosTab() {
                 const ar = u.assignedRole
                 const chipColor = (ar?.color && /^#/.test(ar.color)) ? ar.color : rm.color
                 const chipLabel = ar?.name || rm.label
+                // Permissão por página: internos enxergam todos os clientes; só o papel
+                // 'cliente' (login externo) tem acesso restrito por cliente.
                 const accessCount = getManagedUserAccessibleClientCount(u)
-                const accessLabel = u.role === 'master' ? 'Todos' : accessCount > 0 ? `${accessCount} dashboard(s)` : 'Nenhum'
+                const accessLabel = u.role === 'cliente' ? (accessCount > 0 ? `${accessCount} dashboard(s)` : 'Nenhum') : 'Todos'
                 const name = u.full_name || u.email
                 const isSelf = u.id === user?.id
                 const st = statusOf(u)
@@ -445,7 +470,9 @@ export default function UsuariosTab() {
               <div className="input-group"><label>Papel</label><select className="client-select-input" value={userForm.role} onChange={(e) => setUserForm((c) => ({ ...c, role: e.target.value }))}>{isMaster && <option value="master">Master</option>}{EDIT_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
               <div className="input-group"><label>IA</label><select className="client-select-input" value={userForm.aiAccessLevel} onChange={(e) => setUserForm((c) => ({ ...c, aiAccessLevel: e.target.value }))}><option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
             </div>
-            <div className="input-group"><label>Dashboards liberados</label><div className="stage-selector">{dashboardEligibleClients.length ? dashboardEligibleClients.map((client) => (<label key={'new-user-' + client.id} className={'stage-chip ' + (userForm.clientIds.includes(client.id) ? 'active' : '')}><input type="checkbox" checked={userForm.clientIds.includes(client.id)} onChange={() => handleUserClientToggle(client.id)} /><span>{client.name}</span></label>)) : <div className="stage-empty">Cadastre clientes antes de liberar dashboards.</div>}</div></div>
+            {/* Permissão por cliente removida: internos enxergam todos os clientes.
+                Vínculo de login de cliente (papel 'cliente') é feito em Editar usuário. */}
+            <div className="input-group"><label>Acesso</label><div style={{ fontSize: '0.8rem', color: 'rgba(229,226,225,0.55)', lineHeight: 1.5, padding: '4px 2px' }}>O acesso é controlado pelas <strong style={{ color: '#4fdf9b' }}>páginas liberadas</strong> e pela <strong style={{ color: '#4fdf9b' }}>função</strong> do usuário. Ajuste depois em Editar usuário → Permissões.</div></div>
             <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsCreateUserModalOpen(false)}>Fechar</button><button type="submit" className="btn btn-primary" disabled={savingUser}>{savingUser ? 'Criando...' : 'Gerar convite'}</button></div>
           </form>
         </div></div>
@@ -541,10 +568,10 @@ export default function UsuariosTab() {
                     </div>
                   </div>
 
-                  {/* Módulos */}
-                  <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 9 }}>Módulos liberados</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
-                    {MODULES.concat(customPerms).map((m) => {
+                  {/* Módulos (permissão por página, agrupados como na sidebar) */}
+                  <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 9 }}>Páginas liberadas</div>
+                  {(() => {
+                    const renderToggle = (m) => {
                       const granted = grantedFor(selectedManagedUser.id, m.key)
                       const isCustom = m.key.startsWith('custom:')
                       return (
@@ -557,8 +584,24 @@ export default function UsuariosTab() {
                           </div>
                         </label>
                       )
-                    })}
-                  </div>
+                    }
+                    const groups = []
+                    MODULES.forEach((m) => {
+                      const g = m.group || 'Outros'
+                      const found = groups.find((x) => x.name === g)
+                      if (found) found.items.push(m)
+                      else groups.push({ name: g, items: [m] })
+                    })
+                    if (customPerms.length) groups.push({ name: 'Customizadas', items: customPerms })
+                    return groups.map((g) => (
+                      <div key={g.name} style={{ marginBottom: 12 }}>
+                        <div style={{ fontFamily: 'Inter', fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(38,194,129,0.7)', fontWeight: 700, margin: '0 0 6px 2px' }}>{g.name}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
+                          {g.items.map(renderToggle)}
+                        </div>
+                      </div>
+                    ))
+                  })()}
 
                   {/* Permissão customizada */}
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
