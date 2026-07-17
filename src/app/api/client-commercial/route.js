@@ -28,8 +28,7 @@ async function getAuthContext() {
   return { user: fakeUser, accessContext, adminSupabase }
 }
 
-const SCRIPT_STATUSES = ['Implementado', 'Não implementado', 'Não se aplica']
-const CRM_STATUSES = ['Implementado', 'Não implementado', 'Não se aplica', 'Outro CRM']
+const normStatus = (v, fallback) => { const s = String(v ?? '').trim().slice(0, 60); return s || fallback }
 
 function normDate(value) {
   if (!value) return null
@@ -43,8 +42,9 @@ function normAudits(value) {
     .map((a) => ({
       id: String(a.id || crypto.randomUUID()),
       label: String(a.label || 'Auditoria').slice(0, 80),
-      status: a.status === 'Realizada' ? 'Realizada' : 'Não realizada',
+      status: normStatus(a.status, 'Não realizada'),
       date: normDate(a.date),
+      note: String(a.note || ''),
     }))
 }
 
@@ -87,9 +87,9 @@ export async function POST(request) {
       .maybeSingle()
 
     const patch = { updated_by: ctx.user.id, updated_at: now }
-    if (body.script_status !== undefined) patch.script_status = SCRIPT_STATUSES.includes(body.script_status) ? body.script_status : 'Não implementado'
+    if (body.script_status !== undefined) patch.script_status = normStatus(body.script_status, 'Não implementado')
     if (body.script_date !== undefined) patch.script_date = normDate(body.script_date)
-    if (body.crm_status !== undefined) patch.crm_status = CRM_STATUSES.includes(body.crm_status) ? body.crm_status : 'Não implementado'
+    if (body.crm_status !== undefined) patch.crm_status = normStatus(body.crm_status, 'Não implementado')
     if (body.crm_date !== undefined) patch.crm_date = normDate(body.crm_date)
     if (body.audits !== undefined) patch.audits = normAudits(body.audits)
     if (body.notes !== undefined) patch.notes = String(body.notes || '')
