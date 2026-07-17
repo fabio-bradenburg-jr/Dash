@@ -15987,16 +15987,19 @@ export default function DashboardShell({
                   <span className="mi">logout</span><span className="hub-nav-label">Offboarding</span>
                 </button>
               )}
-              {(isMaster || hasNavAccess('comercial')) && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'comercial' ? 'active' : ''}`} onClick={() => { setActiveTab('comercial'); setIsHubNavOpen(false) }}>
-                  <span className="mi">handshake</span><span className="hub-nav-label">Processo Comercial</span>
-                </button>
-              )}
               {(isMaster || hasNavAccess('acessos')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => { setActiveTab('acessos'); setIsHubNavOpen(false) }}>
                   <span className="mi">database</span><span className="hub-nav-label">Dados</span>
                 </button>
               )}
+            </div>
+          )}
+          {(isMaster || hasNavAccess('comercial')) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Comercial</div>
+              <button type="button" className={`hub-nav-item ${activeTab === 'comercial' ? 'active' : ''}`} onClick={() => { setActiveTab('comercial'); setIsHubNavOpen(false) }}>
+                <span className="mi">handshake</span><span className="hub-nav-label">Processo Comercial</span>
+              </button>
             </div>
           )}
           {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas')) && (
