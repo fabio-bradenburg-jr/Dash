@@ -456,23 +456,23 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
                 <div style={{ fontWeight: 700, fontSize: '0.98rem' }}>Mapa de calor</div>
                 <div style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>Comunicação por semana · navegue entre os meses</div>
               </div>
-              <div style={{ display: 'flex', gap: 10, marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
-                {[{ c: C.green, l: 'Alta' }, { c: C.yellow, l: 'Média' }, { c: C.red, l: 'Baixa' }].map(x => (
-                  <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.64rem', color: C.text2 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: x.c }} />{x.l}</span>
-                ))}
-                <button type="button" onClick={() => setShowHeatmap(false)} title="Fechar" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.field, color: C.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4 }}><i className="bx bx-x" style={{ fontSize: 19 }} /></button>
-              </div>
-            </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* navegação de mês */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button type="button" onClick={() => setHeatmapMonth(m => shiftMonth(m, -1))} title="Mês anterior" style={navBtn}><i className="bx bx-chevron-left" style={{ fontSize: 18 }} /></button>
-                <span style={{ minWidth: 150, textAlign: 'center', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>{monthLabel(heatmapMonth)}</span>
+                <span style={{ minWidth: 130, textAlign: 'center', fontWeight: 700, fontSize: '0.85rem', color: C.text }}>{monthLabel(heatmapMonth)}</span>
                 <button type="button" onClick={() => setHeatmapMonth(m => shiftMonth(m, 1))} title="Próximo mês" style={navBtn}><i className="bx bx-chevron-right" style={{ fontSize: 18 }} /></button>
                 <input type="month" value={heatmapMonth} onChange={e => e.target.value && setHeatmapMonth(e.target.value)} style={{ ...selStyle, colorScheme: 'dark', width: 150 }} />
                 {heatmapMonth !== fmtDate(new Date()).slice(0, 7) && (
                   <button type="button" onClick={() => setHeatmapMonth(fmtDate(new Date()).slice(0, 7))} style={{ ...navBtn, color: C.accent, borderColor: hexA('#26C281', 0.4), fontSize: '0.72rem', fontWeight: 700, padding: '7px 11px' }}>Mês atual</button>
                 )}
+                <button type="button" onClick={() => setShowHeatmap(false)} title="Fechar" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.field, color: C.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4 }}><i className="bx bx-x" style={{ fontSize: 19 }} /></button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* legenda (à esquerda) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                {[{ c: C.green, l: 'Alta' }, { c: C.yellow, l: 'Média' }, { c: C.red, l: 'Baixa' }].map(x => (
+                  <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.72rem', color: C.text2 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: x.c }} />{x.l}</span>
+                ))}
               </div>
               {visibleClients.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: C.text3, fontSize: '0.86rem' }}>Nenhum cliente no filtro.</div>
