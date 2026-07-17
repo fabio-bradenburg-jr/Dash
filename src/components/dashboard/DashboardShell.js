@@ -27,6 +27,7 @@ import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
 import ComunicacaoTab from '@/components/dashboard/tabs/ComunicacaoTab'
+import ComercialProcessoTab from '@/components/dashboard/tabs/ComercialProcessoTab'
 import OffboardingTab from '@/components/dashboard/tabs/OffboardingTab'
 import RotinasTab from '@/components/dashboard/tabs/RotinasTab'
 import UsuariosTab from '@/components/dashboard/tabs/UsuariosTab'
@@ -15986,6 +15987,11 @@ export default function DashboardShell({
                   <span className="mi">logout</span><span className="hub-nav-label">Offboarding</span>
                 </button>
               )}
+              {(isMaster || hasNavAccess('comercial')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'comercial' ? 'active' : ''}`} onClick={() => { setActiveTab('comercial'); setIsHubNavOpen(false) }}>
+                  <span className="mi">handshake</span><span className="hub-nav-label">Processo Comercial</span>
+                </button>
+              )}
               {(isMaster || hasNavAccess('acessos')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'acessos' ? 'active' : ''}`} onClick={() => { setActiveTab('acessos'); setIsHubNavOpen(false) }}>
                   <span className="mi">database</span><span className="hub-nav-label">Dados</span>
@@ -16253,6 +16259,15 @@ export default function DashboardShell({
 
         {activeTab === 'comunicacao' && (isMaster || hasNavAccess('comunicacao')) && (
           <ComunicacaoTab
+            clients={clients}
+            workspaceUsers={usersList}
+            currentUserId={user?.id}
+            isMaster={isMaster}
+          />
+        )}
+
+        {activeTab === 'comercial' && (isMaster || hasNavAccess('comercial')) && (
+          <ComercialProcessoTab
             clients={clients}
             workspaceUsers={usersList}
             currentUserId={user?.id}
