@@ -10,7 +10,7 @@ const C = {
   field: 'rgba(255,255,255,0.04)',
   text: '#E5E2E1', text2: 'rgba(229,226,225,0.72)', text3: 'rgba(229,226,225,0.45)', text4: 'rgba(229,226,225,0.28)',
   accent: '#26C281', accentBright: '#4fdf9b', onAccent: '#04150d',
-  green: '#26C281', yellow: '#FFB800', red: '#FF4B4B',
+  green: '#26C281', blue: '#3ba3ff', yellow: '#FFB800', red: '#FF4B4B',
 }
 const hexA = (hex, a) => {
   const h = hex.replace('#', '')
@@ -68,9 +68,9 @@ function monthLabel(monthStr) {
 }
 
 /* ── Classificação por nº de comunicações ── */
-function colorForCount(c) { return c >= 5 ? C.green : c >= 3 ? C.yellow : C.red }
-function statusTextForCount(c) { return c >= 5 ? 'Boa frequência' : c >= 3 ? 'Atenção' : 'Baixa comunicação' }
-function colorForPct(p) { return p >= 100 ? C.green : p >= 60 ? C.yellow : C.red }
+function colorForCount(c) { return c >= 5 ? C.green : c === 4 ? C.blue : c === 3 ? C.yellow : C.red }
+function statusTextForCount(c) { return c >= 5 ? 'Excelente' : c === 4 ? 'Boa Frequência' : c === 3 ? 'Atenção' : 'Baixa comunicação' }
+function colorForPct(p) { return p >= 100 ? C.green : p >= 80 ? C.blue : p >= 60 ? C.yellow : C.red }
 
 function isInactiveClient(client) {
   const s = String(client?.status || client?.healthStatus || '').toLowerCase()
@@ -195,7 +195,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
       list = list.filter(c => {
         const pct = periodMode === 'month' ? monthAvgPct(c.id) : countFor(c.id, weekStart) * 20
         const color = colorForPct(pct)
-        return (statusFilter === 'green' && color === C.green) || (statusFilter === 'yellow' && color === C.yellow) || (statusFilter === 'red' && color === C.red)
+        return (statusFilter === 'green' && color === C.green) || (statusFilter === 'blue' && color === C.blue) || (statusFilter === 'yellow' && color === C.yellow) || (statusFilter === 'red' && color === C.red)
       })
     }
     return [...list].sort((a, b) => a.name.localeCompare(b.name))
@@ -211,6 +211,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
       : countFor(c.id, weekStart)), 0)
     const avg = pcts.length ? Math.round(pcts.reduce((a, x) => a + x.pct, 0) / pcts.length) : 0
     const green = pcts.filter(x => colorForPct(x.pct) === C.green).length
+    const blue = pcts.filter(x => colorForPct(x.pct) === C.blue).length
     const yellow = pcts.filter(x => colorForPct(x.pct) === C.yellow).length
     const red = pcts.filter(x => colorForPct(x.pct) === C.red).length
     const sorted = [...pcts].sort((a, b) => b.pct - a.pct)
@@ -225,7 +226,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
     const prevAvgArr = base.map(c => countFor(c.id, prevWeek) * 20)
     const prevAvg = prevAvgArr.length ? Math.round(prevAvgArr.reduce((a, v) => a + v, 0) / prevAvgArr.length) : 0
     const curAvg = periodMode === 'month' ? avg : (base.length ? Math.round(base.map(c => countFor(c.id, weekStart) * 20).reduce((a, v) => a + v, 0) / base.length) : 0)
-    return { total, avg, green, yellow, red, topC, bottomC, evo, delta: curAvg - prevAvg }
+    return { total, avg, green, blue, yellow, red, topC, bottomC, evo, delta: curAvg - prevAvg }
   }, [clients, hideInactive, periodMode, monthAvgPct, countFor, weekStart, weeksWindow, monthWeeks])
 
   /* ── toggle de dia (só no modo semana) ── */
@@ -317,7 +318,8 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginTop: 16 }}>
           <StatCard icon="bx-line-chart" color={C.accent} label="Média geral" value={`${dash.avg}%`} sub={periodMode === 'month' ? 'no mês' : 'na semana'} big />
           <StatCard icon="bx-message-rounded-check" color={C.accentBright} label="Comunicações" value={dash.total} sub="total no período" />
-          <StatCard icon="bx-check-circle" color={C.green} label="Boa frequência" value={dash.green} sub="clientes no verde" />
+          <StatCard icon="bx-star" color={C.green} label="Excelente" value={dash.green} sub="clientes no verde" />
+          <StatCard icon="bx-check-circle" color={C.blue} label="Boa frequência" value={dash.blue} sub="clientes no azul" />
           <StatCard icon="bx-error" color={C.yellow} label="Atenção" value={dash.yellow} sub="clientes no amarelo" />
           <StatCard icon="bx-error-circle" color={C.red} label="Baixa" value={dash.red} sub="clientes no vermelho" />
           <StatCard icon="bx-trending-up" color={dash.delta >= 0 ? C.green : C.red} label="vs. anterior" value={`${dash.delta >= 0 ? '+' : ''}${dash.delta}%`} sub="média semanal" />
@@ -350,7 +352,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cliente…" style={{ ...selStyle, paddingLeft: 32, width: 200 }} />
           </div>
           <div style={{ display: 'flex', gap: 5 }}>
-            {[{ k: 'all', l: 'Todos', col: C.text2 }, { k: 'green', l: 'Verde', col: C.green }, { k: 'yellow', l: 'Amarelo', col: C.yellow }, { k: 'red', l: 'Vermelho', col: C.red }].map(s => (
+            {[{ k: 'all', l: 'Todos', col: C.text2 }, { k: 'green', l: 'Excelente', col: C.green }, { k: 'blue', l: 'Boa', col: C.blue }, { k: 'yellow', l: 'Atenção', col: C.yellow }, { k: 'red', l: 'Baixa', col: C.red }].map(s => (
               <button key={s.k} type="button" onClick={() => setStatusFilter(s.k)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 11px', borderRadius: 99, border: `1px solid ${statusFilter === s.k ? s.col : C.border2}`, background: statusFilter === s.k ? hexA(s.col === C.text2 ? '#ffffff' : s.col, 0.12) : 'transparent', color: statusFilter === s.k ? (s.col === C.text2 ? C.text : s.col) : C.text3, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
                 {s.k !== 'all' && <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.col }} />}{s.l}
               </button>
@@ -470,7 +472,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
             <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* legenda (à esquerda) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                {[{ c: C.green, l: 'Alta' }, { c: C.yellow, l: 'Média' }, { c: C.red, l: 'Baixa' }].map(x => (
+                {[{ c: C.green, l: 'Excelente' }, { c: C.blue, l: 'Boa' }, { c: C.yellow, l: 'Atenção' }, { c: C.red, l: 'Baixa' }].map(x => (
                   <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'Inter', fontSize: '0.72rem', color: C.text2 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: x.c }} />{x.l}</span>
                 ))}
               </div>
