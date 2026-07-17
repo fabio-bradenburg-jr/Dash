@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { cookies } from 'next/headers'
 import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
@@ -231,7 +232,7 @@ export async function GET(request) {
     const ranges = buildWeekRanges()
     const rows = await mapWithConcurrency(visibleClients, 3, (client) => fetchClientWeeks({ client, token, ranges }))
 
-    return NextResponse.json({ updatedAt: new Date().toISOString(), ranges, rows })
+    return NextResponse.json({ updatedAt: new Date().toISOString(), ranges, rows }, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Meta CPL weeks error:', error)
     return NextResponse.json({ error: normalizeMetaError(error, 'Não foi possível carregar o CPL semanal.') }, { status: 500 })

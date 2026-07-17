@@ -1,4 +1,5 @@
 import { after, NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
 import { resolveMetaDateSelection } from '@/lib/server/meta-date-range'
@@ -365,7 +366,7 @@ export async function GET(request) {
         genders: genderResult.error || '',
         creatives: creativeResult.error || '',
       },
-    })
+    }, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Meta breakdowns error:', error)
     return NextResponse.json({ error: normalizeMetaError(error) }, { status: 500 })

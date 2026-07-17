@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
 import { resolveMetaDateSelection } from '@/lib/server/meta-date-range'
 import { resolveWorkspaceMetaAccessToken } from '@/lib/server/meta-connection'
@@ -58,7 +59,7 @@ export async function GET(request) {
       }))
       .filter((item) => item.campaignId && item.adsetId && item.adId && item.spend > 0)
 
-    return NextResponse.json(rows)
+    return NextResponse.json(rows, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Meta structure error:', error)
     return NextResponse.json({ error: normalizeMetaError(error) }, { status: 500 })

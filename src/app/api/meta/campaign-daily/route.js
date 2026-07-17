@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
 import { resolveWorkspaceMetaAccessToken } from '@/lib/server/meta-connection'
 import { formatInsightsWithConversions } from '@/lib/meta-metrics'
@@ -61,7 +62,7 @@ export async function GET(request) {
       }
     })
 
-    return NextResponse.json({ data: rows })
+    return NextResponse.json({ data: rows }, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Campaign daily insights error:', error)
     return NextResponse.json(

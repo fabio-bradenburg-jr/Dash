@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
 import { resolveMetaDateSelection } from '@/lib/server/meta-date-range'
@@ -174,7 +175,7 @@ export async function GET(request) {
       summary: formatInsightsWithConversions(summaryRaw),
       daily: rawDailyRows.map(formatInsightsWithConversions),
       daily_by_campaign: (dailyCampaignData.data || []).map(formatInsightsWithConversions),
-    })
+    }, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Meta API Error:', error)
     return NextResponse.json({ error: normalizeMetaError(error, 'A Meta demorou para responder ao carregar os indicadores principais. Tente novamente em alguns instantes.') }, { status: 500 })

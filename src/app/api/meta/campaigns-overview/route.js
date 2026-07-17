@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { META_READ_CACHE } from '@/lib/server/cache-headers'
 import { cookies } from 'next/headers'
 import { formatInsightsWithConversions } from '@/lib/meta-metrics'
 import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
@@ -411,7 +412,7 @@ export async function GET(request) {
       updatedAt: new Date().toISOString(),
       period: resolveMetaDateSelection(datePreset, since, until),
       rows,
-    })
+    }, { headers: META_READ_CACHE })
   } catch (error) {
     console.error('Meta campaigns overview error:', error)
     return NextResponse.json({ error: normalizeMetaError(error, 'Não foi possível carregar campanhas.') }, { status: 500 })
