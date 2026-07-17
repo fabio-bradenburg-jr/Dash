@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 /* ── Paleta Kinetic Emerald (Assessoria LP) ── */
 const C = {
@@ -74,6 +75,7 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
   const [hideInactive, setHideInactive] = useState(true)
   const [periodMode, setPeriodMode] = useState('week')          // week | month
   const [monthFilter, setMonthFilter] = useState(() => fmtDate(new Date()).slice(0, 7))
+  const [showHeatmap, setShowHeatmap] = useState(false)
 
   const todayMonday = fmtDate(getMonday(new Date()))
   const isCurrentWeek = weekStart === todayMonday
@@ -241,12 +243,17 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
             </div>
             {/* Alternador de período + navegação */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-              <div style={{ display: 'flex', background: C.field, border: `1px solid ${C.border2}`, borderRadius: 10, padding: 2, gap: 2 }}>
-                {[{ k: 'week', i: 'bx-calendar-week', l: 'Semana' }, { k: 'month', i: 'bx-calendar', l: 'Mês' }].map(({ k, i, l }) => (
-                  <button key={k} type="button" onClick={() => setPeriodMode(k)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, background: periodMode === k ? C.accent : 'transparent', color: periodMode === k ? '#fff' : C.text3 }}>
-                    <i className={`bx ${i}`} style={{ fontSize: 15 }} />{l}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', background: C.field, border: `1px solid ${C.border2}`, borderRadius: 10, padding: 2, gap: 2 }}>
+                  {[{ k: 'week', i: 'bx-calendar-week', l: 'Semana' }, { k: 'month', i: 'bx-calendar', l: 'Mês' }].map(({ k, i, l }) => (
+                    <button key={k} type="button" onClick={() => setPeriodMode(k)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, background: periodMode === k ? C.accent : 'transparent', color: periodMode === k ? '#fff' : C.text3 }}>
+                      <i className={`bx ${i}`} style={{ fontSize: 15 }} />{l}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setShowHeatmap(true)} title="Ver mapa de calor" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 10, border: `1px solid ${hexA('#26C281', 0.4)}`, background: hexA('#26C281', 0.1), color: C.accent, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <i className="bx bx-grid-alt" style={{ fontSize: 15 }} />Mapa de calor
+                </button>
               </div>
               {periodMode === 'week' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -397,37 +404,51 @@ export default function ComunicacaoTab({ clients = [], workspaceUsers = [], curr
           </div>
         </div>
 
-        {/* ── MAPA DE CALOR ── */}
-        {!loading && visibleClients.length > 0 && (
-          <div style={{ ...cardStyle, marginTop: 16, padding: '16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14, flexWrap: 'wrap' }}>
-              <i className="bx bx-grid-alt" style={{ fontSize: 18, color: C.accent }} />
-              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Mapa de calor · comunicação por semana</span>
-              <div style={{ display: 'flex', gap: 10, marginLeft: 'auto', flexWrap: 'wrap' }}>
+      </div>
+
+      {/* ── MAPA DE CALOR (pop-up) ── */}
+      {showHeatmap && typeof document !== 'undefined' && createPortal(
+        <div onClick={() => setShowHeatmap(false)} style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: '100%', maxWidth: 1040, maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', color: C.text, fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif" }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '15px 18px', borderBottom: `1px solid ${C.border}`, flexWrap: 'wrap' }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: hexA('#26C281', 0.16), display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="bx bx-grid-alt" style={{ fontSize: 17, color: C.accent }} /></span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.98rem' }}>Mapa de calor</div>
+                <div style={{ fontFamily: 'Inter', fontSize: '0.66rem', color: C.text3 }}>Comunicação por semana · últimas {HEAT_WEEKS} semanas</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
                 {[{ c: C.green, l: 'Alta' }, { c: C.yellow, l: 'Média' }, { c: C.red, l: 'Baixa' }].map(x => (
                   <span key={x.l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'Inter', fontSize: '0.64rem', color: C.text2 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: x.c }} />{x.l}</span>
                 ))}
+                <button type="button" onClick={() => setShowHeatmap(false)} title="Fechar" style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.field, color: C.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 4 }}><i className="bx bx-x" style={{ fontSize: 19 }} /></button>
               </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 620 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: `1.6fr repeat(${weeksWindow.length}, 1fr)`, gap: 6, marginBottom: 6, fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: C.text3, fontWeight: 700 }}>
-                  <span>Cliente</span>{weeksWindow.map(w => <span key={w} style={{ textAlign: 'center' }}>{fmtDisplay(w).slice(0, 5)}</span>)}
-                </div>
-                {visibleClients.map(client => (
-                  <div key={client.id} style={{ display: 'grid', gridTemplateColumns: `1.6fr repeat(${weeksWindow.length}, 1fr)`, gap: 6, marginBottom: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.76rem', color: C.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</span>
-                    {weeksWindow.map(w => {
-                      const c = countFor(client.id, w); const p = c * 20; const col = colorForPct(p)
-                      return <div key={w} title={`${fmtDisplay(w)} · ${p}% (${c}/5)`} style={{ height: 30, borderRadius: 7, background: hexA(col, 0.14 + (p / 100) * 0.5), border: `1px solid ${hexA(col, 0.3)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 800, color: col }}>{c}</div>
-                    })}
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px' }}>
+              {loading ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: C.text3 }}><i className="bx bx-loader-alt bx-spin" style={{ fontSize: 24, color: C.accent }} /></div>
+              ) : visibleClients.length === 0 ? (
+                <div style={{ padding: '40px 16px', textAlign: 'center', color: C.text3, fontSize: '0.86rem' }}>Nenhum cliente no filtro.</div>
+              ) : (
+                <div style={{ minWidth: 620 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `1.6fr repeat(${weeksWindow.length}, 1fr)`, gap: 6, marginBottom: 6, fontFamily: 'Inter', fontSize: '0.56rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: C.text3, fontWeight: 700, position: 'sticky', top: 0, background: C.card }}>
+                    <span>Cliente</span>{weeksWindow.map(w => <span key={w} style={{ textAlign: 'center' }}>{fmtDisplay(w).slice(0, 5)}</span>)}
                   </div>
-                ))}
-              </div>
+                  {visibleClients.map(client => (
+                    <div key={client.id} style={{ display: 'grid', gridTemplateColumns: `1.6fr repeat(${weeksWindow.length}, 1fr)`, gap: 6, marginBottom: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.76rem', color: C.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.name}</span>
+                      {weeksWindow.map(w => {
+                        const c = countFor(client.id, w); const p = c * 20; const col = colorForPct(p)
+                        return <div key={w} title={`${fmtDisplay(w)} · ${p}% (${c}/5)`} style={{ height: 30, borderRadius: 7, background: hexA(col, 0.14 + (p / 100) * 0.5), border: `1px solid ${hexA(col, 0.3)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 800, color: col }}>{c}</div>
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
