@@ -143,6 +143,72 @@ Redesenhe o **assistente de IA** da operação.
 
 ---
 
+# COMERCIAL
+
+## ▸ PROMPT — Processo Comercial
+Redesenhe/implemente a tela **Comercial → Processo Comercial**, que acompanha o avanço do processo comercial de cada cliente (script, CRM e auditorias).
+**Usuários:** master, gestor_resultado, comercial.
+**Estrutura da tabela (uma linha por cliente):**
+- **Cliente** (nome, vindo do cadastro principal).
+- **Script** — status `Implementado` / `Não implementado` / `Não se aplica` + **Data** de implementação.
+- **CRM** — status `Implementado` / `Não implementado` / `Não se aplica` / `Outro CRM` + **Data**.
+- **Auditorias** — `1ª Auditoria` (e demais) com status `Não realizada` / `Realizada` + **Data**; permitir adicionar novas auditorias.
+- **Progresso (%)** — barra calculada a partir das etapas concluídas (0% inicial).
+- **Observações** por cliente.
+**Layout/visual:** tabela densa no padrão **Clientes → Dados** (hero com kicker, stat cards de resumo, chips de filtro); status como chips de estado (verde = implementado/realizada, âmbar = pendente, muted = não se aplica); barra de progresso emerald; datas em label uppercase.
+
+### Sincronização automática com o cadastro de clientes
+A página Comercial → Processo Comercial deve estar totalmente vinculada ao **cadastro principal de clientes**.
+
+**Cliente novo** — sempre que um novo cliente for criado no aplicativo:
+- Ele deve ser adicionado automaticamente ao Processo Comercial;
+- Não pode ser necessário cadastrá-lo novamente;
+- Não devem existir clientes duplicados;
+- Ele deve entrar inicialmente na lista de clientes ativos;
+- Os campos devem começar com os status padrão definidos;
+- O registro deve manter o mesmo **ID** do cadastro principal do cliente.
+
+Status iniciais:
+- Script: “Não implementado”;
+- CRM: “Não implementado”;
+- Auditorias: nenhuma auditoria criada;
+- Progresso inicial: 0%.
+
+**Cliente arquivado** — quando um cliente for arquivado no cadastro principal:
+- Ele **não** deve ser excluído do Processo Comercial;
+- Todo o histórico de scripts, CRM, auditorias, datas e observações deve ser preservado;
+- O cliente deve sair da lista principal de ativos;
+- Ele deve ser movido automaticamente para uma seção chamada **“Arquivados”**, localizada no final da página.
+
+A seção “Arquivados” deve aparecer como uma **linha expansível** no final da tabela: `Arquivados (quantidade de clientes)`. Ao clicar, expande e mostra os clientes arquivados, mantendo a mesma estrutura de colunas da tabela principal.
+Os clientes arquivados devem:
+- Aparecer com um visual mais discreto;
+- Ter identificação clara de “Arquivado”;
+- Permanecer disponíveis para consulta;
+- Manter todo o histórico;
+- Não entrar nos indicadores principais do dashboard por padrão;
+- Poder ser incluídos no dashboard por meio de um filtro;
+- Não gerar alertas de pendência ou auditoria atrasada enquanto estiverem arquivados.
+
+**Cliente reativado** — caso um cliente arquivado seja reativado no cadastro principal:
+- Ele deve voltar automaticamente para a lista de clientes ativos;
+- Sair da seção “Arquivados”;
+- Manter todos os dados e históricos anteriores;
+- Voltar a ser considerado nos indicadores e alertas;
+- Não deve ser criado um novo registro.
+
+**Regras de sincronização:**
+- O cadastro principal de clientes é a **fonte oficial** dos dados;
+- A sincronização deve acontecer automaticamente;
+- Alterações no nome do cliente devem ser refletidas no Processo Comercial;
+- O vínculo deve utilizar o **ID único** do cliente, e não apenas o nome;
+- A página não deve manter uma lista separada ou desconectada;
+- A exclusão definitiva de um cliente não deve apagar seu histórico comercial sem uma confirmação específica;
+- Ao carregar a página, verificar se existem clientes ativos ainda não vinculados e adicioná-los automaticamente;
+- Clientes arquivados devem sempre permanecer agrupados no final da tabela, nunca misturados aos ativos.
+
+---
+
 # SOCIAL MEDIA
 
 ## ▸ PROMPT — Social · Painel
