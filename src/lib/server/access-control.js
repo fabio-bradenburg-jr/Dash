@@ -191,11 +191,15 @@ export async function getAccessContext(supabase, user, options = {}) {
 
   const isWorkspaceOwner = Boolean(workspace?.owner_user_id && workspace.owner_user_id === user.id)
 
-  let accessRows = []
-  let groupAccessRows = []
-  let groupMemberRows = []
+  // Modelo de permissão por PÁGINA: papéis internos (tudo exceto 'cliente')
+  // enxergam todos os clientes do workspace automaticamente — o controle de
+  // acesso fica nas permissões de página/navegação, não em ACL por cliente.
+  // O papel 'cliente' (login externo de cliente) mantém a ACL individual para
+  // não vazar dados entre clientes.
+  const viewableClientIds = new Set()
+  const editableClientIds = new Set()
 
-  if (workspaceId && !isPrimaryAdmin) {
+  if (workspaceId && !isPrimaryAdmin && role === USER_ROLES.CLIENT) {
     const [
       { data: directAccessData, error: directAccessError },
       { data: groupAccessData, error: groupAccessError },
@@ -221,32 +225,39 @@ export async function getAccessContext(supabase, user, options = {}) {
     if (groupAccessError && !isMissingRelationError(groupAccessError)) throw groupAccessError
     if (groupMemberError && !isMissingRelationError(groupMemberError)) throw groupMemberError
 
-    accessRows = directAccessData || []
-    groupAccessRows = isMissingRelationError(groupAccessError) ? [] : groupAccessData || []
-    groupMemberRows = isMissingRelationError(groupMemberError) ? [] : groupMemberData || []
+    const accessRows = directAccessData || []
+    const groupAccessRows = isMissingRelationError(groupAccessError) ? [] : groupAccessData || []
+    const groupMemberRows = isMissingRelationError(groupMemberError) ? [] : groupMemberData || []
+
+    accessRows.filter((row) => row.can_view).forEach((row) => viewableClientIds.add(row.client_id))
+    accessRows.filter((row) => row.can_edit).forEach((row) => editableClientIds.add(row.client_id))
+
+    const membersByGroupId = new Map()
+    groupMemberRows.forEach((row) => {
+      const current = membersByGroupId.get(row.group_id) || []
+      current.push(row.client_id)
+      membersByGroupId.set(row.group_id, current)
+    })
+    groupAccessRows.forEach((row) => {
+      const memberClientIds = membersByGroupId.get(row.group_id) || []
+      if (row.can_view) memberClientIds.forEach((clientId) => viewableClientIds.add(clientId))
+      if (row.can_edit) memberClientIds.forEach((clientId) => editableClientIds.add(clientId))
+    })
+  } else if (workspaceId && role !== USER_ROLES.CLIENT) {
+    // Papel interno: todos os clientes do workspace são visíveis/editáveis.
+    const clientReader = adminSupabase || supabase
+    const { data: workspaceClients, error: workspaceClientsError } = await clientReader
+      .from('workspace_clients')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+
+    if (workspaceClientsError && !isMissingRelationError(workspaceClientsError)) throw workspaceClientsError
+
+    ;(workspaceClients || []).forEach((row) => {
+      viewableClientIds.add(row.id)
+      editableClientIds.add(row.id)
+    })
   }
-
-  const viewableClientIds = new Set(accessRows.filter((row) => row.can_view).map((row) => row.client_id))
-  const editableClientIds = new Set(accessRows.filter((row) => row.can_edit).map((row) => row.client_id))
-  const membersByGroupId = new Map()
-
-  groupMemberRows.forEach((row) => {
-    const current = membersByGroupId.get(row.group_id) || []
-    current.push(row.client_id)
-    membersByGroupId.set(row.group_id, current)
-  })
-
-  groupAccessRows.forEach((row) => {
-    const memberClientIds = membersByGroupId.get(row.group_id) || []
-
-    if (row.can_view) {
-      memberClientIds.forEach((clientId) => viewableClientIds.add(clientId))
-    }
-
-    if (row.can_edit) {
-      memberClientIds.forEach((clientId) => editableClientIds.add(clientId))
-    }
-  })
 
   return {
     profile,
@@ -258,8 +269,8 @@ export async function getAccessContext(supabase, user, options = {}) {
     canManageUsers: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN,
     canManageClients: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || role === USER_ROLES.OPERATOR,
     canEditIntegrations: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || Boolean(profile.can_edit_integrations),
-    canViewDashboard: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || role === USER_ROLES.OPERATOR || role === USER_ROLES.ANALISTA || viewableClientIds.size > 0,
-    canUseAi: aiAccessLevel !== AI_ACCESS_LEVELS.NONE && (isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || role === USER_ROLES.OPERATOR || role === USER_ROLES.ANALISTA || viewableClientIds.size > 0),
+    canViewDashboard: isPrimaryAdmin || isWorkspaceOwner || role !== USER_ROLES.CLIENT || viewableClientIds.size > 0,
+    canUseAi: aiAccessLevel !== AI_ACCESS_LEVELS.NONE && (isPrimaryAdmin || isWorkspaceOwner || role !== USER_ROLES.CLIENT || viewableClientIds.size > 0),
     isClientRole: role === USER_ROLES.CLIENT,
     viewableClientIds: Array.from(viewableClientIds),
     editableClientIds: Array.from(editableClientIds),

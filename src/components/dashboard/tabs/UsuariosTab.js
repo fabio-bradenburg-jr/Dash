@@ -566,8 +566,9 @@ export default function UsuariosTab() {
                     <button type="button" onClick={addCustomPerm} disabled={!newCustomLabel.trim()} className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 14px' }}><span className="mi" style={{ fontSize: 15, marginRight: 4, verticalAlign: 'middle' }}>add</span>Criar</button>
                   </div>
 
-                  {/* Dashboards de clientes liberados (acesso por cliente) */}
-                  {(() => {
+                  {/* Acesso por cliente: só para logins de cliente (papel 'cliente').
+                      Usuários internos enxergam todos os clientes — a permissão é por página. */}
+                  {selectedManagedUser.role === 'cliente' && (() => {
                     const currentAccess = selectedManagedUser.clientAccess || []
                     const selectedCount = dashboardEligibleClients.filter((c) => currentAccess.some((a) => a.client_id === c.id)).length
                     const filteredClients = editUserClientSearch.trim()
