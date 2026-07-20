@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
 const OB_INITIALS = (name) => { const p = String(name || '').trim().split(/\s+/); return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?' }
 
 export default function OnboardingTab() {
+  const [pendingSummaryOpen, setPendingSummaryOpen] = useState(false)
   const {
     clients,
     isMaster,
@@ -696,6 +698,51 @@ export default function OnboardingTab() {
 
                       {/* Modal body — phases + tasks */}
                       <div style={{ padding: '20px 28px 28px', maxHeight: '65vh', overflowY: 'auto' }}>
+                        {/* Resumo de pendências — só tarefas em aberto, por tópico */}
+                        {(() => {
+                          const openByPhase = ONBOARDING_PHASES
+                            .map((phase) => ({
+                              phase,
+                              openTasks: phase.tasks.filter((t) => !completedTasks.includes(t.id) && !naTasks.includes(t.id)),
+                            }))
+                            .filter((group) => group.openTasks.length > 0)
+                          const totalOpen = openByPhase.reduce((sum, g) => sum + g.openTasks.length, 0)
+                          return (
+                            <div style={{ marginBottom: 14 }}>
+                              <button
+                                type="button"
+                                onClick={() => setPendingSummaryOpen((v) => !v)}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: pendingSummaryOpen ? '12px 12px 0 0' : 12, background: totalOpen === 0 ? 'rgba(34,197,94,0.07)' : 'rgba(245,158,11,0.08)', border: `1px solid ${totalOpen === 0 ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.25)'}`, borderBottom: pendingSummaryOpen ? 'none' : undefined, cursor: 'pointer', color: 'inherit', textAlign: 'left' }}
+                              >
+                                <span style={{ width: 30, height: 30, borderRadius: 9, background: totalOpen === 0 ? 'rgba(34,197,94,0.14)' : 'rgba(245,158,11,0.14)', border: `1.5px solid ${totalOpen === 0 ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)'}`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                                  <i className={`bx ${totalOpen === 0 ? 'bx-check-circle' : 'bx-list-check'}`} style={{ color: totalOpen === 0 ? '#22c55e' : '#f59e0b', fontSize: 16 }}></i>
+                                </span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: totalOpen === 0 ? '#22c55e' : 'rgba(255,255,255,0.85)' }}>Resumo de pendências</div>
+                                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{totalOpen === 0 ? 'Nenhuma tarefa em aberto' : `${totalOpen} tarefa(s) em aberto em ${openByPhase.length} tópico(s)`}</div>
+                                </div>
+                                {totalOpen > 0 && <i className={`bx ${pendingSummaryOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.45 }}></i>}
+                              </button>
+                              {pendingSummaryOpen && totalOpen > 0 && (
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px' }}>
+                                  {openByPhase.map(({ phase, openTasks }) => (
+                                    <div key={phase.id} style={{ marginBottom: 12 }}>
+                                      <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>
+                                      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                        {openTasks.map((task) => (
+                                          <li key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
+                                            <i className="bx bx-circle" style={{ fontSize: 7, color: '#f59e0b', marginTop: 6, flexShrink: 0 }}></i>
+                                            <span>{task.label}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                         {ONBOARDING_PHASES.map((phase, phaseIndex) => {
                           const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
                           const phaseNa = phase.tasks.filter((t) => naTasks.includes(t.id)).length
