@@ -730,9 +730,18 @@ export default function OnboardingTab() {
                                       <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>
                                       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                                         {openTasks.map((task) => (
-                                          <li key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
-                                            <i className="bx bx-circle" style={{ fontSize: 7, color: '#f59e0b', marginTop: 6, flexShrink: 0 }}></i>
-                                            <span>{task.label}</span>
+                                          <li key={task.id}>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
+                                              title="Concluir tarefa"
+                                              style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, padding: '4px 6px', margin: 0, background: 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s, color 0.12s' }}
+                                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; e.currentTarget.style.color = '#22c55e' }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
+                                            >
+                                              <i className="bx bx-circle" style={{ fontSize: 13, color: 'inherit', marginTop: 1, flexShrink: 0 }}></i>
+                                              <span>{task.label}</span>
+                                            </button>
                                           </li>
                                         ))}
                                       </ul>
