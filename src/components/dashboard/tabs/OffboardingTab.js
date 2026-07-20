@@ -84,7 +84,15 @@ export default function OffboardingTab() {
           const churnClients = (clients || []).filter((c) => {
             const status = String(c?.status || '').trim().toLowerCase()
             return status === 'churn'
-          }).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+          }).sort((a, b) => {
+            // Ordena pela Data de Entrada (mais recente primeiro); sem data vai para o fim.
+            const da = String(a.startDate || '')
+            const db = String(b.startDate || '')
+            if (da && db) return db.localeCompare(da) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+            if (da) return -1
+            if (db) return 1
+            return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+          })
 
           const filteredChurnClients = churnClients.filter((c) => {
             if (offboardingSearch && !String(c.name || '').toLowerCase().includes(offboardingSearch.toLowerCase())) return false

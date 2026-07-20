@@ -7423,7 +7423,7 @@ export default function DashboardShell({
       implementationPhase: '',
       implementationObservation: '',
       implementationChecklist: [],
-      startDate: '',
+      startDate: newClientStartDate || '',
       status: 'Ativo',
     })
     const nextClients = [...clients, newClient]
@@ -7433,6 +7433,7 @@ export default function DashboardShell({
     setActiveTab('clientes')
     setNewClientName('')
     setNewClientCnpj('')
+    setNewClientStartDate('')
     setNewClientMetaAdAccountId('')
     setNewClientGoogleAdsAccountId('')
     setNewClientDashboardColor(appAccentColor)
@@ -15723,6 +15724,8 @@ export default function DashboardShell({
     isSavingIntegrations,
     newClientCnpj,
     setNewClientCnpj,
+    newClientStartDate,
+    setNewClientStartDate,
     newClientDashboardIntegrationKeys,
     newClientGoogleAdsAccountId,
     setNewClientGoogleAdsAccountId,

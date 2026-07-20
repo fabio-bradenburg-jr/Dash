@@ -63,6 +63,8 @@ export default function ClientesTab() {
     isSavingIntegrations,
     newClientCnpj,
     setNewClientCnpj,
+    newClientStartDate,
+    setNewClientStartDate,
     newClientDashboardIntegrationKeys,
     newClientGoogleAdsAccountId,
     setNewClientGoogleAdsAccountId,
@@ -646,6 +648,11 @@ export default function ClientesTab() {
                     <div className="client-create-inline client-create-identity-only">
                       <input type="text" value={newClientName} onChange={(event) => setNewClientName(event.target.value)} placeholder="Nome do cliente" disabled={!isMaster} />
                       <input type="text" value={newClientCnpj} onChange={(event) => setNewClientCnpj(normalizeCnpjInput(event.target.value))} placeholder="CNPJ opcional" disabled={!isMaster} />
+                    </div>
+
+                    <div className="input-group client-create-result-manager">
+                      <label>Data de Entrada</label>
+                      <input type="date" className="client-select-input" value={newClientStartDate} onChange={(event) => setNewClientStartDate(event.target.value)} disabled={!isMaster} style={{ colorScheme: 'dark' }} />
                     </div>
 
                     <div className="input-group client-create-result-manager">
