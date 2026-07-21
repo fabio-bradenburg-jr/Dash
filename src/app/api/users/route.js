@@ -312,16 +312,32 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(
-      (profiles || []).map((profile) => ({
+    // Um convite vira "ativo" automaticamente assim que a pessoa faz o primeiro
+    // login (last_sign_in_at preenchido no auth). Sem isso o status ficava travado
+    // em "Convidado" mesmo depois do usuário já ter entrado no app.
+    const promotedToActive = []
+    const response = (profiles || []).map((profile) => {
+      const lastAccess = lastAccessById.get(profile.id) || null
+      const rawStatus = profile.status || 'active'
+      const status = rawStatus === 'invited' && lastAccess ? 'active' : rawStatus
+      if (status !== rawStatus) promotedToActive.push(profile.id)
+      return {
         ...profile,
-        status: profile.status || 'active',
-        last_access: lastAccessById.get(profile.id) || null,
+        status,
+        last_access: lastAccess,
         assignedRole: assignedRoleById.get(profile.id) || null,
         clientAccess: accessByUser.get(profile.id) || [],
         clientGroupAccess: groupAccessByUser.get(profile.id) || [],
-      }))
-    )
+      }
+    })
+
+    // Persiste a promoção em segundo plano (best-effort — não bloqueia a resposta).
+    if (accessContext.canManageUsers && promotedToActive.length) {
+      Promise.all(promotedToActive.map((userId) => setProfileStatus(adminSupabase, userId, 'active')))
+        .catch((promoteError) => console.warn('Users GET auto-activate failed:', promoteError?.message))
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error('Users GET error:', error)
     return NextResponse.json({ error: error.message || 'Não foi possível listar os usuários.' }, { status: 500 })

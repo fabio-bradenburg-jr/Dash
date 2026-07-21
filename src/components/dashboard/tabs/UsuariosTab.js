@@ -129,6 +129,15 @@ export default function UsuariosTab() {
   }, [])
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
+  const copyText = useCallback(async (value, label) => {
+    try {
+      await navigator.clipboard.writeText(String(value ?? ''))
+      showToast(`${label} copiado.`)
+    } catch {
+      showToast('Não foi possível copiar automaticamente. Copie manualmente.', 'error')
+    }
+  }, [showToast])
+
   // Custom permission definitions (localStorage; grants persistem em nav_permissions).
   useEffect(() => {
     try { const raw = localStorage.getItem(CUSTOM_PERMS_STORAGE); if (raw) setCustomPerms(JSON.parse(raw)) } catch { /* ignore */ }
@@ -463,7 +472,6 @@ export default function UsuariosTab() {
           <div className="modal-header"><div><h3>{userForm.role === 'master' ? 'Novo Master' : 'Convidar usuário'}</h3><p>Crie um acesso e repasse a senha temporária para a pessoa.</p></div><button type="button" className="modal-close" onClick={() => setIsCreateUserModalOpen(false)} aria-label="Fechar"><i className="bx bx-x"></i></button></div>
           <form onSubmit={handleCreateUser}>
             {createUserError && <div className="form-alert">{createUserError}</div>}
-            {createdUserInvite && <div className="form-success">Convite criado para {createdUserInvite.email}. Link: {createdUserInvite.loginUrl} · Senha temporária: {createdUserInvite.temporaryPassword}</div>}
             <div className="form-grid user-admin-grid">
               <div className="input-group"><label>Nome</label><input type="text" value={userForm.fullName} onChange={(e) => setUserForm((c) => ({ ...c, fullName: e.target.value }))} placeholder="Nome completo" /></div>
               <div className="input-group"><label>E-mail</label><input type="email" value={userForm.email} onChange={(e) => setUserForm((c) => ({ ...c, email: e.target.value }))} placeholder="usuario@empresa.com" /></div>
@@ -477,6 +485,71 @@ export default function UsuariosTab() {
           </form>
         </div></div>
       )}
+
+      {/* ── POP-UP: DADOS DE ACESSO DO USUÁRIO CONVIDADO ── */}
+      {createdUserInvite && (() => {
+        const loginUrl = (() => {
+          const raw = createdUserInvite.loginUrl || '/login'
+          if (/^https?:\/\//i.test(raw)) return raw
+          if (typeof window !== 'undefined') return `${window.location.origin}${raw}`
+          return raw
+        })()
+        const fields = [
+          { key: 'email', label: 'Login (e-mail)', value: createdUserInvite.email, icon: 'mail' },
+          { key: 'password', label: 'Senha temporária', value: createdUserInvite.temporaryPassword, icon: 'key', mono: true },
+          { key: 'url', label: 'Link de acesso', value: loginUrl, icon: 'link' },
+        ]
+        const copyAll = () => copyText(
+          `Login: ${createdUserInvite.email}\nSenha: ${createdUserInvite.temporaryPassword}\nAcesse em: ${loginUrl}`,
+          'Dados de acesso'
+        )
+        return (
+          <div className="modal-overlay" onClick={() => setCreatedUserInvite(null)}>
+            <div className="modal-card glass-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+              <div className="modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 44, height: 44, borderRadius: 13, flexShrink: 0, background: 'rgba(38,194,129,0.14)', border: '1px solid rgba(38,194,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="mi" style={{ fontSize: 24, color: '#4fdf9b' }}>mark_email_read</span>
+                  </span>
+                  <div>
+                    <h3>Acesso criado</h3>
+                    <p>Repasse estes dados para <strong style={{ color: '#E5E2E1' }}>{createdUserInvite.email}</strong> fazer o primeiro login.</p>
+                  </div>
+                </div>
+                <button type="button" className="modal-close" onClick={() => setCreatedUserInvite(null)} aria-label="Fechar"><i className="bx bx-x"></i></button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                {fields.map((field) => (
+                  <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span className="mi" style={{ fontSize: 19, color: 'rgba(229,226,225,0.42)', flexShrink: 0 }}>{field.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'Inter', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 3 }}>{field.label}</div>
+                      <div style={{ fontSize: field.mono ? '0.95rem' : '0.86rem', fontFamily: field.mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'inherit', color: '#E5E2E1', fontWeight: field.mono ? 700 : 500, letterSpacing: field.mono ? '0.02em' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{field.value}</div>
+                    </div>
+                    <button type="button" onClick={() => copyText(field.value, field.label)} title={`Copiar ${field.label.toLowerCase()}`}
+                      style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(229,226,225,0.75)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(38,194,129,0.14)'; e.currentTarget.style.color = '#4fdf9b'; e.currentTarget.style.borderColor = 'rgba(38,194,129,0.3)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(229,226,225,0.75)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}>
+                      <span className="mi" style={{ fontSize: 17 }}>content_copy</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: 16 }}>
+                <span className="mi" style={{ fontSize: 17, color: '#f59e0b', flexShrink: 0, marginTop: 1 }}>info</span>
+                <span style={{ fontSize: '0.78rem', color: 'rgba(229,226,225,0.75)', lineHeight: 1.5 }}>Esta senha só aparece agora. Copie antes de fechar — depois é possível gerar uma nova senha em <strong>Editar usuário</strong>.</span>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setCreatedUserInvite(null)}>Fechar</button>
+                <button type="button" className="btn btn-primary" onClick={copyAll}><span className="mi" style={{ fontSize: 17, marginRight: 6 }}>content_copy</span>Copiar tudo</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── EDIT MODAL (3 tabs) ── */}
       {isEditUserModalOpen && selectedManagedUser && (

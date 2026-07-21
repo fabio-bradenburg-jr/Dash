@@ -3358,6 +3358,7 @@ export default function DashboardShell({
   const grDragRef = useRef({})
   const [navPermissions, setNavPermissions] = useState([])
   const [myNavPermissions, setMyNavPermissions] = useState([])
+  const [myNavPermissionsLoaded, setMyNavPermissionsLoaded] = useState(false)
   const [permSelectedUserId, setPermSelectedUserId] = useState('')
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
@@ -3968,6 +3969,7 @@ export default function DashboardShell({
       const all = Array.isArray(data.permissions) ? data.permissions : []
       setMyNavPermissions(all.filter(p => p.user_id === user?.id))
     } catch { setMyNavPermissions([]) }
+    finally { setMyNavPermissionsLoaded(true) }
   }, [isMaster, user?.id])
 
   useEffect(() => { if (activeTab === 'onboarding' && !onboardingPhaseDefsLoaded) loadOnboardingPhaseDefs('onboarding') }, [activeTab, onboardingPhaseDefsLoaded, loadOnboardingPhaseDefs])
@@ -3980,6 +3982,73 @@ export default function DashboardShell({
     const perm = myNavPermissions.find(p => p.page_key === pageKey)
     return perm ? perm.granted : false
   }, [isMaster, myNavPermissions])
+
+  // Fonte única de verdade sobre quais abas o usuário pode ver — espelha exatamente
+  // a visibilidade da sidebar. Usado tanto para o fallback de aba quanto para a tela
+  // de "você não tem permissão".
+  const canViewTab = useCallback((tabKey) => {
+    if (isMaster) return true
+    switch (tabKey) {
+      // Abas exclusivas de master.
+      case 'home':
+      case 'rotinas':
+      case 'ia-orbit':
+      case 'permissoes':
+      case 'centro-master':
+        return false
+      case 'clientes':
+        return canAccessClientsTab && hasNavAccess('clientes')
+      case 'produtos':
+        return canManageClients
+      case 'usuarios':
+        return canAccessTeamTab
+      // Demais abas seguem a permissão por página (nav_permissions).
+      case 'semanal':
+      case 'tarefas':
+      case 'comunicacao':
+      case 'settings':
+      case 'onboarding':
+      case 'offboarding':
+      case 'acessos':
+      case 'comercial':
+      case 'apresentacao':
+      case 'campanhas':
+      case 'anuncios':
+      case 'saldos':
+      case 'relatorios':
+      case 'relatorio-manual':
+      case 'planilha-leads':
+      case 'funil':
+      case 'editorial-dash':
+      case 'editorial':
+      case 'editorial-plans':
+      case 'pac-dash':
+      case 'pac-calendario':
+      case 'pac-tipos':
+        return hasNavAccess(tabKey)
+      default:
+        return false
+    }
+  }, [isMaster, hasNavAccess, canAccessClientsTab, canManageClients, canAccessTeamTab])
+
+  // Só liberamos o gate de permissão depois que as permissões do usuário chegaram —
+  // evita um flash de "sem permissão" ou redirecionamento errado durante o load.
+  const permissionsReady = isMaster || myNavPermissionsLoaded
+
+  const TAB_ORDER = useMemo(() => ([
+    'semanal', 'tarefas', 'comunicacao', 'settings',
+    'clientes', 'onboarding', 'offboarding', 'acessos',
+    'comercial',
+    'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil',
+    'editorial-dash', 'editorial', 'editorial-plans',
+    'pac-dash', 'pac-calendario', 'pac-tipos',
+    'usuarios',
+  ]), [])
+
+  const firstAccessibleTab = useMemo(() => {
+    if (isMaster) return 'clientes'
+    return TAB_ORDER.find((tab) => canViewTab(tab)) || null
+  }, [isMaster, TAB_ORDER, canViewTab])
 
   const toggleNavPermission = useCallback(async (userId, pageKey, granted) => {
     setNavPermissions(prev => {
@@ -6778,26 +6847,19 @@ export default function DashboardShell({
   }, [activeTab, activeClientId, dashboardEligibleClients, hasInitialClientsOverride])
 
   useEffect(() => {
-    if ((activeTab === 'clientes' || activeTab === 'operacao') && !canAccessClientsTab) {
-      setActiveTab('clientes')
+    // Abas descontinuadas / sem conteúdo → primeira aba acessível.
+    if (['operacao', 'clickup', 'calendar', 'integracoes'].includes(activeTab)) {
+      setActiveTab(firstAccessibleTab || 'clientes')
+      return
     }
-
-    if (['operacao', 'clickup', 'calendar'].includes(activeTab)) {
-      setActiveTab('clientes')
+    // Espera as permissões carregarem antes de bloquear/redirecionar.
+    if (!permissionsReady) return
+    // Aba atual não permitida: se houver outra acessível, vai para ela; se não,
+    // mantém a aba e a tela mostra "você não tem permissão".
+    if (!canViewTab(activeTab) && firstAccessibleTab) {
+      setActiveTab(firstAccessibleTab)
     }
-
-    if (activeTab === 'produtos' && !canManageClients) {
-      setActiveTab('clientes')
-    }
-
-    if (activeTab === 'usuarios' && !canAccessTeamTab) {
-      setActiveTab('clientes')
-    }
-
-    if (activeTab === 'integracoes') {
-      setActiveTab('clientes')
-    }
-  }, [activeTab, canAccessClientsTab, canManageClients, canAccessTeamTab])
+  }, [activeTab, permissionsReady, canViewTab, firstAccessibleTab])
 
   useEffect(() => {
     const sellers = rdSummary?.sellers || []
@@ -8750,6 +8812,8 @@ export default function DashboardShell({
         clientIds: [],
         clientGroupIds: [],
       })
+      // Fecha o formulário para dar destaque ao pop-up com os dados de acesso.
+      setIsCreateUserModalOpen(false)
       await loadUsers()
     } catch (error) {
       setCreateUserError(error.message || 'Não foi possível criar o usuário.')
@@ -16537,7 +16601,7 @@ export default function DashboardShell({
           </section>
         )}
 
-        {activeTab === 'clientes' && (
+        {activeTab === 'clientes' && canViewTab('clientes') && (
           <ClientesTab />
         )}
 
@@ -16551,8 +16615,30 @@ export default function DashboardShell({
           <UsuariosTab />
         )}
 
-        {activeTab === 'apresentacao' && (
+        {activeTab === 'apresentacao' && canViewTab('apresentacao') && (
           <ApresentacaoTab />
+        )}
+
+        {/* Tela de bloqueio: usuário sem acesso à aba atual. Só aparece depois que as
+            permissões carregaram, para não piscar durante o load. */}
+        {permissionsReady && !canViewTab(activeTab) && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '24px' }}>
+            <div style={{ maxWidth: 440, width: '100%', textAlign: 'center', padding: '40px 32px', borderRadius: 20, background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 0 40px rgba(0,0,0,0.25)' }}>
+              <div style={{ width: 72, height: 72, borderRadius: 20, margin: '0 auto 22px', background: 'rgba(255,75,75,0.1)', border: '1px solid rgba(255,75,75,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="mi" style={{ fontSize: 38, color: '#ff6b6b' }}>lock</span>
+              </div>
+              <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#E5E2E1', margin: '0 0 10px' }}>Você não tem permissão</h2>
+              <p style={{ fontSize: '0.92rem', color: 'rgba(229,226,225,0.6)', lineHeight: 1.6, margin: '0 0 24px' }}>
+                Seu acesso a esta página não está liberado. Fale com um administrador do workspace para solicitar a liberação.
+              </p>
+              {firstAccessibleTab && (
+                <button type="button" onClick={() => setActiveTab(firstAccessibleTab)}
+                  style={{ height: 44, padding: '0 22px', borderRadius: 99, border: 'none', background: '#26C281', color: '#04150d', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.86rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span className="mi" style={{ fontSize: 19 }}>arrow_back</span>Ir para uma página liberada
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         {metaSecondaryResultDrilldown && activeMetaSecondaryResultGroup && activeMetaSecondaryResultInsights && typeof document !== 'undefined' && createPortal(
