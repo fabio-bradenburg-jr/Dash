@@ -3236,7 +3236,7 @@ export default function DashboardShell({
   externalAppTextColor = '',
 }) {
   const REMOVED_TABS = new Set(['calendar', 'clickup', 'contexto', 'monday', 'operacao', 'assistant', 'notas'])
-  const { user, profile, access, appearance, updateAppearance, loading: userLoading } = useUser()
+  const { user, profile, access, appearance, updateAppearance, refreshProfile, loading: userLoading } = useUser()
   const supabase = createClient()
   const dashboardRef = useRef(null)
   const campaignsRef = useRef([])
@@ -3360,6 +3360,14 @@ export default function DashboardShell({
   const [myNavPermissions, setMyNavPermissions] = useState([])
   const [myNavPermissionsLoaded, setMyNavPermissionsLoaded] = useState(false)
   const [permSelectedUserId, setPermSelectedUserId] = useState('')
+  // "Minha conta" — o próprio usuário edita nome, foto e senha.
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
+  const [accountForm, setAccountForm] = useState({ fullName: '', avatarUrl: '' })
+  const [accountSaving, setAccountSaving] = useState(false)
+  const [accountFeedback, setAccountFeedback] = useState(null) // { type: 'ok' | 'error', msg }
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordFeedback, setPasswordFeedback] = useState(null)
   const [weeklyForm, setWeeklyForm] = useState({
     clientId: '',
     investment: '',
@@ -10259,6 +10267,72 @@ export default function DashboardShell({
     reader.readAsDataURL(file)
   }
 
+  const openAccountModal = () => {
+    setAccountForm({ fullName: profile?.full_name || '', avatarUrl: profile?.avatar_url || '' })
+    setPasswordForm({ current: '', next: '', confirm: '' })
+    setAccountFeedback(null)
+    setPasswordFeedback(null)
+    setIsAccountModalOpen(true)
+  }
+
+  const handleAccountAvatarUpload = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    readClientLogoFile(file, (avatarUrl) => {
+      setAccountForm((current) => ({ ...current, avatarUrl }))
+      setAccountFeedback(null)
+    })
+  }
+
+  const handleSaveAccountProfile = async () => {
+    const fullName = String(accountForm.fullName || '').trim()
+    if (!fullName) {
+      setAccountFeedback({ type: 'error', msg: 'Informe seu nome.' })
+      return
+    }
+    setAccountSaving(true)
+    setAccountFeedback(null)
+    try {
+      const response = await fetch('/api/me/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, avatarUrl: accountForm.avatarUrl || '' }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Não foi possível salvar.')
+      await refreshProfile()
+      setAccountFeedback({ type: 'ok', msg: 'Perfil atualizado com sucesso.' })
+    } catch (error) {
+      setAccountFeedback({ type: 'error', msg: error.message || 'Não foi possível salvar.' })
+    } finally {
+      setAccountSaving(false)
+    }
+  }
+
+  const handleSaveAccountPassword = async () => {
+    const { current, next, confirm } = passwordForm
+    if (!current) { setPasswordFeedback({ type: 'error', msg: 'Informe sua senha atual.' }); return }
+    if ((next || '').length < 8) { setPasswordFeedback({ type: 'error', msg: 'A nova senha precisa ter pelo menos 8 caracteres.' }); return }
+    if (next !== confirm) { setPasswordFeedback({ type: 'error', msg: 'A confirmação não corresponde à nova senha.' }); return }
+    setPasswordSaving(true)
+    setPasswordFeedback(null)
+    try {
+      const response = await fetch('/api/me/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Não foi possível alterar a senha.')
+      setPasswordForm({ current: '', next: '', confirm: '' })
+      setPasswordFeedback({ type: 'ok', msg: 'Senha alterada com sucesso.' })
+    } catch (error) {
+      setPasswordFeedback({ type: 'error', msg: error.message || 'Não foi possível alterar a senha.' })
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
   const handleNewClientLogoUpload = (event) => {
     if (!isMaster) return
     const file = event.target.files?.[0]
@@ -16182,13 +16256,14 @@ export default function DashboardShell({
         </nav>
 
         <div className="hub-side-foot">
-          <div className="hub-side-user">
-            <div className="hub-side-avatar">{String(profile?.full_name || user?.email || 'U').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || 'U'}</div>
+          <button type="button" className="hub-side-user" onClick={openAccountModal} title="Minha conta" style={{ background: 'none', border: 'none', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+            <div className="hub-side-avatar" style={profile?.avatar_url ? { backgroundImage: `url(${profile.avatar_url})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}>{profile?.avatar_url ? '' : (String(profile?.full_name || user?.email || 'U').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || 'U')}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="hub-side-username">{profile?.full_name || user?.email || 'Usuário'}</div>
               <div className="hub-side-userrole">{role || 'membro'}</div>
             </div>
-          </div>
+            <span className="mi" style={{ fontSize: 18, opacity: 0.5, flexShrink: 0 }}>settings</span>
+          </button>
           <div className="hub-side-foot-actions">
             <NotificationBell isLight={isLightAppMode} inSidebar />
             <button type="button" className="hub-nav-item hub-logout" onClick={handleLogout} aria-label="Sair da plataforma">
@@ -16197,6 +16272,77 @@ export default function DashboardShell({
           </div>
         </div>
       </aside>
+
+      {/* ── MINHA CONTA: editar nome, foto e senha ── */}
+      {isAccountModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAccountModalOpen(false)}>
+          <div className="modal-card glass-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <div><h3>Minha conta</h3><p>Atualize seus dados de acesso e como você aparece no app.</p></div>
+              <button type="button" className="modal-close" onClick={() => setIsAccountModalOpen(false)} aria-label="Fechar"><i className="bx bx-x"></i></button>
+            </div>
+
+            {/* Foto + nome */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+              <div style={{ width: 72, height: 72, borderRadius: 20, flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: accountForm.avatarUrl ? 'transparent' : 'linear-gradient(135deg,#26C281,#4fdf9b)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '1.5rem', fontWeight: 800, color: '#04150d' }}>
+                {accountForm.avatarUrl
+                  ? <img src={accountForm.avatarUrl} alt="Sua foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : (String(accountForm.fullName || profile?.email || 'U').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || 'U')}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <span className="mi" style={{ fontSize: 18 }}>photo_camera</span>
+                  {accountForm.avatarUrl ? 'Trocar foto' : 'Subir foto'}
+                  <input type="file" accept="image/*" onChange={handleAccountAvatarUpload} style={{ display: 'none' }} />
+                </label>
+                {accountForm.avatarUrl && (
+                  <button type="button" onClick={() => setAccountForm((c) => ({ ...c, avatarUrl: '' }))} style={{ background: 'none', border: 'none', color: '#ff6b6b', fontFamily: 'inherit', fontSize: '0.78rem', cursor: 'pointer', textAlign: 'left', padding: 0 }}>Remover foto</button>
+                )}
+              </div>
+            </div>
+
+            <div className="input-group" style={{ marginBottom: 8 }}>
+              <label>Nome</label>
+              <input type="text" value={accountForm.fullName} onChange={(e) => setAccountForm((c) => ({ ...c, fullName: e.target.value }))} placeholder="Seu nome completo" />
+            </div>
+            <div className="input-group" style={{ marginBottom: 14 }}>
+              <label>E-mail</label>
+              <input type="email" value={profile?.email || ''} disabled readOnly style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+            </div>
+
+            {accountFeedback && (
+              <div className={accountFeedback.type === 'error' ? 'form-alert' : 'form-success'} style={{ marginBottom: 12 }}>{accountFeedback.msg}</div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 22 }}>
+              <button type="button" className="btn btn-primary" onClick={handleSaveAccountProfile} disabled={accountSaving}>{accountSaving ? 'Salvando...' : 'Salvar perfil'}</button>
+            </div>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 18 }}>
+              <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 12 }}>Alterar senha</div>
+              <div className="input-group" style={{ marginBottom: 8 }}>
+                <label>Senha atual</label>
+                <input type="password" autoComplete="current-password" value={passwordForm.current} onChange={(e) => setPasswordForm((c) => ({ ...c, current: e.target.value }))} placeholder="••••••••" />
+              </div>
+              <div className="form-grid user-admin-grid" style={{ marginBottom: 4 }}>
+                <div className="input-group">
+                  <label>Nova senha</label>
+                  <input type="password" autoComplete="new-password" value={passwordForm.next} onChange={(e) => setPasswordForm((c) => ({ ...c, next: e.target.value }))} placeholder="Mínimo 8 caracteres" />
+                </div>
+                <div className="input-group">
+                  <label>Confirmar nova senha</label>
+                  <input type="password" autoComplete="new-password" value={passwordForm.confirm} onChange={(e) => setPasswordForm((c) => ({ ...c, confirm: e.target.value }))} placeholder="Repita a nova senha" />
+                </div>
+              </div>
+              {passwordFeedback && (
+                <div className={passwordFeedback.type === 'error' ? 'form-alert' : 'form-success'} style={{ margin: '10px 0 0' }}>{passwordFeedback.msg}</div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                <button type="button" className="btn btn-secondary" onClick={handleSaveAccountPassword} disabled={passwordSaving}>{passwordSaving ? 'Alterando...' : 'Alterar senha'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isHubNavOpen && <div className="hub-side-overlay" onClick={() => setIsHubNavOpen(false)} />}
       <button type="button" className="hub-burger" onClick={() => setIsHubNavOpen(true)} aria-label="Abrir menu">

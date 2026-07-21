@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -226,6 +226,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     applyUserAppearance(appearance)
   }, [appearance])
 
+  // Recarrega o perfil/acesso sob demanda (ex.: após o usuário editar nome/foto).
+  const refreshProfile = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me', { cache: 'no-store' })
+      if (response.ok) {
+        const data = (await response.json()) as MeResponse
+        setProfile(data.profile || null)
+        setAccess(data.access || null)
+        return
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar perfil:', error)
+    }
+
+    try {
+      const response = await fetch('/api/auth/session', { cache: 'no-store' })
+      if (!response.ok) return
+      const data = (await response.json()) as PlatformSessionResponse
+      if (!data.authenticated || !data.user?.id) return
+      const platformProfile = buildPlatformProfile(data.user)
+      setProfile(platformProfile)
+      setAccess(buildPlatformAccess(platformProfile, data.user))
+    } catch (error) {
+      console.error('Erro ao recarregar sessão da plataforma:', error)
+    }
+  }, [])
+
   const updateAppearance: UserContextValue['updateAppearance'] = (updater) => {
     setAppearance((current) => {
       const nextAppearance = normalizeUserAppearance(
@@ -241,7 +268,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <UserContext.Provider value={{ user, profile, access, appearance, updateAppearance, loading }}>
+    <UserContext.Provider value={{ user, profile, access, appearance, updateAppearance, refreshProfile, loading }}>
       {children}
     </UserContext.Provider>
   )

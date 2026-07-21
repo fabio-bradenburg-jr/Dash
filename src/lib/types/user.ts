@@ -64,5 +64,6 @@ export interface UserContextValue {
   updateAppearance: (
     updater: UserAppearance | ((current: UserAppearance) => UserAppearance)
   ) => void
+  refreshProfile: () => Promise<void>
   loading: boolean
 }
