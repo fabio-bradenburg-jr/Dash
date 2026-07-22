@@ -16,27 +16,28 @@ const ICON_OPTIONS = [
 ]
 
 const PRESET_COLORS = [
-  '#26c281','#3b82f6','#ef4444','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b',
+  '#26c281','#3b82f6','#ef4444','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#7b8794',
 ]
 
-// ── Shared styles ─────────────────────────────────────────────────
+// ── Shared styles (brandkit Kinetic Emerald) ──────────────────────
 const S = {
-  panel: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 20 },
-  label: { fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 5 },
-  input: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' },
+  panel: { background: 'rgba(28,28,28,0.4)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 20 },
+  label: { fontFamily: 'Inter', fontSize: 11, fontWeight: 600, color: 'rgba(232,230,228,0.42)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 6 },
+  input: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '9px 11px', color: '#E8E6E4', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' },
   btn: (variant = 'primary') => ({
     display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-    borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    border: variant === 'primary' ? 'none' : `1px solid ${variant === 'danger' ? '#ef444444' : 'rgba(255,255,255,0.12)'}`,
-    background: variant === 'primary' ? GREEN : variant === 'danger' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
-    color: variant === 'primary' ? '#fff' : variant === 'danger' ? '#ef4444' : '#94a3b8',
+    borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    border: variant === 'primary' ? 'none' : `1px solid ${variant === 'danger' ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.1)'}`,
+    background: variant === 'primary' ? GREEN : variant === 'danger' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)',
+    color: variant === 'primary' ? '#00301c' : variant === 'danger' ? '#ef4444' : 'rgba(232,230,228,0.7)',
+    boxShadow: variant === 'primary' ? '0 8px 24px rgba(38,194,129,0.28)' : 'none',
   }),
 }
 
 // ── Checkbox ─────────────────────────────────────────────────────
 function Checkbox({ checked, onChange, label, indeterminate }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#cbd5e1' }}>
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'rgba(232,230,228,0.82)' }}>
       <div
         onClick={e => { e.preventDefault(); onChange(!checked) }}
         style={{
@@ -47,8 +48,8 @@ function Checkbox({ checked, onChange, label, indeterminate }) {
           cursor: 'pointer', transition: 'background 0.15s',
         }}
       >
-        {checked && <i className="bx bx-check" style={{ fontSize: 12, color: '#fff' }} />}
-        {!checked && indeterminate && <i className="bx bx-minus" style={{ fontSize: 12, color: '#fff' }} />}
+        {checked && <i className="bx bx-check" style={{ fontSize: 12, color: '#00301c' }} />}
+        {!checked && indeterminate && <i className="bx bx-minus" style={{ fontSize: 12, color: '#00301c' }} />}
       </div>
       {label && <span>{label}</span>}
     </label>
@@ -77,8 +78,8 @@ function PermissionGroup({ module: mod, permissions, selectedKeys, onToggle }) {
         onClick={toggleAll}
       >
         <Checkbox checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{mod}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#475569' }}>{checkedCount}/{keys.length}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(232,230,228,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{mod}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(232,230,228,0.4)' }}>{checkedCount}/{keys.length}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, paddingLeft: 4 }}>
         {permissions.map(p => (
@@ -142,9 +143,9 @@ function RoleModal({ role, onClose, onSaved }) {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: form.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <i className={`bx ${form.icon}`} style={{ fontSize: 16, color: form.color }} />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>{isEdit ? 'Editar Função' : 'Nova Função'}</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#E8E6E4' }}>{isEdit ? 'Editar Função' : 'Nova Função'}</span>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(232,230,228,0.45)' }}><i className="bx bx-x" style={{ fontSize: 20 }} /></button>
         </div>
 
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -154,7 +155,7 @@ function RoleModal({ role, onClose, onSaved }) {
               <label style={S.label}>Nome da função *</label>
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Gestor de Tráfego" style={S.input} />
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: form.is_active ? GREEN : '#64748b', fontWeight: 600 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: form.is_active ? GREEN : 'rgba(232,230,228,0.45)', fontWeight: 600 }}>
               <div
                 onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
                 style={{ width: 36, height: 20, borderRadius: 999, background: form.is_active ? GREEN : 'rgba(255,255,255,0.1)', position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }}
@@ -190,7 +191,7 @@ function RoleModal({ role, onClose, onSaved }) {
                 {ICON_OPTIONS.map(ic => (
                   <button key={ic} type="button" onClick={() => setForm(p => ({ ...p, icon: ic }))}
                     style={{ width: 30, height: 30, borderRadius: 6, background: form.icon === ic ? form.color + '33' : 'rgba(255,255,255,0.05)', border: form.icon === ic ? `1px solid ${form.color}` : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className={`bx ${ic}`} style={{ fontSize: 14, color: form.icon === ic ? form.color : '#64748b' }} />
+                    <i className={`bx ${ic}`} style={{ fontSize: 14, color: form.icon === ic ? form.color : 'rgba(232,230,228,0.45)' }} />
                   </button>
                 ))}
               </div>
@@ -263,15 +264,15 @@ function DeleteRoleModal({ role, allRoles, onClose, onDeleted }) {
             <i className="bx bx-trash" style={{ fontSize: 18, color: '#ef4444' }} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#e2e8f0' }}>Excluir função</div>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>Esta ação não pode ser desfeita.</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#E8E6E4' }}>Excluir função</div>
+            <div style={{ fontSize: 13, color: 'rgba(232,230,228,0.45)', marginTop: 2 }}>Esta ação não pode ser desfeita.</div>
           </div>
         </div>
 
         {role.user_count > 0 ? (
           <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 8, padding: 12, marginBottom: 14 }}>
             <p style={{ margin: '0 0 10px', fontSize: 13, color: '#fca5a5' }}>
-              Existem <strong>{role.user_count}</strong> usuário(s) utilizando a função <strong>"{role.name}"</strong>.
+              Existem <strong>{role.user_count}</strong> usuário(s) utilizando a função <strong>&ldquo;{role.name}&rdquo;</strong>.
             </p>
             <label style={S.label}>Transferir usuários para:</label>
             <CustomSelect
@@ -283,8 +284,8 @@ function DeleteRoleModal({ role, allRoles, onClose, onDeleted }) {
             />
           </div>
         ) : (
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 14 }}>
-            Tem certeza que deseja excluir a função <strong style={{ color: '#e2e8f0' }}>"{role.name}"</strong>?
+          <p style={{ fontSize: 13, color: 'rgba(232,230,228,0.6)', marginBottom: 14 }}>
+            Tem certeza que deseja excluir a função <strong style={{ color: '#E8E6E4' }}>&ldquo;{role.name}&rdquo;</strong>?
           </p>
         )}
 
@@ -315,25 +316,25 @@ function RoleCard({ role, onEdit, onDelete }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.name}</span>
-            {!role.is_active && <span style={{ fontSize: 10, background: 'rgba(100,116,139,0.2)', color: '#64748b', borderRadius: 4, padding: '1px 6px', fontWeight: 700, flexShrink: 0 }}>Inativa</span>}
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#E8E6E4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.name}</span>
+            {!role.is_active && <span style={{ fontSize: 10, background: 'rgba(100,116,139,0.2)', color: 'rgba(232,230,228,0.45)', borderRadius: 4, padding: '1px 6px', fontWeight: 700, flexShrink: 0 }}>Inativa</span>}
             {role.is_system && <span style={{ fontSize: 10, background: role.color + '22', color: role.color, borderRadius: 4, padding: '1px 6px', fontWeight: 700, flexShrink: 0 }}>Sistema</span>}
           </div>
-          {role.description && <p style={{ fontSize: 11, color: '#64748b', margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.description}</p>}
+          {role.description && <p style={{ fontSize: 11, color: 'rgba(232,230,228,0.45)', margin: '3px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.description}</p>}
         </div>
       </div>
 
       {/* Stats */}
       <div style={{ display: 'flex', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#475569', marginBottom: 3 }}>Páginas — {pct}%</div>
+          <div style={{ fontSize: 11, color: 'rgba(232,230,228,0.4)', marginBottom: 3 }}>Páginas — {pct}%</div>
           <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 999 }}>
             <div style={{ width: `${pct}%`, height: '100%', background: role.color, borderRadius: 999, transition: 'width 0.3s' }} />
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>{role.user_count || 0}</div>
-          <div style={{ fontSize: 10, color: '#475569' }}>usuário(s)</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#E8E6E4', lineHeight: 1 }}>{role.user_count || 0}</div>
+          <div style={{ fontSize: 10, color: 'rgba(232,230,228,0.4)' }}>usuário(s)</div>
         </div>
       </div>
 
@@ -393,8 +394,8 @@ export default function RolesTab() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#f1f5f9' }}>Funções e Permissões</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Crie funções e escolha quais páginas cada uma libera. Atribua a função ao usuário na aba Usuários.</p>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#E8E6E4' }}>Funções e Permissões</h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(232,230,228,0.45)' }}>Crie funções e escolha quais páginas cada uma libera. Atribua a função ao usuário na aba Usuários.</p>
         </div>
         <button type="button" onClick={() => { setEditingRole(null); setShowModal(true) }} style={S.btn()}>
           <i className="bx bx-plus" style={{ fontSize: 15 }} /> Nova Função
@@ -403,19 +404,19 @@ export default function RolesTab() {
 
       {/* Search */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 12px', marginBottom: 20, maxWidth: 320 }}>
-        <i className="bx bx-search" style={{ fontSize: 15, color: '#475569' }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar função..." style={{ background: 'none', border: 'none', outline: 'none', color: '#e2e8f0', fontSize: 13, flex: 1 }} />
+        <i className="bx bx-search" style={{ fontSize: 15, color: 'rgba(232,230,228,0.4)' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar função..." style={{ background: 'none', border: 'none', outline: 'none', color: '#E8E6E4', fontSize: 13, flex: 1 }} />
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#475569' }}>
+        <div style={{ textAlign: 'center', padding: 60, color: 'rgba(232,230,228,0.4)' }}>
           <i className="bx bx-loader-alt bx-spin" style={{ fontSize: 28 }} />
           <p style={{ marginTop: 12 }}>Carregando funções...</p>
         </div>
       ) : roles.length === 0 ? (
         <div style={{ ...S.panel, textAlign: 'center', padding: 48 }}>
-          <i className="bx bx-user-circle" style={{ fontSize: 36, color: '#334155' }} />
-          <p style={{ color: '#475569', marginTop: 12 }}>Nenhuma função cadastrada.</p>
+          <i className="bx bx-user-circle" style={{ fontSize: 36, color: 'rgba(232,230,228,0.3)' }} />
+          <p style={{ color: 'rgba(232,230,228,0.4)', marginTop: 12 }}>Nenhuma função cadastrada.</p>
           <button type="button" onClick={() => { setEditingRole(null); setShowModal(true) }} style={{ ...S.btn(), marginTop: 12 }}>
             <i className="bx bx-plus" /> Criar primeira função
           </button>
@@ -424,7 +425,7 @@ export default function RolesTab() {
         <>
           {active.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Funções ativas — {active.length}</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(232,230,228,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Funções ativas — {active.length}</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
                 {active.map(r => (
                   <RoleCard key={r.id} role={r}
@@ -437,7 +438,7 @@ export default function RolesTab() {
           )}
           {inactive.length > 0 && (
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Funções inativas — {inactive.length}</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(232,230,228,0.3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Funções inativas — {inactive.length}</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
                 {inactive.map(r => (
                   <RoleCard key={r.id} role={r}
