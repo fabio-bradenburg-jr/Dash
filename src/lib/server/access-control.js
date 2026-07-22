@@ -63,15 +63,6 @@ export async function resolveAssessoriaLpWorkspaceId(adminSupabase) {
   return namedWorkspace?.id || null
 }
 
-function resolveAiAccessLevel(profileLike, fallbackRole) {
-  const explicitValue = String(profileLike?.ai_access_level || '').trim().toLowerCase()
-  if (explicitValue === AI_ACCESS_LEVELS.MASTER || explicitValue === AI_ACCESS_LEVELS.TEAM || explicitValue === AI_ACCESS_LEVELS.NONE) {
-    return explicitValue
-  }
-
-  return fallbackRole === USER_ROLES.MASTER ? AI_ACCESS_LEVELS.MASTER : AI_ACCESS_LEVELS.TEAM
-}
-
 function buildProfilePayload(user, role, workspaceId) {
   const resolvedRole = isPrimaryAdminEmail(user.email) ? USER_ROLES.MASTER : role
 
@@ -155,7 +146,9 @@ export async function getAccessContext(supabase, user, options = {}) {
 
   const isPrimaryAdmin = isPrimaryAdminEmail(profile.email || user.email)
   const role = isPrimaryAdmin ? USER_ROLES.MASTER : profile.role || USER_ROLES.VIEWER
-  const aiAccessLevel = isPrimaryAdmin ? AI_ACCESS_LEVELS.MASTER : resolveAiAccessLevel(profile, role)
+  // IA não é mais controlada por nível ("liberada/bloqueada" foi removido).
+  // Mantemos o campo por compatibilidade, sempre derivado do papel.
+  const aiAccessLevel = role === USER_ROLES.MASTER ? AI_ACCESS_LEVELS.MASTER : AI_ACCESS_LEVELS.TEAM
   let workspaceId = profile.workspace_id || null
   let workspace = null
 
@@ -190,6 +183,7 @@ export async function getAccessContext(supabase, user, options = {}) {
   }
 
   const isWorkspaceOwner = Boolean(workspace?.owner_user_id && workspace.owner_user_id === user.id)
+  const isMasterLike = isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER
 
   // Modelo de permissão por PÁGINA: papéis internos (tudo exceto 'cliente')
   // enxergam todos os clientes do workspace automaticamente — o controle de
@@ -198,6 +192,20 @@ export async function getAccessContext(supabase, user, options = {}) {
   // não vazar dados entre clientes.
   const viewableClientIds = new Set()
   const editableClientIds = new Set()
+  // Páginas liberadas para o usuário (workspace_nav_permissions). No novo modelo,
+  // é daqui que saem as capacidades de gestão dos usuários internos.
+  const grantedPages = new Set()
+
+  const isInternal = role !== USER_ROLES.CLIENT
+  if (workspaceId && !isPrimaryAdmin && role !== USER_ROLES.MASTER && isInternal) {
+    const { data: navRows, error: navError } = await (adminSupabase || supabase)
+      .from('workspace_nav_permissions')
+      .select('page_key, granted')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+    if (navError && !isMissingRelationError(navError)) throw navError
+    ;(navRows || []).forEach((row) => { if (row.granted) grantedPages.add(row.page_key) })
+  }
 
   if (workspaceId && !isPrimaryAdmin && role === USER_ROLES.CLIENT) {
     const [
@@ -266,11 +274,15 @@ export async function getAccessContext(supabase, user, options = {}) {
     workspaceId,
     workspace,
     isWorkspaceOwner,
-    canManageUsers: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN,
-    canManageClients: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || role === USER_ROLES.OPERATOR,
-    canEditIntegrations: isPrimaryAdmin || isWorkspaceOwner || role === USER_ROLES.MASTER || role === USER_ROLES.ADMIN || Boolean(profile.can_edit_integrations),
-    canViewDashboard: isPrimaryAdmin || isWorkspaceOwner || role !== USER_ROLES.CLIENT || viewableClientIds.size > 0,
-    canUseAi: aiAccessLevel !== AI_ACCESS_LEVELS.NONE && (isPrimaryAdmin || isWorkspaceOwner || role !== USER_ROLES.CLIENT || viewableClientIds.size > 0),
+    // Modelo "função = páginas": capacidades de gestão saem das páginas liberadas.
+    // Master e admin principal (isPrimaryAdmin) sempre têm acesso total.
+    canManageUsers: isMasterLike || grantedPages.has('usuarios'),
+    canManageClients: isMasterLike || grantedPages.has('clientes'),
+    canEditIntegrations: isMasterLike || grantedPages.has('settings'),
+    canViewDashboard: isMasterLike || grantedPages.size > 0 || (role === USER_ROLES.CLIENT && viewableClientIds.size > 0),
+    // IA liberada para master e todos os usuários internos; cliente externo só se tiver dashboards.
+    canUseAi: isMasterLike || (role !== USER_ROLES.CLIENT) || viewableClientIds.size > 0,
+    grantedPages: Array.from(grantedPages),
     isClientRole: role === USER_ROLES.CLIENT,
     viewableClientIds: Array.from(viewableClientIds),
     editableClientIds: Array.from(editableClientIds),

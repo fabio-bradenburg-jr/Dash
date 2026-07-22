@@ -288,7 +288,7 @@ export async function GET() {
     try {
       const { data: userRoles } = await accessRowsClient
         .from('user_roles')
-        .select('user_id, is_primary, roles(id, name, color, base_role)')
+        .select('user_id, is_primary, roles(id, name, color, icon, pages)')
         .eq('workspace_id', accessContext.workspaceId)
       ;(userRoles || []).forEach((row) => {
         if (!row.roles) return

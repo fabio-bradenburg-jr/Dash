@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import RolesTab from '@/components/dashboard/RolesTab'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
+import { PAGE_MODULES } from '@/lib/access/pages'
 
 const ROLE_META = {
   master: { label: 'Master', color: '#4fdf9b' },
@@ -18,43 +19,9 @@ const STATUS_META = {
   invited: { label: 'Convidado', color: '#f59e0b' },
   inactive: { label: 'Inativo', color: '#7b8794' },
 }
-// Todas as páginas/abas do app (mesmas chaves usadas pelo hasNavAccess da sidebar).
-// A permissão do app é por página: liberar a página dá acesso a tudo que ela mostra.
-const MODULES = [
-  // Geral
-  { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
-  { key: 'tarefas', label: 'Rotinas & Tarefas', group: 'Geral' },
-  { key: 'comunicacao', label: 'Comunicação', group: 'Geral' },
-  { key: 'settings', label: 'Configurações', group: 'Geral' },
-  // Sucesso do Cliente
-  { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
-  { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
-  { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
-  { key: 'acessos', label: 'Dados', group: 'Sucesso do Cliente' },
-  // Comercial
-  { key: 'comercial', label: 'Processo Comercial', group: 'Comercial' },
-  // Performance
-  { key: 'apresentacao', label: 'Dash', group: 'Performance' },
-  { key: 'campanhas', label: 'Campanhas', group: 'Performance' },
-  { key: 'anuncios', label: 'Anúncios', group: 'Performance' },
-  { key: 'saldos', label: 'Saldos', group: 'Performance' },
-  { key: 'funil', label: 'Funil', group: 'Performance' },
-  { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
-  { key: 'relatorio-manual', label: 'Relatório Manual', group: 'Performance' },
-  { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
-  // Social Media
-  { key: 'editorial-dash', label: 'Social · Painel', group: 'Social Media' },
-  { key: 'editorial', label: 'Social · Calendário', group: 'Social Media' },
-  { key: 'editorial-plans', label: 'Social · Planejamentos', group: 'Social Media' },
-  // PAC
-  { key: 'pac-dash', label: 'PAC · Painel', group: 'PAC' },
-  { key: 'pac-calendario', label: 'PAC · Calendário', group: 'PAC' },
-  { key: 'pac-tipos', label: 'PAC · Tipos', group: 'PAC' },
-]
-const EDIT_ROLE_OPTIONS = [
-  ['admin', 'Admin'], ['analista', 'Analista'], ['operador', 'Operador'],
-  ['gestor_resultado', 'Gestor de Resultado'], ['visualizador', 'Visualizador'], ['cliente', 'Cliente'],
-]
+// Catálogo de páginas (fonte única em src/lib/access/pages.js). A permissão do app é
+// por página: liberar a página dá acesso a tudo que ela mostra.
+const MODULES = PAGE_MODULES
 const AVATAR_POOL = ['linear-gradient(135deg,#26C281,#4fdf9b)', 'linear-gradient(135deg,#3ba3ff,#6366f1)', 'linear-gradient(135deg,#f59e0b,#ef4444)', 'linear-gradient(135deg,#8b5cf6,#3ba3ff)', 'linear-gradient(135deg,#22c55e,#26C281)', 'linear-gradient(135deg,#ec4899,#8b5cf6)']
 const hexA = (c, a) => { const n = parseInt(c.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})` }
 const initialsOf = (name) => { const parts = String(name || '').replace(/[^A-Za-zÀ-ÿ ]/g, '').trim().split(/\s+/); return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?' }
@@ -90,6 +57,7 @@ export default function UsuariosTab() {
     isEditUserModalOpen,
     setIsEditUserModalOpen,
     loadUsers,
+    loadNavPermissions,
     navPermissions,
     savingUser,
     selectedManagedUser,
@@ -164,7 +132,25 @@ export default function UsuariosTab() {
     )
   }
 
-  const roleMetaOf = (u) => ROLE_META[String(u?.role || '').toLowerCase()] || ROLE_META.visualizador
+  // Páginas efetivamente liberadas para o usuário (workspace_nav_permissions).
+  const grantedPageKeysOf = (userId) => navPermissions.filter((p) => p.user_id === userId && p.granted).map((p) => p.page_key)
+  const sameSet = (a, b) => { const A = new Set(a); const B = new Set(b); if (A.size !== B.size) return false; for (const x of A) if (!B.has(x)) return false; return true }
+  // Rótulo de acesso exibido: Master, Cliente, nome da função, ou "Acesso Personalizado"
+  // quando as páginas do usuário divergem da função atribuída (ou não há função).
+  const accessLabelOf = (u) => {
+    const role = String(u?.role || '').toLowerCase()
+    if (role === 'master') return { label: 'Master', color: ROLE_META.master.color, custom: false }
+    if (role === 'cliente') return { label: 'Cliente', color: ROLE_META.cliente.color, custom: false }
+    const ar = u.assignedRole
+    const granted = grantedPageKeysOf(u.id)
+    const arColor = (ar?.color && /^#/.test(ar.color)) ? ar.color : ROLE_META.visualizador.color
+    if (ar) {
+      if (sameSet(granted, ar.pages || [])) return { label: ar.name, color: arColor, custom: false }
+      return { label: 'Acesso Personalizado', color: '#8b5cf6', custom: true }
+    }
+    if (granted.length > 0) return { label: 'Acesso Personalizado', color: '#8b5cf6', custom: true }
+    return { label: 'Sem acesso', color: '#7b8794', custom: false }
+  }
   const statusOf = (u) => (u?.role === 'master' ? 'active' : String(u?.status || 'active'))
   const statusMetaOf = (u) => STATUS_META[statusOf(u)] || STATUS_META.active
   const masterUsers = usersList.filter((u) => u.role === 'master')
@@ -193,7 +179,7 @@ export default function UsuariosTab() {
   const openEdit = (userId) => { setSelectedUserId(userId); setIsEditUserModalOpen(true); setEditUserClientSearch(''); setModalTab('dados'); setMenuUserId(null); setCredentialResult(null) }
   const openInvite = (asMaster = false) => {
     setCreatedUserInvite(null)
-    setUserForm((c) => ({ ...c, fullName: '', email: '', password: '', role: asMaster ? 'master' : 'visualizador', aiAccessLevel: 'team', canEditIntegrations: asMaster, clientIds: [] }))
+    setUserForm((c) => ({ ...c, fullName: '', email: '', password: '', role: asMaster ? 'master' : 'visualizador', roleId: '', canEditIntegrations: asMaster, clientIds: [] }))
     setIsCreateUserModalOpen(true)
   }
 
@@ -213,7 +199,7 @@ export default function UsuariosTab() {
     setBusyAction(true)
     try {
       const r = await fetch(`/api/users/${u.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName: u.full_name || '', role: u.role, aiAccessLevel: u.ai_access_level, canEditIntegrations: u.can_edit_integrations, status,
+        body: JSON.stringify({ fullName: u.full_name || '', role: u.role, canEditIntegrations: u.can_edit_integrations, status,
           clientIds: (u.clientAccess || []).map((a) => a.client_id) }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error || 'Falha ao atualizar status.')
@@ -252,7 +238,7 @@ export default function UsuariosTab() {
       const r = await fetch('/api/roles/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Falha ao atribuir função.')
       showToast(roleId ? 'Função atribuída.' : 'Função removida.')
-      await loadUsers()
+      await Promise.all([loadUsers(), loadNavPermissions?.()])
     } catch (e) { showToast(e.message, 'error') } finally { setBusyAction(false) }
   }
   const loadActivity = async (userId) => {
@@ -387,10 +373,10 @@ export default function UsuariosTab() {
                 <div></div>
               </div>
               {visibleUsers.map((u) => {
-                const rm = roleMetaOf(u); const sm = statusMetaOf(u)
-                const ar = u.assignedRole
-                const chipColor = (ar?.color && /^#/.test(ar.color)) ? ar.color : rm.color
-                const chipLabel = ar?.name || rm.label
+                const sm = statusMetaOf(u)
+                const acc = accessLabelOf(u)
+                const chipColor = acc.color
+                const chipLabel = acc.label
                 // Permissão por página: internos enxergam todos os clientes; só o papel
                 // 'cliente' (login externo) tem acesso restrito por cliente.
                 const accessCount = getManagedUserAccessibleClientCount(u)
@@ -475,12 +461,27 @@ export default function UsuariosTab() {
             <div className="form-grid user-admin-grid">
               <div className="input-group"><label>Nome</label><input type="text" value={userForm.fullName} onChange={(e) => setUserForm((c) => ({ ...c, fullName: e.target.value }))} placeholder="Nome completo" /></div>
               <div className="input-group"><label>E-mail</label><input type="email" value={userForm.email} onChange={(e) => setUserForm((c) => ({ ...c, email: e.target.value }))} placeholder="usuario@empresa.com" /></div>
-              <div className="input-group"><label>Papel</label><select className="client-select-input" value={userForm.role} onChange={(e) => setUserForm((c) => ({ ...c, role: e.target.value }))}>{isMaster && <option value="master">Master</option>}{EDIT_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-              <div className="input-group"><label>IA</label><select className="client-select-input" value={userForm.aiAccessLevel} onChange={(e) => setUserForm((c) => ({ ...c, aiAccessLevel: e.target.value }))}><option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
+              <div className="input-group"><label>Tipo de acesso</label>
+                <select className="client-select-input"
+                  value={userForm.role === 'master' ? 'master' : userForm.role === 'cliente' ? 'cliente' : 'interno'}
+                  onChange={(e) => { const v = e.target.value; setUserForm((c) => ({ ...c, role: v === 'interno' ? 'visualizador' : v, roleId: v === 'interno' ? c.roleId : '' })) }}>
+                  {isMaster && <option value="master">Master — acesso total</option>}
+                  <option value="interno">Interno — acesso por função/páginas</option>
+                  <option value="cliente">Cliente — login externo</option>
+                </select>
+              </div>
+              {userForm.role !== 'master' && userForm.role !== 'cliente' && (
+                <div className="input-group"><label>Função</label>
+                  <select className="client-select-input" value={userForm.roleId || ''} onChange={(e) => setUserForm((c) => ({ ...c, roleId: e.target.value }))}>
+                    <option value="">Sem função (defino depois)</option>
+                    {rolesList.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
             {/* Permissão por cliente removida: internos enxergam todos os clientes.
                 Vínculo de login de cliente (papel 'cliente') é feito em Editar usuário. */}
-            <div className="input-group"><label>Acesso</label><div style={{ fontSize: '0.8rem', color: 'rgba(229,226,225,0.55)', lineHeight: 1.5, padding: '4px 2px' }}>O acesso é controlado pelas <strong style={{ color: '#4fdf9b' }}>páginas liberadas</strong> e pela <strong style={{ color: '#4fdf9b' }}>função</strong> do usuário. Ajuste depois em Editar usuário → Permissões.</div></div>
+            <div className="input-group"><label>Acesso</label><div style={{ fontSize: '0.8rem', color: 'rgba(229,226,225,0.55)', lineHeight: 1.5, padding: '4px 2px' }}>A função define as <strong style={{ color: '#4fdf9b' }}>páginas liberadas</strong>. Você pode ajustar páginas específicas depois em Editar usuário → Permissões (isso torna o acesso <strong style={{ color: '#4fdf9b' }}>Personalizado</strong>).</div></div>
             <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsCreateUserModalOpen(false)}>Fechar</button><button type="submit" className="btn btn-primary" disabled={savingUser}>{savingUser ? 'Criando...' : 'Gerar convite'}</button></div>
           </form>
         </div></div>
@@ -572,8 +573,8 @@ export default function UsuariosTab() {
           {/* DADOS */}
           {modalTab === 'dados' && (
             <>
-              {/* Função (forma principal de atribuição) */}
-              {selectedManagedUser.role !== 'master' && (
+              {/* Função (forma principal de atribuição) — só para usuários internos */}
+              {selectedManagedUser.role !== 'master' && selectedManagedUser.role !== 'cliente' && (
                 <div style={{ marginBottom: 18 }}>
                   <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 9 }}>Função</div>
                   {rolesList.length ? (
@@ -605,12 +606,16 @@ export default function UsuariosTab() {
               <div className="form-grid user-admin-grid">
                 <div className="input-group"><label>Nome</label><input type="text" value={selectedManagedUser.full_name || ''} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, full_name: e.target.value }))} /></div>
                 <div className="input-group"><label>E-mail</label><input type="email" value={selectedManagedUser.email || ''} disabled /></div>
-                {selectedManagedUser.role !== 'master' ? (
-                  <div className="input-group"><label>Nível de acesso (efetivo)</label><select className="client-select-input" value={selectedManagedUser.role || 'visualizador'} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, role: e.target.value }))}>{EDIT_ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                {selectedManagedUser.role === 'master' ? (
+                  <div className="input-group"><label>Tipo de acesso</label><input type="text" value="Master" disabled /></div>
                 ) : (
-                  <div className="input-group"><label>Nível de acesso</label><input type="text" value="Master" disabled /></div>
+                  <div className="input-group"><label>Tipo de acesso</label>
+                    <select className="client-select-input" value={selectedManagedUser.role === 'cliente' ? 'cliente' : 'interno'} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, role: e.target.value === 'cliente' ? 'cliente' : 'visualizador' }))}>
+                      <option value="interno">Interno — acesso por função/páginas</option>
+                      <option value="cliente">Cliente — login externo</option>
+                    </select>
+                  </div>
                 )}
-                <div className="input-group"><label>IA</label><select className="client-select-input" value={selectedManagedUser.ai_access_level || (selectedManagedUser.role === 'master' ? 'master' : 'team')} onChange={(e) => handleManagedUserChange(selectedManagedUser.id, (i) => ({ ...i, ai_access_level: e.target.value }))}>{selectedManagedUser.role === 'master' && <option value="master">IA Master</option>}<option value="team">Liberada</option><option value="none">Bloqueada</option></select></div>
               </div>
               <div className="modal-foot"><span className="form-note">Salvo no Supabase e aplicado no próximo login do usuário.</span><div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsEditUserModalOpen(false)}>Cancelar</button><button type="button" className="btn btn-primary" onClick={() => handleUpdateUser(selectedManagedUser)}>Salvar</button></div></div>
             </>
@@ -623,6 +628,26 @@ export default function UsuariosTab() {
                 <div style={{ padding: '20px', borderRadius: 12, background: 'rgba(38,194,129,0.08)', border: '1px solid rgba(38,194,129,0.2)', color: '#4fdf9b', fontSize: '0.9rem', fontWeight: 600 }}>Master tem acesso total a todos os módulos.</div>
               ) : (
                 <>
+                  {/* Banner: acesso personalizado (páginas divergem da função atribuída) */}
+                  {selectedManagedUser.role !== 'cliente' && (() => {
+                    const acc = accessLabelOf(selectedManagedUser)
+                    if (!acc.custom) return null
+                    const ar = selectedManagedUser.assignedRole
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '11px 14px', borderRadius: 12, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)' }}>
+                        <span className="mi" style={{ fontSize: 20, color: '#a78bfa', flexShrink: 0 }}>tune</span>
+                        <span style={{ flex: 1, fontSize: '0.82rem', color: 'rgba(229,226,225,0.85)', lineHeight: 1.5 }}>
+                          <strong style={{ color: '#c4b5fd' }}>Acesso Personalizado</strong> — as páginas deste usuário foram ajustadas manualmente{ar ? <> e divergem da função <strong>“{ar.name}”</strong></> : ''}.
+                        </span>
+                        {ar && (
+                          <button type="button" disabled={busyAction} onClick={() => assignFunction(selectedManagedUser.id, ar.id)}
+                            style={{ flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8, border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.14)', color: '#c4b5fd', fontFamily: 'inherit', fontSize: '0.76rem', fontWeight: 600, cursor: busyAction ? 'default' : 'pointer' }}>
+                            Voltar para a função
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
                   {/* Predefinições */}
                   <div style={{ marginBottom: 18 }}>
                     <div style={{ fontFamily: 'Inter', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600, marginBottom: 9 }}>Predefinições</div>
