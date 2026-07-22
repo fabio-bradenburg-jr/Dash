@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/server/supabase-admin'
 import { getAccessContext, isPrimaryAdminEmail } from '@/lib/server/access-control'
 import { resolveAuthContext } from '@/lib/server/auth-context'
 import { logUserActivity } from '@/lib/server/user-activity'
+import { materializeUserPages } from '@/lib/server/nav-permissions'
 
 async function getAuthContext() {
   const ctx = await resolveAuthContext()
@@ -49,31 +50,29 @@ export async function PUT(request) {
       )
     }
 
-    // Atribuição de função é a forma principal: sincroniza o nível efetivo (profiles.role)
-    // a partir do base_role da função primária — exceto a conta master principal.
+    // Modelo "função = páginas": atribuir a função materializa as páginas dela como
+    // acessos do usuário. Sem função → zera as páginas. Não mexe em master/cliente.
     const effectivePrimaryId = primary_role_id || role_ids[0] || null
     const { data: targetProfile } = await ctx.adminSupabase
       .from('profiles').select('email, role').eq('id', user_id).eq('workspace_id', workspaceId).maybeSingle()
 
-    if (targetProfile && !isPrimaryAdminEmail(targetProfile.email)) {
-      let nextRole = 'visualizador'
+    if (targetProfile && !isPrimaryAdminEmail(targetProfile.email) && targetProfile.role !== 'master' && targetProfile.role !== 'cliente') {
+      let rolePages = []
       let roleName = ''
       if (effectivePrimaryId) {
         const { data: primaryRole } = await ctx.adminSupabase
-          .from('roles').select('base_role, name').eq('id', effectivePrimaryId).eq('workspace_id', workspaceId).maybeSingle()
-        if (primaryRole?.base_role) nextRole = primaryRole.base_role
+          .from('roles').select('pages, name').eq('id', effectivePrimaryId).eq('workspace_id', workspaceId).maybeSingle()
+        rolePages = Array.isArray(primaryRole?.pages) ? primaryRole.pages : []
         roleName = primaryRole?.name || ''
       }
-      // Não rebaixa um master existente por engano se nenhuma função foi escolhida.
-      if (effectivePrimaryId || targetProfile.role !== 'master') {
-        const patch = { role: nextRole }
-        if (nextRole === 'master') { patch.ai_access_level = 'master'; patch.can_edit_integrations = true }
-        await ctx.adminSupabase.from('profiles').update(patch).eq('id', user_id)
-      }
+      // Usuários internos ficam num papel neutro; o acesso real vem das páginas.
+      await ctx.adminSupabase.from('profiles').update({ role: 'visualizador' }).eq('id', user_id)
+      await materializeUserPages(ctx.adminSupabase, workspaceId, user_id, rolePages)
+
       await logUserActivity(ctx.adminSupabase, {
         workspaceId, userId: user_id, actorId: ctx.user?.id || null,
         actorName: ctx.accessContext.profile?.full_name || ctx.accessContext.profile?.email || '',
-        action: 'Função atribuída', detail: roleName ? `Função: ${roleName} (nível ${nextRole}).` : 'Funções removidas.',
+        action: 'Função atribuída', detail: roleName ? `Função: ${roleName} (${rolePages.length} página(s)).` : 'Funções removidas.',
       })
     }
 

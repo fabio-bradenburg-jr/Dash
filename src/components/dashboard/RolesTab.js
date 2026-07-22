@@ -1,96 +1,13 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import CustomSelect from '@/components/dashboard/CustomSelect'
+import { PAGE_MODULES, ALL_PAGE_KEYS, pagesByGroup } from '@/lib/access/pages'
 
 const GREEN = '#26c281'
 
-// ── Permission catalogue (mirrors DB seed) ──────────────────────
-const PERMISSION_MODULES = [
-  {
-    module: 'Dashboard',
-    permissions: [
-      { key: 'dashboard.view',   label: 'Visualizar Dashboard' },
-      { key: 'dashboard.edit',   label: 'Editar Dashboard' },
-      { key: 'dashboard.export', label: 'Exportar Relatórios' },
-    ],
-  },
-  {
-    module: 'Central de Tarefas',
-    permissions: [
-      { key: 'tasks.spaces.create', label: 'Criar Espaços' },
-      { key: 'tasks.spaces.edit',   label: 'Editar Espaços' },
-      { key: 'tasks.spaces.delete', label: 'Excluir Espaços' },
-      { key: 'tasks.create',        label: 'Criar Tarefas' },
-      { key: 'tasks.edit',          label: 'Editar Tarefas' },
-      { key: 'tasks.delete',        label: 'Excluir Tarefas' },
-      { key: 'tasks.templates',     label: 'Criar Templates' },
-      { key: 'tasks.automations',   label: 'Gerenciar Automações' },
-      { key: 'tasks.routines',      label: 'Gerenciar Central de Rotinas' },
-    ],
-  },
-  {
-    module: 'CRM',
-    permissions: [
-      { key: 'crm.view',         label: 'Visualizar CRM' },
-      { key: 'crm.deals.create', label: 'Criar Negócios' },
-      { key: 'crm.deals.edit',   label: 'Editar Negócios' },
-      { key: 'crm.deals.delete', label: 'Excluir Negócios' },
-      { key: 'crm.deals.stage',  label: 'Alterar Etapas' },
-      { key: 'crm.export',       label: 'Exportar Dados' },
-    ],
-  },
-  {
-    module: 'Financeiro',
-    permissions: [
-      { key: 'finance.view',    label: 'Visualizar Financeiro' },
-      { key: 'finance.create',  label: 'Criar Lançamentos' },
-      { key: 'finance.edit',    label: 'Editar Lançamentos' },
-      { key: 'finance.delete',  label: 'Excluir Lançamentos' },
-      { key: 'finance.approve', label: 'Aprovar Pagamentos' },
-    ],
-  },
-  {
-    module: 'Clientes',
-    permissions: [
-      { key: 'clients.view',   label: 'Visualizar Clientes' },
-      { key: 'clients.create', label: 'Criar Clientes' },
-      { key: 'clients.edit',   label: 'Editar Clientes' },
-      { key: 'clients.delete', label: 'Excluir Clientes' },
-    ],
-  },
-  {
-    module: 'Time',
-    permissions: [
-      { key: 'team.users.view',   label: 'Visualizar Usuários' },
-      { key: 'team.users.create', label: 'Criar Usuários' },
-      { key: 'team.users.edit',   label: 'Editar Usuários' },
-      { key: 'team.users.remove', label: 'Remover Usuários' },
-      { key: 'team.roles.create', label: 'Criar Funções' },
-      { key: 'team.roles.edit',   label: 'Editar Funções' },
-      { key: 'team.roles.delete', label: 'Excluir Funções' },
-      { key: 'team.permissions',  label: 'Gerenciar Permissões' },
-    ],
-  },
-  {
-    module: 'Configurações',
-    permissions: [
-      { key: 'settings.view',         label: 'Visualizar Configurações' },
-      { key: 'settings.edit',         label: 'Editar Configurações' },
-      { key: 'settings.integrations', label: 'Gerenciar Integrações' },
-      { key: 'settings.subscription', label: 'Gerenciar Assinatura' },
-    ],
-  },
-  {
-    module: 'Permissões Avançadas',
-    permissions: [
-      { key: 'scope.own',  label: 'Ver apenas próprios registros' },
-      { key: 'scope.team', label: 'Ver registros da equipe' },
-      { key: 'scope.all',  label: 'Ver todos os registros' },
-    ],
-  },
-]
-
-const ALL_KEYS = PERMISSION_MODULES.flatMap(m => m.permissions.map(p => p.key))
+// Modelo "função = páginas": cada função libera um conjunto de páginas do app.
+// O catálogo de páginas é a fonte única em src/lib/access/pages.js.
+const PAGE_GROUPS = pagesByGroup()
 
 const ICON_OPTIONS = [
   'bx-user', 'bx-shield', 'bx-crown', 'bx-user-check', 'bx-trending-up',
@@ -186,22 +103,21 @@ function RoleModal({ role, onClose, onSaved }) {
     color: role?.color || GREEN,
     icon: role?.icon || 'bx-user',
     is_active: role?.is_active !== false,
-    base_role: role?.base_role || 'visualizador',
-    permission_keys: role?.permission_keys || [],
+    pages: role?.pages || [],
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   function togglePerms(keys, value) {
     setForm(prev => {
-      const set = new Set(prev.permission_keys)
+      const set = new Set(prev.pages)
       keys.forEach(k => value ? set.add(k) : set.delete(k))
-      return { ...prev, permission_keys: Array.from(set) }
+      return { ...prev, pages: Array.from(set) }
     })
   }
 
-  function selectAll() { setForm(prev => ({ ...prev, permission_keys: [...ALL_KEYS] })) }
-  function clearAll() { setForm(prev => ({ ...prev, permission_keys: [] })) }
+  function selectAll() { setForm(prev => ({ ...prev, pages: [...ALL_PAGE_KEYS] })) }
+  function clearAll() { setForm(prev => ({ ...prev, pages: [] })) }
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Nome é obrigatório.'); return }
@@ -255,20 +171,6 @@ function RoleModal({ role, onClose, onSaved }) {
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Descreva as responsabilidades desta função..." rows={2} style={{ ...S.input, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} />
           </div>
 
-          {/* Nível de acesso base — define o que a função concede ao usuário no app */}
-          <div>
-            <label style={S.label}>Nível de acesso base</label>
-            <select value={form.base_role} onChange={e => setForm(p => ({ ...p, base_role: e.target.value }))} style={{ ...S.input, cursor: 'pointer' }}>
-              <option value="admin">Admin — gerencia clientes, integrações e usuários</option>
-              <option value="operador">Operador — gerencia clientes e dashboards</option>
-              <option value="analista">Analista — vê dashboards e IA</option>
-              <option value="gestor_resultado">Gestor de Resultado</option>
-              <option value="visualizador">Visualizador — acesso somente de leitura</option>
-              <option value="cliente">Cliente — acesso externo</option>
-            </select>
-            <p style={{ fontSize: 11, color: '#64748b', margin: '5px 0 0' }}>Ao atribuir esta função a um usuário, ele recebe este nível de acesso no app.</p>
-          </div>
-
           {/* Color + Icon */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -295,22 +197,22 @@ function RoleModal({ role, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Permissions */}
+          {/* Páginas liberadas — o acesso da função é definido pelas páginas do app */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <label style={S.label}>Permissões ({form.permission_keys.length}/{ALL_KEYS.length})</label>
+              <label style={S.label}>Páginas liberadas ({form.pages.length}/{ALL_PAGE_KEYS.length})</label>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button type="button" onClick={selectAll} style={{ ...S.btn('secondary'), padding: '4px 10px', fontSize: 11 }}>Selecionar todas</button>
                 <button type="button" onClick={clearAll} style={{ ...S.btn('secondary'), padding: '4px 10px', fontSize: 11 }}>Limpar</button>
               </div>
             </div>
             <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: '12px 14px', maxHeight: 340, overflowY: 'auto' }}>
-              {PERMISSION_MODULES.map(m => (
+              {PAGE_GROUPS.map(g => (
                 <PermissionGroup
-                  key={m.module}
-                  module={m.module}
-                  permissions={m.permissions}
-                  selectedKeys={form.permission_keys}
+                  key={g.name}
+                  module={g.name}
+                  permissions={g.items}
+                  selectedKeys={form.pages}
                   onToggle={togglePerms}
                 />
               ))}
@@ -402,7 +304,7 @@ function DeleteRoleModal({ role, allRoles, onClose, onDeleted }) {
 
 // ── Role Card ──────────────────────────────────────────────────────
 function RoleCard({ role, onEdit, onDelete }) {
-  const pct = ALL_KEYS.length > 0 ? Math.round((role.permission_keys?.length || 0) / ALL_KEYS.length * 100) : 0
+  const pct = ALL_PAGE_KEYS.length > 0 ? Math.round((role.pages?.length || 0) / ALL_PAGE_KEYS.length * 100) : 0
 
   return (
     <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${role.color}22`, borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -424,7 +326,7 @@ function RoleCard({ role, onEdit, onDelete }) {
       {/* Stats */}
       <div style={{ display: 'flex', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#475569', marginBottom: 3 }}>Permissões — {pct}%</div>
+          <div style={{ fontSize: 11, color: '#475569', marginBottom: 3 }}>Páginas — {pct}%</div>
           <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 999 }}>
             <div style={{ width: `${pct}%`, height: '100%', background: role.color, borderRadius: 999, transition: 'width 0.3s' }} />
           </div>
@@ -492,7 +394,7 @@ export default function RolesTab() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#f1f5f9' }}>Funções e Permissões</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Crie e gerencie funções com permissões granulares para cada módulo do sistema.</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Crie funções e escolha quais páginas cada uma libera. Atribua a função ao usuário na aba Usuários.</p>
         </div>
         <button type="button" onClick={() => { setEditingRole(null); setShowModal(true) }} style={S.btn()}>
           <i className="bx bx-plus" style={{ fontSize: 15 }} /> Nova Função

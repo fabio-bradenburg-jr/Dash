@@ -21,7 +21,6 @@ export async function GET(request) {
       .from('roles')
       .select(`
         *,
-        role_permissions(permission_id, permissions(key, description, module)),
         user_roles(user_id)
       `)
       .eq('workspace_id', workspaceId)
@@ -31,10 +30,9 @@ export async function GET(request) {
 
     const shaped = (roles || []).map(r => ({
       ...r,
-      permission_keys: (r.role_permissions || []).map(rp => rp.permissions?.key).filter(Boolean),
-      permissions_full: (r.role_permissions || []).map(rp => rp.permissions).filter(Boolean),
+      // Novo modelo: função = conjunto de páginas liberadas.
+      pages: Array.isArray(r.pages) ? r.pages : [],
       user_count: (r.user_roles || []).length,
-      role_permissions: undefined,
       user_roles: undefined,
     }))
 
@@ -52,26 +50,18 @@ export async function POST(request) {
     const body = await request.json()
     const { workspaceId } = ctx.accessContext
 
-    const { name, description, color, icon, is_active, base_role, permission_keys = [] } = body
+    const { name, description, color, icon, is_active, pages = [] } = body
     if (!name?.trim()) return NextResponse.json({ error: 'Nome obrigatório.' }, { status: 400 })
-    const VALID_BASE = ['master', 'admin', 'operador', 'analista', 'gestor_resultado', 'visualizador', 'cliente']
-    const safeBaseRole = VALID_BASE.includes(base_role) ? base_role : 'visualizador'
+    const safePages = Array.isArray(pages) ? pages.filter((p) => typeof p === 'string') : []
 
     const { data: role, error } = await ctx.adminSupabase
       .from('roles')
-      .insert({ workspace_id: workspaceId, name: name.trim(), description, color: color || '#26c281', icon: icon || 'bx-user', is_active: is_active !== false, base_role: safeBaseRole })
+      .insert({ workspace_id: workspaceId, name: name.trim(), description, color: color || '#26c281', icon: icon || 'bx-user', is_active: is_active !== false, pages: safePages })
       .select()
       .single()
     if (error) throw error
 
-    if (permission_keys.length > 0) {
-      const { data: perms } = await ctx.adminSupabase.from('permissions').select('id, key').in('key', permission_keys)
-      if (perms?.length) {
-        await ctx.adminSupabase.from('role_permissions').insert(perms.map(p => ({ role_id: role.id, permission_id: p.id })))
-      }
-    }
-
-    return NextResponse.json({ role: { ...role, permission_keys, user_count: 0 } })
+    return NextResponse.json({ role: { ...role, pages: safePages, user_count: 0 } })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
@@ -84,7 +74,7 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
     const body = await request.json()
     const { workspaceId } = ctx.accessContext
-    const { id, name, description, color, icon, is_active, base_role, permission_keys } = body
+    const { id, name, description, color, icon, is_active, pages } = body
     if (!id) return NextResponse.json({ error: 'id obrigatório.' }, { status: 400 })
 
     const updates = { updated_at: new Date().toISOString() }
@@ -93,24 +83,13 @@ export async function PUT(request) {
     if (color !== undefined) updates.color = color
     if (icon !== undefined) updates.icon = icon
     if (is_active !== undefined) updates.is_active = is_active
-    const VALID_BASE = ['master', 'admin', 'operador', 'analista', 'gestor_resultado', 'visualizador', 'cliente']
-    if (base_role !== undefined && VALID_BASE.includes(base_role)) updates.base_role = base_role
+    if (Array.isArray(pages)) updates.pages = pages.filter((p) => typeof p === 'string')
 
     const { data: role, error } = await ctx.adminSupabase
       .from('roles').update(updates).eq('id', id).eq('workspace_id', workspaceId).select().single()
     if (error) throw error
 
-    if (Array.isArray(permission_keys)) {
-      await ctx.adminSupabase.from('role_permissions').delete().eq('role_id', id)
-      if (permission_keys.length > 0) {
-        const { data: perms } = await ctx.adminSupabase.from('permissions').select('id, key').in('key', permission_keys)
-        if (perms?.length) {
-          await ctx.adminSupabase.from('role_permissions').insert(perms.map(p => ({ role_id: id, permission_id: p.id })))
-        }
-      }
-    }
-
-    return NextResponse.json({ role: { ...role, permission_keys: permission_keys || [], user_count: 0 } })
+    return NextResponse.json({ role: { ...role, pages: Array.isArray(role.pages) ? role.pages : [], user_count: 0 } })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

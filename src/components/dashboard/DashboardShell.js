@@ -3605,7 +3605,7 @@ export default function DashboardShell({
     email: '',
     password: '',
     role: 'visualizador',
-    aiAccessLevel: 'team',
+    roleId: '',
     canEditIntegrations: false,
     clientIds: [],
     clientGroupIds: [],
@@ -3685,7 +3685,8 @@ export default function DashboardShell({
   const editableClientIdsSet = useMemo(() => new Set(editableClientIds), [editableClientIds])
   const canAccessClientsTab = canManageClients || viewableClientIds.length > 0
   const canPersistClientChanges = canManageClients || editableClientIds.length > 0
-  const canAccessTeamTab = Boolean(user) && !access?.isClientRole
+  // Aba de Usuários/Funções é admin: só master ou quem tiver a página "usuarios" liberada.
+  const canAccessTeamTab = Boolean(user) && !access?.isClientRole && Boolean(access?.canManageUsers)
   const isMaster = role === 'master'
 
   const canEditClientRecord = useCallback(
@@ -6572,11 +6573,6 @@ export default function DashboardShell({
     cliente: 'Cliente',
     visualizador: 'Visualizador',
   }
-  const aiAccessLabels = {
-    master: 'IA Master',
-    team: 'IA liberada',
-    none: 'IA bloqueada',
-  }
 
   useEffect(() => {
     const preferences = loadDashboardPreferences()
@@ -8808,6 +8804,16 @@ export default function DashboardShell({
         throw new Error(data.error || 'Não foi possível criar o usuário.')
       }
 
+      // Modelo "função = páginas": se uma função foi escolhida na criação, atribui já
+      // (materializa as páginas da função nos acessos do novo usuário).
+      if (data.userId && userForm.roleId && userForm.role !== 'master' && userForm.role !== 'cliente') {
+        await fetch('/api/roles/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: data.userId, role_ids: [userForm.roleId], primary_role_id: userForm.roleId }),
+        })
+      }
+
       setCreatedUserInvite(data.invite || null)
 
       setUserForm({
@@ -8815,7 +8821,7 @@ export default function DashboardShell({
         email: '',
         password: '',
         role: 'visualizador',
-        aiAccessLevel: 'team',
+        roleId: '',
         canEditIntegrations: false,
         clientIds: [],
         clientGroupIds: [],
@@ -8844,7 +8850,6 @@ export default function DashboardShell({
         body: JSON.stringify({
           fullName: managedUser.full_name || '',
           role: managedUser.role,
-          aiAccessLevel: managedUser.ai_access_level || (managedUser.role === 'master' ? 'master' : 'team'),
           canEditIntegrations: managedUser.role === 'master' || Boolean(managedUser.can_edit_integrations),
           clientIds: (managedUser.clientAccess || []).map((item) => item.client_id),
           clientGroupIds: [],
@@ -15733,6 +15738,7 @@ export default function DashboardShell({
     isEditUserModalOpen,
     setIsEditUserModalOpen,
     loadUsers,
+    loadNavPermissions,
     navPermissions,
     permSelectedUserId,
     setPermSelectedUserId,
