@@ -16486,7 +16486,7 @@ export default function DashboardShell({
           <SemanalTab />
         )}
 
-        {activeTab === 'onboarding' && isMaster && (
+        {activeTab === 'onboarding' && (isMaster || hasNavAccess('onboarding')) && (
           <OnboardingTab />
         )}
 
@@ -16580,7 +16580,7 @@ export default function DashboardShell({
           />
         )}
 
-        {activeTab === 'offboarding' && isMaster && (
+        {activeTab === 'offboarding' && (isMaster || hasNavAccess('offboarding')) && (
           <OffboardingTab />
         )}
 
