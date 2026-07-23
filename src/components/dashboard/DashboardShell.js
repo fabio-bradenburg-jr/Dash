@@ -4002,8 +4002,6 @@ export default function DashboardShell({
       case 'home':
       case 'rotinas':
       case 'ia-orbit':
-      case 'permissoes':
-      case 'centro-master':
         return false
       case 'clientes':
         return canAccessClientsTab && hasNavAccess('clientes')
@@ -16262,22 +16260,12 @@ export default function DashboardShell({
               )}
             </div>
           )}
-          {(canAccessTeamTab || isMaster) && (
+          {canAccessTeamTab && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Admin</div>
               {canAccessTeamTab && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => { setActiveTab('usuarios'); setIsHubNavOpen(false) }}>
                   <span className="mi">manage_accounts</span><span className="hub-nav-label">Usuários</span>
-                </button>
-              )}
-              {isMaster && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'permissoes' ? 'active' : ''}`} onClick={() => { setActiveTab('permissoes'); setIsHubNavOpen(false) }}>
-                  <span className="mi">shield</span><span className="hub-nav-label">Permissões</span>
-                </button>
-              )}
-              {isMaster && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'centro-master' ? 'active' : ''}`} onClick={() => { setActiveTab('centro-master'); setIsHubNavOpen(false) }}>
-                  <span className="mi">admin_panel_settings</span><span className="hub-nav-label">Centro Master</span>
                 </button>
               )}
             </div>
@@ -16533,12 +16521,10 @@ export default function DashboardShell({
           />
         )}
 
-        {['home', 'ia-orbit', 'permissoes', 'centro-master'].includes(activeTab) && isMaster && (() => {
+        {['home', 'ia-orbit'].includes(activeTab) && isMaster && (() => {
           const HUB_PLACEHOLDERS = {
             'home': { group: 'Geral', title: 'Home', icon: 'home' },
             'ia-orbit': { group: 'Performance', title: 'IA Orbit', icon: 'smart_toy' },
-            'permissoes': { group: 'Admin', title: 'Permissões', icon: 'shield' },
-            'centro-master': { group: 'Admin', title: 'Centro Master', icon: 'admin_panel_settings' },
           }
           const ph = HUB_PLACEHOLDERS[activeTab]
           return (
