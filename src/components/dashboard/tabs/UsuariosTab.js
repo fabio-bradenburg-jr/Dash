@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 import PagePermissionsPicker from '@/components/dashboard/PagePermissionsPicker'
 import { PAGE_MODULES } from '@/lib/access/pages'
@@ -95,6 +96,22 @@ export default function UsuariosTab() {
     }
   }, [showToast])
 
+  // Trava a rolagem da página enquanto um pop-up de usuário está aberto.
+  useEffect(() => {
+    if (!isEditUserModalOpen && !isCreateUserModalOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [isEditUserModalOpen, isCreateUserModalOpen])
+
+  // Rascunho das páginas do usuário sendo editado (só grava ao clicar em Salvar).
+  const [editPages, setEditPages] = useState([])
+  const [savingPages, setSavingPages] = useState(false)
+  useEffect(() => {
+    if (!isEditUserModalOpen || !selectedManagedUser) return
+    setEditPages(navPermissions.filter((p) => p.user_id === selectedManagedUser.id && p.granted).map((p) => p.page_key))
+  }, [isEditUserModalOpen, selectedManagedUser, navPermissions])
+
   if (!canManageUsers) {
     return (
       <section className="weekly-dashboard-panel" style={{ background: 'transparent', border: 'none' }}>
@@ -110,14 +127,22 @@ export default function UsuariosTab() {
   // Páginas efetivamente liberadas para o usuário (workspace_nav_permissions).
   const grantedPageKeysOf = (userId) => navPermissions.filter((p) => p.user_id === userId && p.granted).map((p) => p.page_key)
 
-  // Alterna páginas do usuário: 1 página → salva otimista (imediato); várias
-  // (selecionar todas / grupo / limpar) → salva o conjunto final de uma vez.
-  const handlePageToggle = (userId, keys, granted) => {
-    if (keys.length === 1) { toggleNavPermission(userId, keys[0], granted); return }
-    const set = new Set(grantedPageKeysOf(userId))
-    keys.forEach((k) => granted ? set.add(k) : set.delete(k))
-    fetch('/api/nav-permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, pages: Array.from(set) }) })
-      .then(() => loadNavPermissions?.())
+  // Alterna páginas no rascunho de edição.
+  const toggleEditPages = (keys, granted) => {
+    setEditPages((prev) => { const set = new Set(prev); keys.forEach((k) => granted ? set.add(k) : set.delete(k)); return Array.from(set) })
+  }
+
+  // Salva as páginas do usuário editado (grava o rascunho de uma vez).
+  const savePages = async () => {
+    if (!selectedManagedUser) return
+    setSavingPages(true)
+    try {
+      const r = await fetch('/api/nav-permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: selectedManagedUser.id, pages: editPages }) })
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'Falha ao salvar permissões.') }
+      await loadNavPermissions?.()
+      showToast('Permissões salvas.')
+      setIsEditUserModalOpen(false)
+    } catch (e) { showToast(e.message, 'error') } finally { setSavingPages(false) }
   }
 
   // Rótulo de acesso exibido no chip: Master, Cliente, "N páginas" / "Acesso total" / "Sem acesso".
@@ -379,7 +404,7 @@ export default function UsuariosTab() {
       </>
 
       {/* ── CREATE MODAL ── */}
-      {isCreateUserModalOpen && (
+      {isCreateUserModalOpen && typeof document !== 'undefined' && createPortal((
         <div className="modal-overlay" onClick={() => setIsCreateUserModalOpen(false)}><div className="modal-card glass-panel" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header"><div><h3>{userForm.role === 'master' ? 'Novo Master' : 'Convidar usuário'}</h3><p>Crie um acesso e repasse a senha temporária para a pessoa.</p></div><button type="button" className="modal-close" onClick={() => setIsCreateUserModalOpen(false)} aria-label="Fechar"><i className="bx bx-x"></i></button></div>
           <form onSubmit={handleCreateUser}>
@@ -412,7 +437,7 @@ export default function UsuariosTab() {
             <div className="modal-actions"><button type="button" className="btn btn-secondary" onClick={() => setIsCreateUserModalOpen(false)}>Fechar</button><button type="submit" className="btn btn-primary" disabled={savingUser}>{savingUser ? 'Criando...' : 'Gerar convite'}</button></div>
           </form>
         </div></div>
-      )}
+      ), document.body)}
 
       {/* ── POP-UP: DADOS DE ACESSO DO USUÁRIO CONVIDADO ── */}
       {createdUserInvite && (() => {
@@ -480,7 +505,7 @@ export default function UsuariosTab() {
       })()}
 
       {/* ── EDIT MODAL (3 tabs) ── */}
-      {isEditUserModalOpen && selectedManagedUser && (
+      {isEditUserModalOpen && selectedManagedUser && typeof document !== 'undefined' && createPortal((
         <div className="modal-overlay" onClick={() => setIsEditUserModalOpen(false)}><div className="modal-card glass-panel modal-card-wide" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header"><div><h3>{selectedManagedUser.full_name || selectedManagedUser.email}</h3><p>{selectedManagedUser.email}</p></div><button type="button" className="modal-close" onClick={() => setIsEditUserModalOpen(false)} aria-label="Fechar"><i className="bx bx-x"></i></button></div>
           {editUserError && <div className="form-alert">{editUserError}</div>}
@@ -532,10 +557,20 @@ export default function UsuariosTab() {
                 <>
                   {/* Acesso por página: selecione direto as páginas que o usuário poderá ver. */}
                   {selectedManagedUser.role !== 'cliente' && (
-                    <PagePermissionsPicker
-                      selectedKeys={grantedPageKeysOf(selectedManagedUser.id)}
-                      onToggle={(keys, granted) => handlePageToggle(selectedManagedUser.id, keys, granted)}
-                    />
+                    <>
+                      <PagePermissionsPicker
+                        selectedKeys={editPages}
+                        onToggle={toggleEditPages}
+                        disabled={savingPages}
+                      />
+                      <div className="modal-foot" style={{ marginTop: 16 }}>
+                        <span className="form-note">As páginas selecionadas passam a valer no próximo carregamento do usuário.</span>
+                        <div className="modal-actions">
+                          <button type="button" className="btn btn-secondary" onClick={() => setIsEditUserModalOpen(false)}>Cancelar</button>
+                          <button type="button" className="btn btn-primary" onClick={savePages} disabled={savingPages}>{savingPages ? 'Salvando...' : 'Salvar'}</button>
+                        </div>
+                      </div>
+                    </>
                   )}
 
                   {/* Acesso por cliente: só para logins de cliente (papel 'cliente').
@@ -612,7 +647,7 @@ export default function UsuariosTab() {
             </div>
           )}
         </div></div>
-      )}
+      ), document.body)}
 
       {/* ── REMOVE CONFIRM ── */}
       {removeTarget && (
