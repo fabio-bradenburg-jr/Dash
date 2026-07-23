@@ -4075,18 +4075,41 @@ export default function DashboardShell({
   const handleToggleOffboardingTask = useCallback(async (clientId, taskId) => {
     const record = offboardingRecords.find((r) => r.client_id === clientId)
     const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
-    const next = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    const na = Array.isArray(record?.na_tasks) ? record.na_tasks : []
+    const nextCompleted = completed.includes(taskId) ? completed.filter((t) => t !== taskId) : [...completed, taskId]
+    const nextNa = na.filter((t) => t !== taskId)
     setOffboardingRecords((prev) => {
       const exists = prev.find((r) => r.client_id === clientId)
-      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: next } : r)
-      return [...prev, { client_id: clientId, completed_tasks: next, notes: '' }]
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: nextCompleted, na_tasks: nextNa } : r)
+      return [...prev, { client_id: clientId, completed_tasks: nextCompleted, na_tasks: nextNa, notes: '' }]
     })
     setOffboardingSaving(true)
     try {
       await fetch('/api/client-offboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId, completedTasks: next }),
+        body: JSON.stringify({ clientId, completedTasks: nextCompleted, naTasks: nextNa }),
+      })
+    } finally { setOffboardingSaving(false) }
+  }, [offboardingRecords])
+
+  const handleToggleOffboardingTaskNA = useCallback(async (clientId, taskId) => {
+    const record = offboardingRecords.find((r) => r.client_id === clientId)
+    const completed = Array.isArray(record?.completed_tasks) ? record.completed_tasks : []
+    const na = Array.isArray(record?.na_tasks) ? record.na_tasks : []
+    const nextNa = na.includes(taskId) ? na.filter((t) => t !== taskId) : [...na, taskId]
+    const nextCompleted = completed.filter((t) => t !== taskId)
+    setOffboardingRecords((prev) => {
+      const exists = prev.find((r) => r.client_id === clientId)
+      if (exists) return prev.map((r) => r.client_id === clientId ? { ...r, completed_tasks: nextCompleted, na_tasks: nextNa } : r)
+      return [...prev, { client_id: clientId, completed_tasks: nextCompleted, na_tasks: nextNa, notes: '' }]
+    })
+    setOffboardingSaving(true)
+    try {
+      await fetch('/api/client-offboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, completedTasks: nextCompleted, naTasks: nextNa }),
       })
     } finally { setOffboardingSaving(false) }
   }, [offboardingRecords])
@@ -15691,6 +15714,7 @@ export default function DashboardShell({
     setOnboardingView,
     // Offboarding tab
     handleToggleOffboardingTask,
+    handleToggleOffboardingTaskNA,
     offbDragRef,
     offbEditingItem,
     setOffbEditingItem,

@@ -9,6 +9,7 @@ export default function OffboardingTab() {
     clients,
     isMaster,
     handleToggleOffboardingTask,
+    handleToggleOffboardingTaskNA,
     persistReorder,
     offbDragRef,
     offbEditingItem,
@@ -82,17 +83,20 @@ export default function OffboardingTab() {
           const totalTasks = OFFBOARDING_PHASES.reduce((s, p) => s + p.tasks.length, 0)
           const allValidIds = new Set(OFFBOARDING_PHASES.flatMap((p) => p.tasks.map((t) => t.id)))
           const doneCount = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter((id) => allValidIds.has(id)).length
+          const naCountOf = (rec) => (Array.isArray(rec?.na_tasks) ? rec.na_tasks : []).filter((id) => allValidIds.has(id)).length
+          const effTotalOf = (rec) => Math.max(0, totalTasks - naCountOf(rec))
+          const isCompleteRec = (rec) => { const t = effTotalOf(rec); return t > 0 ? doneCount(rec) >= t : naCountOf(rec) > 0 }
           const PHASE_COLORS = ['#ef4444', '#f97316', '#8b5cf6', '#64748b']
           const churnClients = (clients || []).filter((c) => {
             const status = String(c?.status || '').trim().toLowerCase()
             return status === 'churn'
           }).sort((a, b) => {
-            // Ordena pela Data de Entrada (mais recente primeiro); sem data vai para o fim.
-            const da = String(a.startDate || '')
-            const db = String(b.startDate || '')
-            if (da && db) return db.localeCompare(da) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
-            if (da) return -1
-            if (db) return 1
+            // Ordem de cadastro: cliente mais antigo primeiro; sem data vai para o fim.
+            const ca = String(a.createdAt || '')
+            const cb = String(b.createdAt || '')
+            if (ca && cb) return ca.localeCompare(cb) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+            if (ca) return -1
+            if (cb) return 1
             return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
           })
 
@@ -101,8 +105,9 @@ export default function OffboardingTab() {
             if (offboardingStatusFilter !== 'all') {
               const rec = offboardingRecords.find((r) => r.client_id === c.id)
               const done = doneCount(rec)
-              if (offboardingStatusFilter === 'complete' && done < totalTasks) return false
-              if (offboardingStatusFilter === 'in_progress' && (done === 0 || done >= totalTasks)) return false
+              const eff = effTotalOf(rec)
+              if (offboardingStatusFilter === 'complete' && !isCompleteRec(rec)) return false
+              if (offboardingStatusFilter === 'in_progress' && (done === 0 || done >= eff)) return false
               if (offboardingStatusFilter === 'not_started' && done > 0) return false
             }
             return true
@@ -114,12 +119,12 @@ export default function OffboardingTab() {
           }, 0)
           const completeCount = churnClients.filter((c) => {
             const rec = offboardingRecords.find((r) => r.client_id === c.id)
-            return doneCount(rec) >= totalTasks
+            return isCompleteRec(rec)
           }).length
           const inProgressCount = churnClients.filter((c) => {
             const rec = offboardingRecords.find((r) => r.client_id === c.id)
             const done = doneCount(rec)
-            return done > 0 && done < totalTasks
+            return done > 0 && done < effTotalOf(rec)
           }).length
           const notStartedCount = churnClients.length - completeCount - inProgressCount
           const overallProgress = churnClients.length > 0 ? Math.min(100, Math.round((totalDone / (churnClients.length * totalTasks)) * 100)) : 0
@@ -319,8 +324,9 @@ export default function OffboardingTab() {
                 {filteredChurnClients.map((client) => {
                   const rec = offboardingRecords.find((r) => r.client_id === client.id)
                   const done = doneCount(rec)
-                  const pct = totalTasks > 0 ? Math.min(100, Math.round((done / totalTasks) * 100)) : 0
-                  const isComplete = done >= totalTasks
+                  const eff = effTotalOf(rec)
+                  const pct = eff > 0 ? Math.min(100, Math.round((done / eff) * 100)) : 100
+                  const isComplete = isCompleteRec(rec)
                   return (
                     <button key={client.id} type="button" onClick={() => { setOffboardingExpandedClient(client); setOffboardingExpandedPhases(new Set()) }}
                       style={{ textAlign: 'left', background: 'rgba(255,255,255,0.04)', border: `1px solid ${isComplete ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.15)'}`, borderRadius: 14, padding: '16px 18px', cursor: 'pointer', color: 'inherit', transition: 'border-color .15s,background .15s' }}>
@@ -333,7 +339,7 @@ export default function OffboardingTab() {
                         {isComplete && <i className="bx bx-check-circle" style={{ color: '#22c55e', fontSize: 20 }}></i>}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: 6, opacity: 0.7 }}>
-                        <span>{done}/{totalTasks} tarefas</span>
+                        <span>{done}/{eff} tarefas</span>
                         <span>{pct}%</span>
                       </div>
                       <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
@@ -349,12 +355,15 @@ export default function OffboardingTab() {
                 const client = offboardingExpandedClient
                 const rec = offboardingRecords.find((r) => r.client_id === client.id)
                 const completedSet = new Set((Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter((id) => allValidIds.has(id)))
+                const naSet = new Set((Array.isArray(rec?.na_tasks) ? rec.na_tasks : []).filter((id) => allValidIds.has(id)))
                 const totalDoneClient = completedSet.size
-                const pct = totalTasks > 0 ? Math.min(100, Math.round((totalDoneClient / totalTasks) * 100)) : 0
+                const naCount = naSet.size
+                const effectiveTotal = Math.max(0, totalTasks - naCount)
+                const pct = effectiveTotal > 0 ? Math.min(100, Math.round((totalDoneClient / effectiveTotal) * 100)) : 100
                 return (
                   <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                     onClick={() => setOffboardingExpandedClient(null)}>
-                    <div style={{ background: 'linear-gradient(160deg,#1a0505 0%,#0f172a 100%)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
+                    <div style={{ background: 'linear-gradient(160deg,#1a0505 0%,#0f172a 100%)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
                       onClick={(e) => e.stopPropagation()}>
                       {/* Modal header */}
                       <div style={{ background: 'linear-gradient(135deg,rgba(239,68,68,0.25) 0%,rgba(239,68,68,0.05) 100%)', padding: '24px 24px 20px', borderBottom: '1px solid rgba(239,68,68,0.15)', position: 'sticky', top: 0, backdropFilter: 'blur(12px)', zIndex: 1 }}>
@@ -372,7 +381,7 @@ export default function OffboardingTab() {
                         </div>
                         <div style={{ marginTop: 14 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 6, opacity: 0.7 }}>
-                            <span>{totalDoneClient}/{totalTasks} tarefas concluídas</span>
+                            <span>{totalDoneClient}/{effectiveTotal} tarefas concluídas{naCount > 0 ? ` · ${naCount} n/a` : ''}</span>
                             <span style={{ fontWeight: 700, color: '#ef4444' }}>{pct}%</span>
                           </div>
                           <div style={{ height: 7, background: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' }}>
@@ -381,18 +390,18 @@ export default function OffboardingTab() {
                         </div>
                       </div>
                       {/* Phases */}
-                      <div style={{ padding: '16px 24px 24px' }}>
+                      <div style={{ padding: '16px 24px 24px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
                         {/* Resumo de pendências — só tarefas em aberto, por tópico */}
                         {(() => {
                           const openByPhase = OFFBOARDING_PHASES
                             .map((phase) => ({
                               phase,
-                              openTasks: phase.tasks.filter((t) => !completedSet.has(t.id)),
+                              openTasks: phase.tasks.filter((t) => !completedSet.has(t.id) && !naSet.has(t.id)),
                             }))
                             .filter((group) => group.openTasks.length > 0)
                           const totalOpen = openByPhase.reduce((sum, g) => sum + g.openTasks.length, 0)
                           return (
-                            <div style={{ marginBottom: 14 }}>
+                            <div style={{ position: 'sticky', top: 0, zIndex: 5, margin: '-16px -24px 14px', padding: '16px 24px 12px', background: 'rgba(22,8,8,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                               <button
                                 type="button"
                                 onClick={() => setPendingSummaryOpen((v) => !v)}
@@ -408,23 +417,33 @@ export default function OffboardingTab() {
                                 {totalOpen > 0 && <i className={`bx ${pendingSummaryOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.45 }}></i>}
                               </button>
                               {pendingSummaryOpen && totalOpen > 0 && (
-                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(239,68,68,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px' }}>
+                                <div style={{ background: 'rgba(22,8,8,0.96)', border: '1px solid rgba(239,68,68,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px', maxHeight: '38vh', overflowY: 'auto' }}>
                                   {openByPhase.map(({ phase, openTasks }) => (
                                     <div key={phase.id} style={{ marginBottom: 12 }}>
                                       <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>
                                       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                                         {openTasks.map((task) => (
-                                          <li key={task.id}>
+                                          <li key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <button
                                               type="button"
                                               onClick={() => handleToggleOffboardingTask(client.id, task.id)}
                                               title="Concluir tarefa"
-                                              style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, padding: '4px 6px', margin: 0, background: 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s, color 0.12s' }}
+                                              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, padding: '4px 6px', margin: 0, background: 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s, color 0.12s' }}
                                               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; e.currentTarget.style.color = '#22c55e' }}
                                               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
                                             >
                                               <i className="bx bx-circle" style={{ fontSize: 13, color: 'inherit', marginTop: 1, flexShrink: 0 }}></i>
                                               <span>{task.label}</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              title="Não se aplica"
+                                              onClick={() => handleToggleOffboardingTaskNA(client.id, task.id)}
+                                              style={{ flexShrink: 0, width: 34, height: 22, borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.35)', fontFamily: 'Inter', fontSize: '0.58rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.12s' }}
+                                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444' }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+                                            >
+                                              N/A
                                             </button>
                                           </li>
                                         ))}
@@ -439,6 +458,8 @@ export default function OffboardingTab() {
                         {OFFBOARDING_PHASES.map((phase, pi) => {
                           const phaseColor = PHASE_COLORS[pi % PHASE_COLORS.length]
                           const phaseDone = phase.tasks.filter((t) => completedSet.has(t.id)).length
+                          const phaseNa = phase.tasks.filter((t) => naSet.has(t.id)).length
+                          const phaseEffective = Math.max(0, phase.tasks.length - phaseNa)
                           const isPhaseOpen = offboardingExpandedPhases.has(phase.id)
                           const togglePhase = () => setOffboardingExpandedPhases((prev) => { const next = new Set(prev); if (next.has(phase.id)) next.delete(phase.id); else next.add(phase.id); return next })
                           return (
@@ -446,9 +467,9 @@ export default function OffboardingTab() {
                               <button type="button" onClick={togglePhase} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: `${phaseColor}14`, border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
                                 <i className={`bx ${phase.icon}`} style={{ color: phaseColor, fontSize: 18, flexShrink: 0 }}></i>
                                 <span style={{ flex: 1, fontWeight: 700, fontSize: '0.88rem' }}>{phase.label}</span>
-                                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{phaseDone}/{phase.tasks.length}</span>
+                                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{phaseDone}/{phaseEffective}</span>
                                 <div style={{ width: 48, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden', marginLeft: 8 }}>
-                                  <div style={{ height: '100%', width: `${Math.round((phaseDone / phase.tasks.length) * 100)}%`, background: phaseColor, borderRadius: 3 }}></div>
+                                  <div style={{ height: '100%', width: `${phaseEffective > 0 ? Math.round((phaseDone / phaseEffective) * 100) : 100}%`, background: phaseColor, borderRadius: 3 }}></div>
                                 </div>
                                 <i className={`bx bx-chevron-${isPhaseOpen ? 'up' : 'down'}`} style={{ fontSize: 16, opacity: 0.5, marginLeft: 4 }}></i>
                               </button>
@@ -456,14 +477,21 @@ export default function OffboardingTab() {
                                 <div style={{ padding: '8px 14px 12px' }}>
                                   {phase.tasks.map((task) => {
                                     const checked = completedSet.has(task.id)
+                                    const isNa = naSet.has(task.id)
                                     return (
-                                      <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <input type="checkbox" checked={checked} onChange={() => handleToggleOffboardingTask(client.id, task.id)} style={{ display: 'none' }} />
-                                        <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked ? phaseColor : 'rgba(255,255,255,0.2)'}`, background: checked ? phaseColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s', boxShadow: checked ? `0 0 8px ${phaseColor}80` : 'none' }}>
-                                          {checked && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
-                                        </span>
-                                        <span style={{ fontSize: '0.88rem', opacity: checked ? 0.5 : 0.9, textDecoration: checked ? 'line-through' : 'none', transition: 'opacity .15s' }}>{task.label}</span>
-                                      </label>
+                                      <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <button type="button" onClick={() => handleToggleOffboardingTask(client.id, task.id)} disabled={isNa}
+                                          style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: isNa ? 'default' : 'pointer', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', opacity: isNa ? 0.4 : 1 }}>
+                                          <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked ? phaseColor : 'rgba(255,255,255,0.2)'}`, background: checked ? phaseColor : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s', boxShadow: checked ? `0 0 8px ${phaseColor}80` : 'none' }}>
+                                            {checked && <i className="bx bx-check" style={{ fontSize: 13, color: '#fff' }}></i>}
+                                          </span>
+                                          <span style={{ fontSize: '0.88rem', opacity: checked ? 0.5 : 0.9, textDecoration: (checked || isNa) ? 'line-through' : 'none', transition: 'opacity .15s' }}>{task.label}</span>
+                                        </button>
+                                        <button type="button" title={isNa ? 'Clique para remover N/A' : 'Não se aplica'} onClick={() => handleToggleOffboardingTaskNA(client.id, task.id)}
+                                          style={{ flexShrink: 0, width: 34, height: 24, borderRadius: 7, border: `1px solid ${isNa ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: isNa ? 'rgba(239,68,68,0.18)' : 'transparent', color: isNa ? '#ef4444' : 'rgba(255,255,255,0.3)', fontFamily: 'Inter', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
+                                          N/A
+                                        </button>
+                                      </div>
                                     )
                                   })}
                                 </div>

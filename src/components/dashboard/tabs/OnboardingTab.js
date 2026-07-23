@@ -247,12 +247,12 @@ export default function OnboardingTab() {
             }
             return true
           }).sort((a, b) => {
-            // Ordena pela Data de Entrada (mais recente primeiro); sem data vai para o fim.
-            const da = String(a.startDate || '')
-            const db = String(b.startDate || '')
-            if (da && db) return db.localeCompare(da) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
-            if (da) return -1
-            if (db) return 1
+            // Ordem de cadastro: cliente mais antigo primeiro; sem data vai para o fim.
+            const ca = String(a.createdAt || '')
+            const cb = String(b.createdAt || '')
+            if (ca && cb) return ca.localeCompare(cb) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+            if (ca) return -1
+            if (cb) return 1
             return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
           })
           const totalClients = onboardingClients.length
@@ -708,7 +708,7 @@ export default function OnboardingTab() {
                             .filter((group) => group.openTasks.length > 0)
                           const totalOpen = openByPhase.reduce((sum, g) => sum + g.openTasks.length, 0)
                           return (
-                            <div style={{ marginBottom: 14 }}>
+                            <div style={{ position: 'sticky', top: 0, zIndex: 5, margin: '-20px -28px 14px', padding: '16px 28px 12px', background: 'rgba(13,26,20,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                               <button
                                 type="button"
                                 onClick={() => setPendingSummaryOpen((v) => !v)}
@@ -724,23 +724,33 @@ export default function OnboardingTab() {
                                 {totalOpen > 0 && <i className={`bx ${pendingSummaryOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.45 }}></i>}
                               </button>
                               {pendingSummaryOpen && totalOpen > 0 && (
-                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px' }}>
+                                <div style={{ background: 'rgba(20,16,8,0.96)', border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px', maxHeight: '38vh', overflowY: 'auto' }}>
                                   {openByPhase.map(({ phase, openTasks }) => (
                                     <div key={phase.id} style={{ marginBottom: 12 }}>
                                       <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>
                                       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                                         {openTasks.map((task) => (
-                                          <li key={task.id}>
+                                          <li key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <button
                                               type="button"
                                               onClick={() => handleToggleOnboardingTask(modalClient.id, task.id)}
                                               title="Concluir tarefa"
-                                              style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, padding: '4px 6px', margin: 0, background: 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s, color 0.12s' }}
+                                              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, padding: '4px 6px', margin: 0, background: 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', transition: 'background 0.12s, color 0.12s' }}
                                               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; e.currentTarget.style.color = '#22c55e' }}
                                               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
                                             >
                                               <i className="bx bx-circle" style={{ fontSize: 13, color: 'inherit', marginTop: 1, flexShrink: 0 }}></i>
                                               <span>{task.label}</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              title="Não se aplica"
+                                              onClick={() => handleToggleOnboardingTaskNA(modalClient.id, task.id)}
+                                              style={{ flexShrink: 0, width: 34, height: 22, borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.35)', fontFamily: 'Inter', fontSize: '0.58rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.12s' }}
+                                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)'; e.currentTarget.style.color = '#ef4444' }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+                                            >
+                                              N/A
                                             </button>
                                           </li>
                                         ))}

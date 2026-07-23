@@ -39,6 +39,7 @@ export async function POST(request) {
     if (!clientId) return NextResponse.json({ error: 'clientId obrigatório.' }, { status: 400 })
 
     const completedTasks = Array.isArray(body.completedTasks) ? body.completedTasks : []
+    const naTasks = Array.isArray(body.naTasks) ? body.naTasks : []
     const notes = String(body.notes || '')
     const now = new Date().toISOString()
 
@@ -49,6 +50,7 @@ export async function POST(request) {
           workspace_id: ctx.accessContext.workspaceId,
           client_id: clientId,
           completed_tasks: completedTasks,
+          na_tasks: naTasks,
           notes,
           updated_by: ctx.user.id,
           updated_at: now,
