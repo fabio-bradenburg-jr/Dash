@@ -3605,7 +3605,7 @@ export default function DashboardShell({
     email: '',
     password: '',
     role: 'visualizador',
-    roleId: '',
+    pages: [],
     canEditIntegrations: false,
     clientIds: [],
     clientGroupIds: [],
@@ -8827,13 +8827,12 @@ export default function DashboardShell({
         throw new Error(data.error || 'Não foi possível criar o usuário.')
       }
 
-      // Modelo "função = páginas": se uma função foi escolhida na criação, atribui já
-      // (materializa as páginas da função nos acessos do novo usuário).
-      if (data.userId && userForm.roleId && userForm.role !== 'master' && userForm.role !== 'cliente') {
-        await fetch('/api/roles/users', {
-          method: 'PUT',
+      // Acesso por página: salva as páginas selecionadas direto no novo usuário.
+      if (data.userId && userForm.role !== 'master' && userForm.role !== 'cliente' && Array.isArray(userForm.pages)) {
+        await fetch('/api/nav-permissions', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: data.userId, role_ids: [userForm.roleId], primary_role_id: userForm.roleId }),
+          body: JSON.stringify({ userId: data.userId, pages: userForm.pages }),
         })
       }
 

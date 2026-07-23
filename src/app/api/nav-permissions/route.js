@@ -37,10 +37,19 @@ export async function POST(request) {
 
     const body = await request.json()
     const userId = String(body.userId || '').trim()
+    if (!userId) return NextResponse.json({ error: 'userId obrigatório.' }, { status: 400 })
+
+    // Modo em lote: substitui todas as páginas do usuário por `pages` (usado ao criar/editar).
+    if (Array.isArray(body.pages)) {
+      const { materializeUserPages } = await import('@/lib/server/nav-permissions')
+      await materializeUserPages(ctx.adminSupabase, ctx.accessContext.workspaceId, userId, body.pages)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Modo individual: liga/desliga uma página.
     const pageKey = String(body.pageKey || '').trim()
     const granted = Boolean(body.granted)
-
-    if (!userId || !pageKey) return NextResponse.json({ error: 'userId e pageKey obrigatórios.' }, { status: 400 })
+    if (!pageKey) return NextResponse.json({ error: 'pageKey obrigatório.' }, { status: 400 })
 
     const { error } = await ctx.adminSupabase
       .from('workspace_nav_permissions')
