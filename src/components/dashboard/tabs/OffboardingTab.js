@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
 export default function OffboardingTab() {
@@ -36,6 +37,14 @@ export default function OffboardingTab() {
     offboardingStatusFilter,
     setOffboardingStatusFilter,
   } = useDashboard()
+
+  // Trava a rolagem da página enquanto o pop-up do checklist está aberto.
+  useEffect(() => {
+    if (!offboardingExpandedClient) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [offboardingExpandedClient])
 
   return (
     <>
@@ -360,7 +369,8 @@ export default function OffboardingTab() {
                 const naCount = naSet.size
                 const effectiveTotal = Math.max(0, totalTasks - naCount)
                 const pct = effectiveTotal > 0 ? Math.min(100, Math.round((totalDoneClient / effectiveTotal) * 100)) : 100
-                return (
+                if (typeof document === 'undefined') return null
+                return createPortal((
                   <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
                     onClick={() => setOffboardingExpandedClient(null)}>
                     <div style={{ background: 'linear-gradient(160deg,#1a0505 0%,#0f172a 100%)', borderRadius: 18, width: '100%', maxWidth: 640, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid rgba(239,68,68,0.2)', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}
@@ -502,7 +512,7 @@ export default function OffboardingTab() {
                       </div>
                     </div>
                   </div>
-                )
+                ), document.body)
               })()}
             </section>
           )

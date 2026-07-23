@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 
@@ -46,6 +47,14 @@ export default function OnboardingTab() {
     onboardingView,
     setOnboardingView,
   } = useDashboard()
+
+  // Trava a rolagem da página enquanto o pop-up do checklist está aberto.
+  useEffect(() => {
+    if (!onboardingExpandedClient) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [onboardingExpandedClient])
 
           const ONBOARDING_PHASES_FALLBACK = [
             {
@@ -644,7 +653,8 @@ export default function OnboardingTab() {
                 const effectiveTotal = Math.max(0, totalTasks - naCount)
                 const progress = effectiveTotal > 0 ? Math.min(100, Math.round((completedCount / effectiveTotal) * 100)) : 100
                 const pendingCount = Math.max(0, effectiveTotal - completedCount)
-                return (
+                if (typeof document === 'undefined') return null
+                return createPortal((
                   <div
                     onClick={() => setOnboardingExpandedClient(null)}
                     style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', overflow: 'hidden' }}
@@ -845,7 +855,7 @@ export default function OnboardingTab() {
                       </div>
                     </div>
                   </div>
-                )
+                ), document.body)
               })()}
             </section>
             {onboardingQuickAccess && (() => {
