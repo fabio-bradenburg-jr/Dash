@@ -647,11 +647,11 @@ export default function OnboardingTab() {
                 return (
                   <div
                     onClick={() => setOnboardingExpandedClient(null)}
-                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', overflow: 'hidden' }}
                   >
                     <div
                       onClick={(e) => e.stopPropagation()}
-                      style={{ width: '100%', maxWidth: 720, borderRadius: 24, background: 'linear-gradient(160deg,#0f172a 0%,#0d1f17 100%)', border: '1px solid rgba(38,194,129,0.2)', boxShadow: '0 32px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(38,194,129,0.06)', overflow: 'hidden', marginBottom: 24 }}
+                      style={{ width: '100%', maxWidth: 720, maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: 24, background: 'linear-gradient(160deg,#0f172a 0%,#0d1f17 100%)', border: '1px solid rgba(38,194,129,0.2)', boxShadow: '0 32px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(38,194,129,0.06)', overflow: 'hidden' }}
                     >
                       {/* Hero header */}
                       <div style={{ position: 'relative', padding: '28px 28px 22px', background: 'linear-gradient(135deg,rgba(38,194,129,0.1) 0%,rgba(34,197,94,0.04) 100%)', borderBottom: '1px solid rgba(38,194,129,0.12)' }}>
@@ -697,7 +697,7 @@ export default function OnboardingTab() {
                       </div>
 
                       {/* Modal body — phases + tasks */}
-                      <div style={{ padding: '20px 28px 28px', maxHeight: '65vh', overflowY: 'auto' }}>
+                      <div style={{ padding: '20px 28px 28px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                         {/* Resumo de pendências — só tarefas em aberto, por tópico */}
                         {(() => {
                           const openByPhase = ONBOARDING_PHASES
@@ -708,7 +708,7 @@ export default function OnboardingTab() {
                             .filter((group) => group.openTasks.length > 0)
                           const totalOpen = openByPhase.reduce((sum, g) => sum + g.openTasks.length, 0)
                           return (
-                            <div style={{ position: 'sticky', top: 0, zIndex: 5, margin: '-20px -28px 14px', padding: '16px 28px 12px', background: 'rgba(13,26,20,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ marginBottom: 14 }}>
                               <button
                                 type="button"
                                 onClick={() => setPendingSummaryOpen((v) => !v)}
@@ -724,7 +724,7 @@ export default function OnboardingTab() {
                                 {totalOpen > 0 && <i className={`bx ${pendingSummaryOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.45 }}></i>}
                               </button>
                               {pendingSummaryOpen && totalOpen > 0 && (
-                                <div style={{ background: 'rgba(20,16,8,0.96)', border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px', maxHeight: '38vh', overflowY: 'auto' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(245,158,11,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px' }}>
                                   {openByPhase.map(({ phase, openTasks }) => (
                                     <div key={phase.id} style={{ marginBottom: 12 }}>
                                       <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>

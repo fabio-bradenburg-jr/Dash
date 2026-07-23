@@ -401,7 +401,7 @@ export default function OffboardingTab() {
                             .filter((group) => group.openTasks.length > 0)
                           const totalOpen = openByPhase.reduce((sum, g) => sum + g.openTasks.length, 0)
                           return (
-                            <div style={{ position: 'sticky', top: 0, zIndex: 5, margin: '-16px -24px 14px', padding: '16px 24px 12px', background: 'rgba(22,8,8,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ marginBottom: 14 }}>
                               <button
                                 type="button"
                                 onClick={() => setPendingSummaryOpen((v) => !v)}
@@ -417,7 +417,7 @@ export default function OffboardingTab() {
                                 {totalOpen > 0 && <i className={`bx ${pendingSummaryOpen ? 'bx-chevron-up' : 'bx-chevron-down'}`} style={{ fontSize: 18, opacity: 0.45 }}></i>}
                               </button>
                               {pendingSummaryOpen && totalOpen > 0 && (
-                                <div style={{ background: 'rgba(22,8,8,0.96)', border: '1px solid rgba(239,68,68,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px', maxHeight: '38vh', overflowY: 'auto' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(239,68,68,0.25)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '12px 16px 14px' }}>
                                   {openByPhase.map(({ phase, openTasks }) => (
                                     <div key={phase.id} style={{ marginBottom: 12 }}>
                                       <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>{phase.label}</div>
