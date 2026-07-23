@@ -1281,11 +1281,22 @@ export async function saveDashboardState(
     const submittedClientIds = new Set(submittedClients.map((client) => client.id))
     const existingClientIds = (existingClientRows || []).map((row) => row.id)
 
-    if (submittedClients.length > 0) {
+    // Persistência incremental: o front pode enviar `changedClientIds` (clientes
+    // que realmente mudaram). Nesse caso gravamos só esses — evita reescrever o
+    // payload (grande) de todos os clientes a cada alteração. Sem o hint, grava
+    // todos (comportamento seguro anterior). Remoções continuam pelo diff abaixo.
+    const changedIdsHint = Array.isArray((state as any).changedClientIds)
+      ? new Set<string>((state as any).changedClientIds as string[])
+      : null
+    const clientsToUpsert = changedIdsHint
+      ? submittedClients.filter((client) => changedIdsHint.has(client.id))
+      : submittedClients
+
+    if (clientsToUpsert.length > 0) {
       const { error: upsertError } = await adminSupabase
         .from('workspace_clients')
         .upsert(
-          submittedClients.map((client) => ({
+          clientsToUpsert.map((client) => ({
             workspace_id: accessContext.workspaceId,
             id: client.id,
             name: client.name,

@@ -3240,6 +3240,9 @@ export default function DashboardShell({
   const supabase = createClient()
   const dashboardRef = useRef(null)
   const campaignsRef = useRef([])
+  // Snapshot do último save de clientes (id → JSON) p/ persistência incremental.
+  const lastSavedClientsRef = useRef(new Map())
+  const lastSavedGlobalIntegrationsRef = useRef(null)
   const hasOpenedDashboardEntryRef = useRef(false)
   const lastMetaStructureFetchKeyRef = useRef('')
   const lastCompletedMetaStructureFetchKeyRef = useRef('')
@@ -8747,6 +8750,22 @@ export default function DashboardShell({
       ...overrides,
     }
 
+    // Persistência incremental: envia apenas os clientes que mudaram desde o
+    // último save (diff local). Se algo impedir a certeza — primeiro save da
+    // sessão ou integrações globais alteradas (que entram no payload de todo
+    // cliente) — enviamos sem o hint e o servidor grava todos (seguro).
+    const outgoingClients = Array.isArray(state.clients) ? state.clients : []
+    const outgoingGlobalStr = JSON.stringify(state.globalIntegrations ?? null)
+    const prevMap = lastSavedClientsRef.current
+    const globalUnchanged = lastSavedGlobalIntegrationsRef.current === outgoingGlobalStr
+    if (prevMap && prevMap.size > 0 && globalUnchanged) {
+      const changedClientIds = []
+      for (const c of outgoingClients) {
+        if (prevMap.get(c.id) !== JSON.stringify(c)) changedClientIds.push(c.id)
+      }
+      state.changedClientIds = changedClientIds
+    }
+
     const response = await fetch('/api/dashboard/state', {
       method: 'PUT',
       headers: {
@@ -8759,6 +8778,13 @@ export default function DashboardShell({
     if (!response.ok) {
       throw new Error(data?.error || 'Não foi possível salvar o workspace no Supabase antes de liberar o usuário.')
     }
+
+    // Save bem-sucedido: o banco agora reflete todos os clientes enviados
+    // (os pulados já estavam corretos). Atualiza o snapshot para o próximo diff.
+    const nextMap = new Map()
+    for (const c of outgoingClients) nextMap.set(c.id, JSON.stringify(c))
+    lastSavedClientsRef.current = nextMap
+    lastSavedGlobalIntegrationsRef.current = outgoingGlobalStr
 
     return data
   }

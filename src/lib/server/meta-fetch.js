@@ -196,18 +196,8 @@ async function writePersistentMetaCache({ cacheKey, clientKey, resourceKind, req
 
     if (latestCacheError) throw latestCacheError
 
-    const { error: historyError } = await supabase
-      .from('meta_api_cache_history')
-      .insert({
-        cache_key: cacheKey,
-        client_key: clientKey,
-        resource_kind: resourceKind,
-        request_path: requestPath,
-        payload: data,
-        fetched_at: fetchedAt,
-      })
-
-    if (historyError) throw historyError
+    // meta_api_cache_history removido: era um log append-only nunca lido pelo app,
+    // que crescia sem limite (131 MB) e dobrava as gravações por chamada do Meta.
   } catch {
     // Cache persistence must never prevent the live Meta response from reaching the dashboard.
   }
