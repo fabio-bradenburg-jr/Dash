@@ -3820,6 +3820,21 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     }
   }, [isRotinasMode, loading, spaces, selectedSpace])
 
+  // Reabre no último espaço que o usuário estava (modo padrão), para uma tarefa
+  // recém-criada não "sumir" ao recarregar — ela fica no espaço, é só reabri-lo.
+  const spaceRestoredRef = useRef(false)
+  useEffect(() => {
+    if (isRotinasMode || loading || spaceRestoredRef.current || !spaces.length) return
+    spaceRestoredRef.current = true
+    if (view !== 'home' || selectedSpace) return
+    try {
+      const savedId = localStorage.getItem('nype_tasks_last_space')
+      if (!savedId) return
+      const sp = spaces.find(s => s.id === savedId && s.space_type !== 'rotinas' && !s.is_archived)
+      if (sp) { setSelectedSpace(sp); setView('space') }
+    } catch {}
+  }, [isRotinasMode, loading, spaces, view, selectedSpace])
+
   async function handleAddTask(fields) {
     // Default assignee to current user so the task remains visible under "Minhas tarefas" filter
     const payload = {
@@ -4012,7 +4027,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             workspaceUsers={allUsers}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onNewSpace={() => setShowNewSpaceModal(true)}
-            onSpaceClick={space => { setSelectedSpace(space); setView('space') }}
+            onSpaceClick={space => { setSelectedSpace(space); setView('space'); try { localStorage.setItem('nype_tasks_last_space', space.id) } catch {} }}
             onSpaceUpdated={handleSpaceUpdated}
             onSpaceDeleted={handleSpaceDeleted}
             onSpaceCreated={handleSpaceCreated}
@@ -4049,7 +4064,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             statuses={statuses}
             clients={clients}
             workspaceUsers={allUsers}
-            onBack={() => { setView('home'); setSelectedSpace(null) }}
+            onBack={() => { setView('home'); setSelectedSpace(null); try { localStorage.removeItem('nype_tasks_last_space') } catch {} }}
             onOpenPanel={task => setSelectedTaskId(task.id)}
             onQuickUpdate={handleQuickUpdate}
             onAddTask={handleAddTask}
