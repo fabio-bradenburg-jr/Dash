@@ -4154,7 +4154,7 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
               </button>
             </div>
             <div style={{ flex: 1 }}>
-              <AutomationsTab workspaceUsers={allUsers} isMaster={isMaster} />
+              <AutomationsTab workspaceUsers={allUsers} isMaster={isMaster} defaultSpaceId={selectedSpace?.id || ''} />
             </div>
           </div>
         </>

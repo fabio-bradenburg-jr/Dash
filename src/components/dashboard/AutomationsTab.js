@@ -114,12 +114,12 @@ function Select({ value, onChange, options, style = {} }) {
 }
 
 // ── AutomationBuilder ────────────────────────────────────────
-function AutomationBuilder({ automation, onSave, onCancel, spaces = [], statuses = [], users = [] }) {
+function AutomationBuilder({ automation, onSave, onCancel, spaces = [], statuses = [], users = [], defaultSpaceId = '' }) {
   const [name, setName] = useState(automation?.name || '')
   const [description, setDescription] = useState(automation?.description || '')
   const [isActive, setIsActive] = useState(automation?.is_active !== false)
   const [triggerType, setTriggerType] = useState(automation?.triggers?.[0]?.trigger_type || 'task_created')
-  const [triggerConfig, setTriggerConfig] = useState(automation?.triggers?.[0]?.config || {})
+  const [triggerConfig, setTriggerConfig] = useState(automation?.triggers?.[0]?.config || (defaultSpaceId ? { space_id: defaultSpaceId } : {}))
   const [conditions, setConditions] = useState(automation?.conditions || [])
   const [actions, setActions] = useState(automation?.actions || [{ action_type: 'send_notification', config: {}, sort_order: 0 }])
   const [saving, setSaving] = useState(false)
@@ -181,8 +181,16 @@ function AutomationBuilder({ automation, onSave, onCancel, spaces = [], statuses
 
       {/* WHEN */}
       <SectionCard title="QUANDO (gatilho)" icon="bx-zap" accent="#f59e0b">
-        <Select value={triggerType} onChange={v => { setTriggerType(v); setTriggerConfig({}) }}
+        <Select value={triggerType} onChange={v => { setTriggerType(v); setTriggerConfig(c => (c.space_id ? { space_id: c.space_id } : {})) }}
           options={TRIGGER_TYPES} style={{ width: '100%' }} />
+        {triggerType.startsWith('task_') && (
+          <div style={{ marginTop: 10 }}>
+            <span style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Aplicar no espaço</span>
+            <Select value={triggerConfig.space_id || ''} onChange={v => setTriggerConfig(c => ({ ...c, space_id: v }))}
+              options={[{ value: '', label: 'Todos os espaços' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
+              style={{ width: '100%' }} />
+          </div>
+        )}
         {triggerType === 'task_due_soon' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <span style={{ fontSize: 12, color: '#94a3b8' }}>Dias antes:</span>
@@ -452,7 +460,7 @@ function RecurringTaskBuilder({ task, onSave, onCancel, spaces = [], statuses = 
 }
 
 // ── Main AutomationsTab ──────────────────────────────────────
-export default function AutomationsTab({ workspaceUsers = [], isMaster = false }) {
+export default function AutomationsTab({ workspaceUsers = [], isMaster = false, defaultSpaceId = '' }) {
   const [tab, setTab] = useState('automations') // 'automations' | 'recurring'
   const [automations, setAutomations] = useState([])
   const [recurringTasks, setRecurringTasks] = useState([])
@@ -559,7 +567,7 @@ export default function AutomationsTab({ workspaceUsers = [], isMaster = false }
             : (editing ? 'Editar tarefa recorrente' : 'Nova tarefa recorrente')}
         </h2>
         {tab === 'automations'
-          ? <AutomationBuilder automation={editing} onSave={saveAutomation} onCancel={() => { setShowBuilder(false); setEditing(null) }} spaces={spaces} statuses={statuses} users={workspaceUsers} />
+          ? <AutomationBuilder automation={editing} onSave={saveAutomation} onCancel={() => { setShowBuilder(false); setEditing(null) }} spaces={spaces} statuses={statuses} users={workspaceUsers} defaultSpaceId={defaultSpaceId} />
           : <RecurringTaskBuilder task={editing} onSave={saveRecurring} onCancel={() => { setShowBuilder(false); setEditing(null) }} spaces={spaces} statuses={statuses} users={workspaceUsers} />
         }
       </div>

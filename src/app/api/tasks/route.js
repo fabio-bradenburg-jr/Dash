@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/server/supabase-admin'
 import { getAccessContext } from '@/lib/server/access-control'
 import { resolveAuthContext } from '@/lib/server/auth-context'
+import { runTaskAutomations } from '@/lib/server/task-automations'
 
 async function getAuthContext() {
   const ctx = await resolveAuthContext()
@@ -145,6 +146,14 @@ export async function POST(request) {
       .single()
 
     if (error) throw error
+
+    // Dispara automações do evento "tarefa criada" (respeitando o espaço do gatilho).
+    await runTaskAutomations(ctx.adminSupabase, {
+      workspaceId: ctx.accessContext.workspaceId,
+      triggerType: 'task_created',
+      task: data,
+    })
+
     const si = data.task_status_items
     return NextResponse.json({ task: {
       ...data,
@@ -226,6 +235,18 @@ export async function PUT(request) {
       .single()
 
     if (error) throw error
+
+    // Automações: mudança de status e conclusão (respeitam o espaço do gatilho).
+    try {
+      const prevStatus = currentTask?.status_item_id ?? null
+      const nextStatus = data.status_item_id ?? null
+      if (newStatusItemId !== undefined && nextStatus !== prevStatus) {
+        await runTaskAutomations(ctx.adminSupabase, { workspaceId: ctx.accessContext.workspaceId, triggerType: 'task_status_changed', task: data })
+      }
+      if (data.closed_at && !currentTask?.closed_at) {
+        await runTaskAutomations(ctx.adminSupabase, { workspaceId: ctx.accessContext.workspaceId, triggerType: 'task_completed', task: data })
+      }
+    } catch { /* automação nunca quebra a atualização */ }
 
     // Log activity
     let action = null

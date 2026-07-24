@@ -69,7 +69,9 @@ export async function executeAction(action, ctx) {
         title: interpolate(config.title || 'Nova tarefa', triggerData),
         description: config.description ? interpolate(config.description, triggerData) : null,
         priority: config.priority || 'none',
-        status_id: config.status_id || null,
+        // coluna real é status_item_id; space_id herda do espaço-alvo ou do gatilho.
+        status_item_id: config.status_id || config.status_item_id || null,
+        space_id: config.space_id || triggerData?.space_id || null,
         assignee_id: config.assignee_id || null,
         client_id: config.client_id || null,
         due_date: config.due_date || null,
@@ -78,6 +80,36 @@ export async function executeAction(action, ctx) {
       const { data, error } = await adminSupabase.from('tasks').insert(insert).select().single()
       if (error) throw error
       return { task: data }
+    }
+
+    // Ações sobre a tarefa que disparou a automação (ou config.task_id).
+    case 'change_status':
+    case 'change_assignee':
+    case 'change_priority':
+    case 'move_task': {
+      const taskId = config.task_id || triggerData?.task_id
+      if (!taskId) return { skipped: 'sem task_id' }
+      const updates = { updated_at: new Date().toISOString() }
+      if (action.action_type === 'change_status') updates.status_item_id = config.status_id || config.status_item_id || null
+      if (action.action_type === 'change_assignee') updates.assignee_id = config.assignee_id || null
+      if (action.action_type === 'change_priority') updates.priority = config.priority || 'none'
+      if (action.action_type === 'move_task') updates.space_id = config.space_id || null
+      const { data, error } = await adminSupabase
+        .from('tasks').update(updates).eq('id', taskId).eq('workspace_id', workspaceId).select().single()
+      if (error) throw error
+      return { task: data }
+    }
+
+    case 'add_comment': {
+      const taskId = config.task_id || triggerData?.task_id
+      if (!taskId) return { skipped: 'sem task_id' }
+      const content = interpolate(config.message || config.content || '', triggerData)
+      try {
+        await adminSupabase.from('task_comments').insert({ task_id: taskId, content, created_at: new Date().toISOString() })
+      } catch (e) {
+        return { skipped: 'task_comments indisponível' }
+      }
+      return { content }
     }
 
     case 'update_task': {
@@ -129,7 +161,8 @@ export async function executeAction(action, ctx) {
     }
 
     default:
-      throw new Error(`Unknown action_type: ${action.action_type}`)
+      // Ação ainda não suportada: ignora sem quebrar a automação.
+      return { skipped: `action_type não suportado: ${action.action_type}` }
   }
 }
 
