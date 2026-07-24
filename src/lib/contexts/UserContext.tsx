@@ -97,6 +97,41 @@ function buildPlatformAccess(profile: UserProfile, platformUser: PlatformSession
   }
 }
 
+// Fallback de acesso para o admin principal quando /api/me falha (ex.: timeout do
+// banco). Como o e-mail vem da sessão, é seguro forçar master — evita que o admin
+// principal seja trancado por uma falha transitória.
+function buildAdminFallback(sessionUser: User): { profile: UserProfile; access: AccessContextValue } {
+  const email = sessionUser.email || PRIMARY_ADMIN_EMAIL
+  const profile: UserProfile = {
+    id: sessionUser.id,
+    email,
+    full_name: (sessionUser.user_metadata as { full_name?: string } | undefined)?.full_name || email,
+    avatar_url: '',
+    role: 'master',
+    ai_access_level: 'master',
+    can_edit_integrations: true,
+    workspace_id: null,
+  }
+  const access: AccessContextValue = {
+    profile,
+    role: 'master',
+    workspaceId: null,
+    workspace: null,
+    workspaceBranding: null,
+    isWorkspaceOwner: true,
+    canManageUsers: true,
+    canManageClients: true,
+    canEditIntegrations: true,
+    canViewDashboard: true,
+    canUseAi: true,
+    aiAccessLevel: 'master',
+    isClientRole: false,
+    viewableClientIds: [],
+    editableClientIds: [],
+  }
+  return { profile, access }
+}
+
 function buildPlatformUser(platformUser: PlatformSessionUser): User {
   return {
     id: platformUser.id,
@@ -122,31 +157,41 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
-    const loadProfile = async () => {
-      try {
-        const response = await fetch('/api/me', { cache: 'no-store' })
-        if (!response.ok) {
-          if (isMounted) {
-            setProfile(null)
-            setAccess(null)
+    const loadProfile = async (sessionUser?: User | null) => {
+      // Tenta algumas vezes: /api/me pode falhar por timeout transitório do banco.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await fetch('/api/me', { cache: 'no-store' })
+          if (response.ok) {
+            const data = (await response.json()) as MeResponse
+            if (isMounted) {
+              setProfile(data.profile || null)
+              setAccess(data.access || null)
+            }
+            return true
           }
-          return false
+        } catch (error) {
+          console.error('Erro ao carregar perfil do usuário:', error)
         }
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 700 * (attempt + 1)))
+      }
 
-        const data = (await response.json()) as MeResponse
+      // Ainda falhou. Não tranca o admin principal por falha transitória:
+      // mantém master localmente (o e-mail vem da sessão autenticada).
+      if (sessionUser && isPrimaryAdminEmail(sessionUser.email)) {
+        const fallback = buildAdminFallback(sessionUser)
         if (isMounted) {
-          setProfile(data.profile || null)
-          setAccess(data.access || null)
+          setProfile(fallback.profile)
+          setAccess(fallback.access)
         }
         return true
-      } catch (error) {
-        console.error('Erro ao carregar perfil do usuário:', error)
-        if (isMounted) {
-          setProfile(null)
-          setAccess(null)
-        }
-        return false
       }
+
+      if (isMounted) {
+        setProfile(null)
+        setAccess(null)
+      }
+      return false
     }
 
     const loadPlatformSession = async () => {
@@ -189,7 +234,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUser(session.user)
           setAppearance(loadUserAppearance(session.user.id) as UserAppearance)
         }
-        await loadProfile()
+        await loadProfile(session.user)
       } else {
         const hasPlatformSession = await loadPlatformSession()
         if (!hasPlatformSession) clearSession()
@@ -208,7 +253,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUser(session.user)
           setAppearance(loadUserAppearance(session.user.id) as UserAppearance)
         }
-        await loadProfile()
+        await loadProfile(session.user)
         return
       }
 
