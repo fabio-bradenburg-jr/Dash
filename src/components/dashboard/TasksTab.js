@@ -3452,7 +3452,7 @@ function ViewsManager({ views, spaceId, currentConfig, currentUserId, onClose, o
 }
 
 // ---- SpaceView (with view mode switcher) ----
-function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, onViewModeChange, columns, onColumnsChange, customFields, onDeleteSpace, filterAssignees, filterClient, showClosedTasks, currentUserId }) {
+function SpaceView({ space, tasks, statuses, statusTemplates = [], onChangeStatusTemplate, clients, workspaceUsers, onBack, onOpenPanel, onQuickUpdate, onAddTask, onNewTask, viewMode, onViewModeChange, columns, onColumnsChange, customFields, onDeleteSpace, filterAssignees, filterClient, showClosedTasks, currentUserId }) {
   const spaceTasks = tasks.filter(t => t.space_id === space.id)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showSaveView, setShowSaveView] = useState(false)
@@ -3540,6 +3540,21 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
             </button>
           ))}
         </div>
+
+        {/* Conjunto de status usado por este espaço (templates reutilizáveis) */}
+        {statusTemplates.length > 0 && onChangeStatusTemplate && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }} title="Conjunto de status deste espaço">
+            <i className="bx bx-palette" style={{ fontSize: 15, color: '#64748b' }} />
+            <select
+              value={space.status_template_id || ''}
+              onChange={e => onChangeStatusTemplate(space.id, e.target.value)}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', borderRadius: 7, padding: '5px 8px', fontSize: '0.8rem', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">Status padrão</option>
+              {statusTemplates.map(t => <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (padrão)' : ''}</option>)}
+            </select>
+          </div>
+        )}
 
         {viewMode === 'table' && (
           <ColumnManager columns={columns} onChange={onColumnsChange} customFields={customFields || []} />
@@ -3708,7 +3723,7 @@ function SpaceView({ space, tasks, statuses, clients, workspaceUsers, onBack, on
 // ---- Main Component ----
 export default function TasksTab({ clients, workspaceUsers, isMaster, currentUserId, mode = 'tarefas' }) {
   const isRotinasMode = mode === 'rotinas'
-  const [statuses, setStatuses] = useState([])
+  const [statusTemplates, setStatusTemplates] = useState([])
   const [tasks, setTasks] = useState([])
   const [spaces, setSpaces] = useState([])
   const [customFields, setCustomFields] = useState([])
@@ -3736,21 +3751,36 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
     try {
       const res = await fetch('/api/tasks/status-templates')
       const json = await res.json()
-      if (json.templates?.length) {
-        const defaultTmpl = json.templates.find(t => t.is_default) || json.templates[0]
-        setStatuses((defaultTmpl.items || []).map(item => ({
-          id: item.id,
-          label: item.name,
-          color: item.color,
-          is_completed: item.is_completed,
-          is_initial: item.is_initial,
-          is_closed: item.is_closed,
-          pauses_sla: item.pauses_sla,
-          sort_order: item.sort_order,
-        })))
-      }
+      if (json.templates?.length) setStatusTemplates(json.templates)
     } catch {}
   }, [])
+
+  // Converte itens de um template no formato de status usado pela UI.
+  const mapStatusItems = (items) => (items || []).map(item => ({
+    id: item.id,
+    label: item.name,
+    color: item.color,
+    is_completed: item.is_completed,
+    is_initial: item.is_initial,
+    is_closed: item.is_closed,
+    pauses_sla: item.pauses_sla,
+    sort_order: item.sort_order,
+  }))
+
+  // Status do contexto atual: usa o template do espaço aberto; senão o padrão.
+  const defaultTemplate = statusTemplates.find(t => t.is_default) || statusTemplates[0] || null
+  const activeTemplate = (selectedSpace?.status_template_id && statusTemplates.find(t => t.id === selectedSpace.status_template_id)) || defaultTemplate
+  const statuses = mapStatusItems(activeTemplate?.items)
+
+  // Define qual conjunto de status (template) um espaço usa.
+  async function handleSpaceTemplateChange(spaceId, templateId) {
+    const next = templateId || null
+    setSpaces(prev => prev.map(s => s.id === spaceId ? { ...s, status_template_id: next } : s))
+    setSelectedSpace(prev => (prev && prev.id === spaceId ? { ...prev, status_template_id: next } : prev))
+    try {
+      await fetch('/api/tasks/spaces', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: spaceId, status_template_id: next }) })
+    } catch {}
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -4062,6 +4092,8 @@ export default function TasksTab({ clients, workspaceUsers, isMaster, currentUse
             space={selectedSpace}
             tasks={filteredTasks}
             statuses={statuses}
+            statusTemplates={statusTemplates}
+            onChangeStatusTemplate={handleSpaceTemplateChange}
             clients={clients}
             workspaceUsers={allUsers}
             onBack={() => { setView('home'); setSelectedSpace(null); try { localStorage.removeItem('nype_tasks_last_space') } catch {} }}

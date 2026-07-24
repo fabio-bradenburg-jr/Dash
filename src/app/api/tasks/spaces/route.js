@@ -163,6 +163,7 @@ export async function PUT(request) {
     if (body.sort_order !== undefined) updates.sort_order = Number(body.sort_order)
     if (body.default_view !== undefined) updates.default_view = String(body.default_view)
     if (body.space_type !== undefined) updates.space_type = String(body.space_type)
+    if (body.status_template_id !== undefined) updates.status_template_id = body.status_template_id || null
     if (body.is_archived !== undefined) {
       updates.is_archived = Boolean(body.is_archived)
       updates.archived_at = body.is_archived ? new Date().toISOString() : null
