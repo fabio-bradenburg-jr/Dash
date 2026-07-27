@@ -103,7 +103,7 @@ export async function executeAction(action, ctx) {
     case 'add_comment': {
       const taskId = config.task_id || triggerData?.task_id
       if (!taskId) return { skipped: 'sem task_id' }
-      const content = interpolate(config.message || config.content || '', triggerData)
+      const content = interpolate(config.message || config.content || config.body || '', triggerData)
       try {
         await adminSupabase.from('task_comments').insert({ task_id: taskId, content, created_at: new Date().toISOString() })
       } catch (e) {
@@ -146,6 +146,43 @@ export async function executeAction(action, ctx) {
         console.warn('send_notification: notifications table not available')
       }
       return { message }
+    }
+
+    case 'send_ad_accounts': {
+      // Lê as contas de anúncio configuradas por cliente no app e envia por webhook,
+      // para o serviço externo saber quais contas analisar.
+      const url = config.url
+      if (!url) throw new Error('send_ad_accounts: url obrigatório')
+      const onlyActive = config.only_active !== false
+      const includeGoogle = Boolean(config.include_google)
+
+      const { data: rows } = await adminSupabase
+        .from('workspace_clients')
+        .select('id, name, payload, is_archived')
+        .eq('workspace_id', workspaceId)
+
+      const accounts = []
+      for (const r of rows || []) {
+        if (r.is_archived) continue
+        const p = r.payload || {}
+        const integ = p.integrations || {}
+        const status = String(p.status || '').toLowerCase()
+        if (onlyActive && (status === 'churn' || status === 'pausado' || p.churn_date)) continue
+        const meta = p.metaAdAccountId || integ.metaAdAccountId || ''
+        const google = p.googleAdsAccountId || integ.googleAdsAccountId || ''
+        if (!meta && !(includeGoogle && google)) continue
+        const acc = { client_id: r.id, client_name: r.name, meta_ad_account_id: meta || null }
+        if (includeGoogle) acc.google_ads_account_id = google || null
+        accounts.push(acc)
+      }
+
+      const body = { workspace_id: workspaceId, generated_at: new Date().toISOString(), count: accounts.length, ad_accounts: accounts }
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(config.headers || {}) },
+        body: JSON.stringify(body),
+      })
+      return { status: resp.status, count: accounts.length }
     }
 
     case 'webhook': {

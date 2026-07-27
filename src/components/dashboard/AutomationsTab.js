@@ -55,6 +55,7 @@ const ACTION_TYPES = [
   { value: 'create_subtasks',   label: 'Criar subtarefas',        icon: 'bx-list-plus' },
   { value: 'move_task',         label: 'Mover para espaço',       icon: 'bx-transfer-alt' },
   { value: 'update_custom_field', label: 'Atualizar campo',       icon: 'bx-edit' },
+  { value: 'send_ad_accounts',  label: 'Enviar contas de anúncio (webhook)', icon: 'bx-broadcast' },
 ]
 
 const PRIORITY_OPTIONS = ['urgent', 'high', 'medium', 'low', 'none']
@@ -330,6 +331,21 @@ function ActionEditor({ action, onChange, onRemove, spaces, statuses, users }) {
           options={[{ value: '', label: 'Selecionar espaço...' }, ...spaces.map(s => ({ value: s.id, label: s.name }))]}
           style={{ width: '100%' }} />
       )}
+
+      {action_type === 'send_ad_accounts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Input value={config.url || ''} onChange={v => cfgChange({ url: v })} placeholder="URL do webhook (POST) — ex.: https://..." />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', cursor: 'pointer' }}>
+            <input type="checkbox" checked={config.only_active !== false} onChange={e => cfgChange({ only_active: e.target.checked })} style={{ accentColor: GREEN }} />
+            Somente clientes ativos (ignora churn/pausados)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', cursor: 'pointer' }}>
+            <input type="checkbox" checked={!!config.include_google} onChange={e => cfgChange({ include_google: e.target.checked })} style={{ accentColor: GREEN }} />
+            Incluir contas do Google Ads
+          </label>
+          <span style={{ fontSize: 11, color: '#64748b' }}>Envia um JSON com a lista de clientes e suas contas de anúncio configuradas no app, para o serviço externo saber quais analisar.</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -472,6 +488,7 @@ export default function AutomationsTab({ workspaceUsers = [], isMaster = false, 
   const [expandedRuns, setExpandedRuns] = useState(null)
   const [runs, setRuns] = useState([])
   const [runsLoading, setRunsLoading] = useState(false)
+  const [runningId, setRunningId] = useState(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -519,6 +536,35 @@ export default function AutomationsTab({ workspaceUsers = [], isMaster = false, 
     if (!confirm('Remover automação?')) return
     await fetch(`/api/automations?id=${id}`, { method: 'DELETE' })
     setAutomations(prev => prev.filter(a => a.id !== id))
+  }
+
+  async function runAutomation(auto) {
+    if (runningId) return
+    setRunningId(auto.id)
+    try {
+      const res = await fetch('/api/automations/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: auto.id }),
+      }).then(r => r.json())
+      if (res.error) {
+        alert('Erro ao executar: ' + res.error)
+      } else if (res.skipped) {
+        alert('Automação não executada: ' + res.skipped)
+      } else {
+        const sent = (res.results || []).find(r => r.action_type === 'send_ad_accounts')
+        if (sent?.result?.count != null) {
+          alert(`Automação executada. ${sent.result.count} conta(s) de anúncio enviada(s).`)
+        } else {
+          const errs = (res.results || []).filter(r => r.error)
+          alert(errs.length ? `Executada com ${errs.length} erro(s): ${errs.map(e => e.error).join('; ')}` : 'Automação executada com sucesso.')
+        }
+      }
+      loadData()
+    } catch (e) {
+      alert('Erro ao executar automação: ' + e.message)
+    }
+    setRunningId(null)
   }
 
   async function viewRuns(auto) {
@@ -628,6 +674,11 @@ export default function AutomationsTab({ workspaceUsers = [], isMaster = false, 
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button onClick={() => runAutomation(auto)} disabled={runningId === auto.id} title="Executar agora"
+                      style={{ background: 'rgba(38,194,129,0.12)', border: '1px solid rgba(38,194,129,0.3)', cursor: runningId === auto.id ? 'wait' : 'pointer', color: GREEN, padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, opacity: runningId === auto.id ? 0.6 : 1 }}>
+                      <i className={`bx ${runningId === auto.id ? 'bx-loader-alt bx-spin' : 'bx-play'}`} style={{ fontSize: 15 }} />
+                      {runningId === auto.id ? 'Executando...' : 'Executar'}
+                    </button>
                     <button onClick={() => viewRuns(auto)} title="Ver execuções"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 6, borderRadius: 6 }}>
                       <i className="bx bx-history" style={{ fontSize: 16 }} />
