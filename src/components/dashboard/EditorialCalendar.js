@@ -22,6 +22,17 @@ const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 
 function statusMeta(val) { return STATUSES.find(s => s.value === val) || STATUSES[0] }
 
+// Escapa dados do usuário antes de interpolar em HTML gerado para o PDF,
+// evitando injeção de HTML/script na janela de impressão.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function isoDate(d) { return d.toISOString().slice(0, 10) }
 
 function buildCalendarGrid(year, month) {
@@ -67,17 +78,62 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
   const [feedback, setFeedback]     = useState('')
   const titleRef = useRef(null)
 
-  // Saved plans (persisted in localStorage)
-  const [savedPlans, setSavedPlans] = useState(() => {
-    try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('editorial_saved_plans') : null
-      return raw ? JSON.parse(raw) : []
-    } catch { return [] }
+  // Saved plans (persisted in the database so they are available on any device)
+  const [savedPlans, setSavedPlans] = useState([])
+
+  const mapPlanRow = (row) => ({
+    id: row.id,
+    label: row.label || '',
+    month: row.month,
+    year: row.year,
+    items: Array.isArray(row.items) ? row.items : [],
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
   })
-  function persistPlans(plans) {
-    setSavedPlans(plans)
-    try { localStorage.setItem('editorial_saved_plans', JSON.stringify(plans)) } catch {}
-  }
+
+  // One-time migration of any legacy plans left in localStorage into the DB, so
+  // users who created plans before the DB migration don't lose them.
+  const migrateLegacyPlans = useCallback(async (currentRows) => {
+    if (typeof window === 'undefined') return currentRows
+    try {
+      if (localStorage.getItem('editorial_plans_migrated') === '1') return currentRows
+      const raw = localStorage.getItem('editorial_saved_plans')
+      const legacy = raw ? JSON.parse(raw) : []
+      if (!Array.isArray(legacy) || legacy.length === 0) {
+        localStorage.setItem('editorial_plans_migrated', '1')
+        return currentRows
+      }
+      const created = []
+      // Preserve original order (legacy is newest-first); insert oldest first so
+      // the DB created_at ordering keeps them newest-first afterwards.
+      for (const p of [...legacy].reverse()) {
+        const res = await fetch('/api/editorial/plans', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: p.label, month: p.month, year: p.year, items: p.items || [] }),
+        })
+        if (res.ok) {
+          const json = await res.json().catch(() => ({}))
+          if (json.plan) created.unshift(mapPlanRow(json.plan))
+        }
+      }
+      localStorage.setItem('editorial_plans_migrated', '1')
+      return [...created, ...currentRows]
+    } catch {
+      return currentRows
+    }
+  }, [])
+
+  const fetchPlans = useCallback(async () => {
+    try {
+      const res = await fetch('/api/editorial/plans')
+      if (!res.ok) return
+      const json = await res.json()
+      const rows = (json.plans || []).map(mapPlanRow)
+      const withLegacy = await migrateLegacyPlans(rows)
+      setSavedPlans(withLegacy)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [migrateLegacyPlans])
 
   // Planning
   const [planOpen, setPlanOpen]     = useState(false)
@@ -107,6 +163,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
   }, [year, month, filterClient, filterStatus])
 
   useEffect(() => { fetchPosts() }, [fetchPosts])
+  useEffect(() => { fetchPlans() }, [fetchPlans])
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -196,10 +253,19 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           status: form.status,
           platforms: form.platforms,
         }
-        const updated = savedPlans.map(p =>
-          p.id === formCalendarId ? { ...p, items: [...p.items, newItem] } : p
-        )
-        persistPlans(updated)
+        const target = savedPlans.find(p => p.id === formCalendarId)
+        if (target) {
+          const nextItems = [...target.items, newItem]
+          try {
+            const planRes = await fetch(`/api/editorial/plans/${formCalendarId}`, {
+              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: nextItems }),
+            })
+            const planJson = planRes.ok ? await planRes.json().catch(() => ({})) : {}
+            const updated = planJson.plan ? mapPlanRow(planJson.plan) : { ...target, items: nextItems }
+            setSavedPlans(prev => prev.map(p => p.id === formCalendarId ? updated : p))
+          } catch {}
+        }
       }
       closeModal()
       fetchPosts()
@@ -316,22 +382,30 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         await Promise.all(removed.map(it =>
           fetch(`/api/editorial/${it.postId}`, { method: 'DELETE' }).catch(() => {})
         ))
-        const updatedPlan = {
-          ...originalPlan,
+        const payload = {
           label: planLabel.trim() || originalPlan?.label || `Planejamento ${MONTHS[month]} ${year}`,
           items: savedItems,
         }
-        persistPlans(savedPlans.map(p => p.id === editingPlanId ? updatedPlan : p))
+        const res = await fetch(`/api/editorial/plans/${editingPlanId}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) { setPlanFeedback('Erro ao salvar planejamento.'); return }
+        const json = await res.json().catch(() => ({}))
+        const updatedPlan = json.plan ? mapPlanRow(json.plan) : { ...originalPlan, ...payload }
+        setSavedPlans(prev => prev.map(p => p.id === editingPlanId ? updatedPlan : p))
       } else {
         // Creating a new plan snapshot.
-        const newPlan = {
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          label: planLabel.trim() || `Planejamento ${MONTHS[month]} ${year}`,
-          month, year,
-          items: savedItems,
-        }
-        persistPlans([newPlan, ...savedPlans])
+        const res = await fetch('/api/editorial/plans', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            label: planLabel.trim() || `Planejamento ${MONTHS[month]} ${year}`,
+            month, year, items: savedItems,
+          }),
+        })
+        if (!res.ok) { setPlanFeedback('Erro ao salvar planejamento.'); return }
+        const json = await res.json().catch(() => ({}))
+        if (json.plan) setSavedPlans(prev => [mapPlanRow(json.plan), ...prev])
       }
       closePlanning()
       fetchPosts()
@@ -342,8 +416,15 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
     }
   }
 
-  function deleteSavedPlan(id) {
-    persistPlans(savedPlans.filter(p => p.id !== id))
+  async function deleteSavedPlan(id) {
+    const previous = savedPlans
+    setSavedPlans(previous.filter(p => p.id !== id)) // optimistic
+    try {
+      const res = await fetch(`/api/editorial/plans/${id}`, { method: 'DELETE' })
+      if (!res.ok) setSavedPlans(previous) // revert on failure
+    } catch {
+      setSavedPlans(previous)
+    }
   }
 
   function exportSavedPlanPDF(plan) {
@@ -354,16 +435,16 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       const pls = (it.platforms || []).map(p => PLATFORMS.find(x => x.value === p)?.label || p).join(', ')
       return `<tr>
         <td>${i + 1}</td>
-        <td>${clientMap2[it.clientId] || it.clientId || '—'}</td>
-        <td>${it.title || '—'}</td>
+        <td>${escapeHtml(clientMap2[it.clientId] || it.clientId || '—')}</td>
+        <td>${escapeHtml(it.title || '—')}</td>
         <td>${it.scheduledDate ? it.scheduledDate.split('-').reverse().join('/') : '—'}${it.scheduledTime ? ' ' + it.scheduledTime.slice(0,5) : ''}</td>
-        <td>${pls || '—'}</td>
+        <td>${escapeHtml(pls || '—')}</td>
         <td>${sm.label}</td>
-        <td>${it.description || '—'}</td>
+        <td>${escapeHtml(it.description || '—')}</td>
       </tr>`
     }).join('')
     const html = `<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8"/><title>${plan.label}</title>
+      <meta charset="UTF-8"/><title>${escapeHtml(plan.label)}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #111; padding: 40px; font-size: 12px; }
@@ -376,7 +457,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         .footer { margin-top: 32px; font-size: 11px; color: #999; }
       </style>
     </head><body>
-      <h1>${plan.label}</h1>
+      <h1>${escapeHtml(plan.label)}</h1>
       <p class="sub">${plan.items.length} post${plan.items.length !== 1 ? 's' : ''} planejado${plan.items.length !== 1 ? 's' : ''}</p>
       <table>
         <thead><tr><th>#</th><th>Cliente</th><th>Título</th><th>Data</th><th>Plataformas</th><th>Status</th><th>Descrição</th></tr></thead>
@@ -401,12 +482,12 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       return `
         <tr>
           <td>${i + 1}</td>
-          <td>${clientMap2[it.clientId] || it.clientId || '—'}</td>
-          <td>${it.title || '—'}</td>
+          <td>${escapeHtml(clientMap2[it.clientId] || it.clientId || '—')}</td>
+          <td>${escapeHtml(it.title || '—')}</td>
           <td>${it.scheduledDate ? it.scheduledDate.split('-').reverse().join('/') : '—'}${it.scheduledTime ? ' ' + it.scheduledTime.slice(0,5) : ''}</td>
-          <td>${pls || '—'}</td>
+          <td>${escapeHtml(pls || '—')}</td>
           <td>${sm.label}</td>
-          <td>${it.description || '—'}</td>
+          <td>${escapeHtml(it.description || '—')}</td>
         </tr>`
     }).join('')
 

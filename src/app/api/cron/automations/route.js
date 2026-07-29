@@ -5,7 +5,9 @@ import { evaluateConditions, executeAction, calcNextRun, isRecurrenceExpired } f
 function checkSecret(request) {
   const authHeader = request.headers.get('authorization') || ''
   const secret = process.env.CRON_SECRET
-  if (!secret) return true // If no secret set, allow (for dev)
+  // Fail-closed em produção: sem CRON_SECRET configurado, nega o acesso.
+  // Em desenvolvimento, permite para facilitar testes locais.
+  if (!secret) return process.env.NODE_ENV !== 'production'
   return authHeader === `Bearer ${secret}` || authHeader === secret
 }
 
