@@ -112,18 +112,6 @@ export default function UsuariosTab() {
     setEditPages(navPermissions.filter((p) => p.user_id === selectedManagedUser.id && p.granted).map((p) => p.page_key))
   }, [isEditUserModalOpen, selectedManagedUser, navPermissions])
 
-  if (!canManageUsers) {
-    return (
-      <section className="weekly-dashboard-panel" style={{ background: 'transparent', border: 'none' }}>
-        <div style={{ marginTop: 20, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', padding: '44px 28px', textAlign: 'center' }}>
-          <div style={{ width: 60, height: 60, borderRadius: 99, background: 'rgba(139,92,246,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px' }}><span className="mi" style={{ fontSize: 30, color: '#8b5cf6' }}>lock</span></div>
-          <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 6 }}>Acesso do time</div>
-          <p style={{ color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', margin: '0 auto', maxWidth: '46ch', lineHeight: 1.55 }}>Seu usuário tem acesso aos dashboards liberados pelo master. Para alterar permissões, fale com um <strong style={{ color: '#E5E2E1' }}>Master</strong>.</p>
-        </div>
-      </section>
-    )
-  }
-
   // Páginas efetivamente liberadas para o usuário (workspace_nav_permissions).
   const grantedPageKeysOf = (userId) => navPermissions.filter((p) => p.user_id === userId && p.granted).map((p) => p.page_key)
 
@@ -246,6 +234,20 @@ export default function UsuariosTab() {
   const thStyle = { fontFamily: 'Inter', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(229,226,225,0.4)', fontWeight: 600 }
   const GRID = '2.2fr 1.1fr 1fr 1fr 1fr 44px'
   const modalTabDefs = [['dados', 'Dados', 'badge'], ['permissoes', 'Permissões', 'lock'], ['atividade', 'Atividade', 'history']]
+
+  // Guarda de acesso: fica DEPOIS de todos os hooks para não violar as regras
+  // de Hooks (hooks precisam rodar na mesma ordem em todo render).
+  if (!canManageUsers) {
+    return (
+      <section className="weekly-dashboard-panel" style={{ background: 'transparent', border: 'none' }}>
+        <div style={{ marginTop: 20, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, background: 'rgba(28,28,28,0.4)', padding: '44px 28px', textAlign: 'center' }}>
+          <div style={{ width: 60, height: 60, borderRadius: 99, background: 'rgba(139,92,246,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px' }}><span className="mi" style={{ fontSize: 30, color: '#8b5cf6' }}>lock</span></div>
+          <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 6 }}>Acesso do time</div>
+          <p style={{ color: 'rgba(229,226,225,0.62)', fontSize: '0.9rem', margin: '0 auto', maxWidth: '46ch', lineHeight: 1.55 }}>Seu usuário tem acesso aos dashboards liberados pelo master. Para alterar permissões, fale com um <strong style={{ color: '#E5E2E1' }}>Master</strong>.</p>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="weekly-dashboard-panel users-management-layout" style={{ background: 'transparent', border: 'none' }}>
