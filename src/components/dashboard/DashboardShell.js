@@ -7,6 +7,7 @@ import SettingsPage from '@/app/settings/page'
 import ClientAccessesTab from '@/components/dashboard/ClientAccessesTab'
 import QuickAddAccessModal from '@/components/dashboard/QuickAddAccessModal'
 import EditorialCalendar from '@/components/dashboard/EditorialCalendar'
+import AssistantChat from '@/components/dashboard/AssistantChat'
 import PACCalendar from '@/components/dashboard/PACCalendar'
 import ReportsTab from '@/components/dashboard/ReportsTab'
 import ManualReportTab from '@/components/dashboard/ManualReportTab'
@@ -4032,6 +4033,7 @@ export default function DashboardShell({
       case 'editorial-dash':
       case 'editorial':
       case 'editorial-plans':
+      case 'assistente':
       case 'pac-dash':
       case 'pac-calendario':
       case 'pac-tipos':
@@ -4046,7 +4048,7 @@ export default function DashboardShell({
   const permissionsReady = isMaster || myNavPermissionsLoaded
 
   const TAB_ORDER = useMemo(() => ([
-    'semanal', 'tarefas', 'comunicacao', 'settings',
+    'semanal', 'assistente', 'tarefas', 'comunicacao', 'settings',
     'clientes', 'onboarding', 'offboarding', 'acessos',
     'comercial',
     'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil',
@@ -16246,6 +16248,14 @@ export default function DashboardShell({
               )}
             </div>
           )}
+          {(isMaster || hasNavAccess('assistente')) && (
+            <div className="hub-nav-group">
+              <div className="hub-nav-group-label">Assistente</div>
+              <button type="button" className={`hub-nav-item ${activeTab === 'assistente' ? 'active' : ''}`} onClick={() => { setActiveTab('assistente'); setIsHubNavOpen(false) }}>
+                <span className="mi">smart_toy</span><span className="hub-nav-label">Assistente IA</span>
+              </button>
+            </div>
+          )}
           {(isMaster || hasNavAccess('editorial-dash') || hasNavAccess('editorial') || hasNavAccess('editorial-plans')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Social Media</div>
@@ -16733,6 +16743,12 @@ export default function DashboardShell({
               isLightMode={isLightAppMode}
               defaultView="dash"
             />
+          </section>
+        )}
+
+        {activeTab === 'assistente' && (isMaster || hasNavAccess('assistente')) && (
+          <section style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <AssistantChat />
           </section>
         )}
 

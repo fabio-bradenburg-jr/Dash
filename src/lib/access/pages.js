@@ -6,6 +6,7 @@
 export const PAGE_MODULES = [
   // Geral
   { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
+  { key: 'assistente', label: 'Assistente IA', group: 'Geral' },
   { key: 'tarefas', label: 'Rotinas & Tarefas', group: 'Geral' },
   { key: 'comunicacao', label: 'Comunicação', group: 'Geral' },
   { key: 'settings', label: 'Configurações', group: 'Geral' },
