@@ -42,3 +42,6 @@ apps/backend/.venv/
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+
+# Superpowers skills lockfile (skills live under gitignored .claude/)
+skills-lock.json
