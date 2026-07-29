@@ -6,6 +6,8 @@ const TOOL_LABELS = {
   list_tasks: 'Consultou tarefas',
   list_editorial_posts: 'Consultou posts',
   list_editorial_plans: 'Consultou planejamentos',
+  get_ad_account_balances: 'Consultou saldos do Meta',
+  get_meta_insights: 'Consultou métricas do Meta',
   create_task: 'Criou tarefa',
   create_editorial_post: 'Criou post',
 }

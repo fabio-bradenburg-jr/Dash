@@ -9,6 +9,11 @@
 // Cada tool tem uma definição (schema enviado ao Claude) e um executor
 // (roda no servidor com o adminSupabase, injetando o workspace_id).
 
+import { getWorkspaceMetaConnection } from '@/lib/server/meta-connection'
+import { fetchMetaJson, normalizeMetaError } from '@/lib/server/meta-fetch'
+import { resolveMetaDateSelection } from '@/lib/server/meta-date-range'
+import { formatInsightsWithConversions } from '@/lib/meta-metrics'
+
 const PLATFORMS = ['instagram', 'facebook', 'linkedin', 'tiktok', 'youtube', 'twitter']
 const POST_STATUSES = ['pending', 'scheduled', 'published', 'cancelled']
 const TASK_PRIORITIES = ['none', 'low', 'medium', 'high', 'urgent']
@@ -55,6 +60,37 @@ export const ASSISTANT_TOOL_DEFINITIONS = [
     input_schema: { type: 'object', properties: {} },
   },
   {
+    name: 'get_ad_account_balances',
+    description:
+      'Consulta o saldo/gasto das contas de anúncio do Meta (Facebook/Instagram) vinculadas aos clientes do workspace. Retorna, por conta: nome, moeda, saldo devedor, valor já gasto, limite de gasto e status. Filtre por cliente se quiser apenas uma conta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'Id do cliente para consultar só a conta dele (opcional).' },
+        search: { type: 'string', description: 'Filtro opcional por parte do nome do cliente.' },
+      },
+    },
+  },
+  {
+    name: 'get_meta_insights',
+    description:
+      'Consulta métricas de performance do Meta Ads de um cliente (investimento, impressões, cliques, CTR, CPC, leads e CPL) em um período. Use list_clients para achar o clientId.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'Id do cliente (obrigatório).' },
+        datePreset: {
+          type: 'string',
+          enum: ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'this_month', 'last_month'],
+          description: 'Período pré-definido (padrão last_7d). Ignorado se since/until forem informados.',
+        },
+        since: { type: 'string', description: 'Início do período YYYY-MM-DD (opcional, use com until).' },
+        until: { type: 'string', description: 'Fim do período YYYY-MM-DD (opcional, use com since).' },
+      },
+      required: ['clientId'],
+    },
+  },
+  {
     name: 'create_task',
     description:
       'Cria uma nova tarefa interna no workspace. Confirme com o usuário antes de criar se a intenção não estiver clara.',
@@ -96,6 +132,45 @@ export const ASSISTANT_TOOL_DEFINITIONS = [
 
 function ok(data) { return { ok: true, ...data } }
 function fail(message) { return { ok: false, error: message } }
+
+const ZERO_DECIMAL = new Set(['BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'])
+function centsToAmount(value, currency) {
+  const n = Number(value || 0)
+  if (!Number.isFinite(n)) return 0
+  return ZERO_DECIMAL.has(String(currency || '').toUpperCase()) ? n : n / 100
+}
+function normalizeAdAccountId(value) {
+  return String(value || '').replace(/^act_/, '').replace(/\D/g, '')
+}
+
+// Resolve o token do Meta do workspace (mesma fonte usada pelas rotas /api/meta).
+async function getWorkspaceMetaToken(adminSupabase, workspaceId) {
+  try {
+    const connection = await getWorkspaceMetaConnection(adminSupabase, workspaceId)
+    if (connection?.access_token) return connection.access_token
+  } catch { /* segue para env */ }
+  return process.env.META_ACCESS_TOKEN || ''
+}
+
+// Lê os clientes do workspace e a conta de anúncio Meta configurada em cada um
+// (workspace_clients.payload.metaAdAccountId), seguindo o mesmo padrão das automações.
+async function resolveWorkspaceAdAccounts(adminSupabase, workspaceId) {
+  const { data, error } = await adminSupabase
+    .from('workspace_clients')
+    .select('id, name, payload, is_archived')
+    .eq('workspace_id', workspaceId)
+  if (error) throw error
+  const accounts = []
+  for (const r of data || []) {
+    if (r.is_archived) continue
+    const p = r.payload || {}
+    const integ = p.integrations || {}
+    const metaId = normalizeAdAccountId(p.metaAdAccountId || integ.metaAdAccountId || '')
+    if (!metaId) continue
+    accounts.push({ clientId: r.id, clientName: r.name, metaAdAccountId: metaId })
+  }
+  return accounts
+}
 
 // Executa uma tool. ctx = { adminSupabase, workspaceId, userId }.
 export async function executeAssistantTool(name, input, ctx) {
@@ -176,6 +251,68 @@ export async function executeAssistantTool(name, input, ctx) {
           createdAt: p.created_at,
         }))
         return ok({ plans, count: plans.length })
+      }
+
+      case 'get_ad_account_balances': {
+        const token = await getWorkspaceMetaToken(adminSupabase, workspaceId)
+        if (!token) return fail('Nenhuma conexão da Meta configurada para este workspace.')
+        let accounts = await resolveWorkspaceAdAccounts(adminSupabase, workspaceId)
+        if (args.clientId) accounts = accounts.filter((a) => a.clientId === String(args.clientId))
+        const search = String(args.search || '').trim().toLowerCase()
+        if (search) accounts = accounts.filter((a) => String(a.clientName || '').toLowerCase().includes(search))
+        if (!accounts.length) return fail('Nenhum cliente com conta de anúncio Meta configurada foi encontrado.')
+
+        const fields = 'name,currency,balance,amount_spent,spend_cap,account_status'
+        const results = await Promise.all(accounts.slice(0, 50).map(async (acc) => {
+          try {
+            const url = `https://graph.facebook.com/v19.0/act_${acc.metaAdAccountId}?fields=${fields}&access_token=${encodeURIComponent(token)}`
+            const data = await fetchMetaJson(url, 'Falha ao consultar saldo da conta.')
+            const currency = data.currency || 'BRL'
+            return {
+              client: acc.clientName,
+              adAccountId: acc.metaAdAccountId,
+              name: data.name || null,
+              currency,
+              balance: centsToAmount(data.balance, currency),
+              amountSpent: centsToAmount(data.amount_spent, currency),
+              spendCap: data.spend_cap ? centsToAmount(data.spend_cap, currency) : null,
+              accountStatus: data.account_status ?? null,
+            }
+          } catch (e) {
+            return { client: acc.clientName, adAccountId: acc.metaAdAccountId, error: normalizeMetaError(e)?.message || 'Erro ao consultar.' }
+          }
+        }))
+        return ok({ accounts: results, count: results.length })
+      }
+
+      case 'get_meta_insights': {
+        const token = await getWorkspaceMetaToken(adminSupabase, workspaceId)
+        if (!token) return fail('Nenhuma conexão da Meta configurada para este workspace.')
+        const accounts = await resolveWorkspaceAdAccounts(adminSupabase, workspaceId)
+        const acc = accounts.find((a) => a.clientId === String(args.clientId))
+        if (!acc) return fail('Cliente não encontrado ou sem conta de anúncio Meta configurada.')
+
+        const selection = resolveMetaDateSelection(args.datePreset || 'last_7d', args.since, args.until)
+        const fields = 'spend,reach,impressions,clicks,cpc,ctr,actions,action_values,cost_per_action_type'
+        const params = new URLSearchParams({
+          fields,
+          access_token: token,
+          action_attribution_windows: JSON.stringify(['7d_click', '1d_view']),
+          use_unified_attribution_setting: 'true',
+        })
+        if (selection.mode === 'time_range') {
+          params.set('time_range', JSON.stringify({ since: selection.since, until: selection.until }))
+        } else {
+          params.set('date_preset', selection.datePreset)
+        }
+        try {
+          const url = `https://graph.facebook.com/v19.0/act_${acc.metaAdAccountId}/insights?${params.toString()}`
+          const data = await fetchMetaJson(url, 'Falha ao consultar métricas da conta.')
+          const summary = formatInsightsWithConversions(data?.data?.[0] || null)
+          return ok({ client: acc.clientName, adAccountId: acc.metaAdAccountId, period: selection, summary })
+        } catch (e) {
+          return fail(normalizeMetaError(e)?.message || 'Erro ao consultar métricas do Meta.')
+        }
       }
 
       case 'create_task': {
