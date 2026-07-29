@@ -22,6 +22,17 @@ const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','A
 
 function statusMeta(val) { return STATUSES.find(s => s.value === val) || STATUSES[0] }
 
+// Escapa dados do usuário antes de interpolar em HTML gerado para o PDF,
+// evitando injeção de HTML/script na janela de impressão.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function isoDate(d) { return d.toISOString().slice(0, 10) }
 
 function buildCalendarGrid(year, month) {
@@ -424,16 +435,16 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       const pls = (it.platforms || []).map(p => PLATFORMS.find(x => x.value === p)?.label || p).join(', ')
       return `<tr>
         <td>${i + 1}</td>
-        <td>${clientMap2[it.clientId] || it.clientId || '—'}</td>
-        <td>${it.title || '—'}</td>
+        <td>${escapeHtml(clientMap2[it.clientId] || it.clientId || '—')}</td>
+        <td>${escapeHtml(it.title || '—')}</td>
         <td>${it.scheduledDate ? it.scheduledDate.split('-').reverse().join('/') : '—'}${it.scheduledTime ? ' ' + it.scheduledTime.slice(0,5) : ''}</td>
-        <td>${pls || '—'}</td>
+        <td>${escapeHtml(pls || '—')}</td>
         <td>${sm.label}</td>
-        <td>${it.description || '—'}</td>
+        <td>${escapeHtml(it.description || '—')}</td>
       </tr>`
     }).join('')
     const html = `<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8"/><title>${plan.label}</title>
+      <meta charset="UTF-8"/><title>${escapeHtml(plan.label)}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #111; padding: 40px; font-size: 12px; }
@@ -446,7 +457,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         .footer { margin-top: 32px; font-size: 11px; color: #999; }
       </style>
     </head><body>
-      <h1>${plan.label}</h1>
+      <h1>${escapeHtml(plan.label)}</h1>
       <p class="sub">${plan.items.length} post${plan.items.length !== 1 ? 's' : ''} planejado${plan.items.length !== 1 ? 's' : ''}</p>
       <table>
         <thead><tr><th>#</th><th>Cliente</th><th>Título</th><th>Data</th><th>Plataformas</th><th>Status</th><th>Descrição</th></tr></thead>
@@ -471,12 +482,12 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       return `
         <tr>
           <td>${i + 1}</td>
-          <td>${clientMap2[it.clientId] || it.clientId || '—'}</td>
-          <td>${it.title || '—'}</td>
+          <td>${escapeHtml(clientMap2[it.clientId] || it.clientId || '—')}</td>
+          <td>${escapeHtml(it.title || '—')}</td>
           <td>${it.scheduledDate ? it.scheduledDate.split('-').reverse().join('/') : '—'}${it.scheduledTime ? ' ' + it.scheduledTime.slice(0,5) : ''}</td>
-          <td>${pls || '—'}</td>
+          <td>${escapeHtml(pls || '—')}</td>
           <td>${sm.label}</td>
-          <td>${it.description || '—'}</td>
+          <td>${escapeHtml(it.description || '—')}</td>
         </tr>`
     }).join('')
 

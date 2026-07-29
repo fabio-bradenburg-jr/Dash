@@ -132,10 +132,15 @@ async function recordAlert(
 }
 
 export async function GET(request: Request) {
-  const secret = new URL(request.url).searchParams.get('secret')
   const expectedSecret = process.env.BALANCE_ALERT_WEBHOOK_SECRET
+  // Preferencialmente via header Authorization (não vaza em logs de URL);
+  // mantém a query string como fallback para não quebrar agendadores atuais.
+  const authHeader = request.headers.get('authorization') || ''
+  const headerSecret = authHeader.replace(/^Bearer\s+/i, '')
+  const querySecret = new URL(request.url).searchParams.get('secret')
+  const provided = headerSecret || querySecret
 
-  if (!expectedSecret || secret !== expectedSecret) {
+  if (!expectedSecret || provided !== expectedSecret) {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 
