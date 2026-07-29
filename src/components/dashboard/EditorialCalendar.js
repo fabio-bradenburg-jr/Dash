@@ -84,6 +84,8 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
   const [planItems, setPlanItems]   = useState([EMPTY_PLAN_ITEM()])
   const [planSaving, setPlanSaving] = useState(false)
   const [planFeedback, setPlanFeedback] = useState('')
+  const [editingPlanId, setEditingPlanId] = useState(null) // null = creating a new plan
+  const [planLabel, setPlanLabel]   = useState('')
   const planPrintRef = useRef(null)
 
   const fetchPosts = useCallback(async () => {
@@ -185,6 +187,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
       if (!editPost && formCalendarId && json.post) {
         const newItem = {
           id: EMPTY_PLAN_ITEM().id,
+          postId: json.post.id,
           clientId: formClient,
           title: form.title,
           description: form.description,
@@ -230,11 +233,34 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
 
   // Planning helpers
   function openPlanning() {
+    setEditingPlanId(null)
     setPlanItems([EMPTY_PLAN_ITEM()])
+    setPlanLabel(`Planejamento ${MONTHS[month]} ${year}`)
     setPlanFeedback('')
     setPlanOpen(true)
   }
-  function closePlanning() { setPlanOpen(false); setPlanFeedback('') }
+  function openEditPlan(plan) {
+    setEditingPlanId(plan.id)
+    setPlanItems(
+      plan.items.length
+        ? plan.items.map(it => ({
+            id: it.id || EMPTY_PLAN_ITEM().id,
+            postId: it.postId || null,
+            clientId: it.clientId || '',
+            title: it.title || '',
+            description: it.description || '',
+            scheduledDate: it.scheduledDate || '',
+            scheduledTime: it.scheduledTime || '',
+            status: it.status || 'pending',
+            platforms: it.platforms || [],
+          }))
+        : [EMPTY_PLAN_ITEM()]
+    )
+    setPlanLabel(plan.label || '')
+    setPlanFeedback('')
+    setPlanOpen(true)
+  }
+  function closePlanning() { setPlanOpen(false); setPlanFeedback(''); setEditingPlanId(null) }
 
   function updatePlanItem(id, field, value) {
     setPlanItems(items => items.map(it => it.id === id ? { ...it, [field]: value } : it))
@@ -247,30 +273,66 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
   function addPlanItem() { setPlanItems(items => [...items, EMPTY_PLAN_ITEM()]) }
   function removePlanItem(id) { setPlanItems(items => items.filter(it => it.id !== id)) }
 
+  // Persist a single plan item to Supabase — updates the linked post when it
+  // already exists (has postId), otherwise creates a new one. Returns the item
+  // enriched with its postId so the plan snapshot stays in sync.
+  async function persistPlanItem(it) {
+    const payload = {
+      clientId: it.clientId, title: it.title, description: it.description,
+      scheduledDate: it.scheduledDate, scheduledTime: it.scheduledTime || null,
+      status: it.status, platforms: it.platforms,
+    }
+    if (it.postId) {
+      const res = await fetch(`/api/editorial/${it.postId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      // Post still exists and was updated — keep the same link.
+      if (res.ok) return it
+      // Linked post is gone (deleted elsewhere): fall through and recreate it.
+    }
+    const res = await fetch('/api/editorial', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    return { ...it, postId: json.post?.id || null }
+  }
+
   async function savePlan() {
     const incomplete = planItems.findIndex(it => !it.scheduledDate || !it.clientId)
     if (incomplete !== -1) { setPlanFeedback(`Item ${incomplete + 1}: informe data e cliente.`); return }
     setPlanSaving(true); setPlanFeedback('')
     try {
-      await Promise.all(planItems.map(it =>
-        fetch('/api/editorial', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clientId: it.clientId, title: it.title, description: it.description,
-            scheduledDate: it.scheduledDate, scheduledTime: it.scheduledTime || null,
-            status: it.status, platforms: it.platforms,
-          }),
-        })
-      ))
-      // Save a snapshot to the plans list
-      const newPlan = {
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        label: `Planejamento ${MONTHS[month]} ${year}`,
-        month, year,
-        items: planItems,
+      const savedItems = await Promise.all(planItems.map(persistPlanItem))
+
+      if (editingPlanId) {
+        // Editing an existing plan: reconcile the calendar and update the snapshot.
+        const originalPlan = savedPlans.find(p => p.id === editingPlanId)
+        const originalItems = originalPlan?.items || []
+        // Delete posts that were removed from the plan during this edit.
+        const keptPostIds = new Set(savedItems.map(it => it.postId).filter(Boolean))
+        const removed = originalItems.filter(it => it.postId && !keptPostIds.has(it.postId))
+        await Promise.all(removed.map(it =>
+          fetch(`/api/editorial/${it.postId}`, { method: 'DELETE' }).catch(() => {})
+        ))
+        const updatedPlan = {
+          ...originalPlan,
+          label: planLabel.trim() || originalPlan?.label || `Planejamento ${MONTHS[month]} ${year}`,
+          items: savedItems,
+        }
+        persistPlans(savedPlans.map(p => p.id === editingPlanId ? updatedPlan : p))
+      } else {
+        // Creating a new plan snapshot.
+        const newPlan = {
+          id: Date.now().toString(),
+          createdAt: new Date().toISOString(),
+          label: planLabel.trim() || `Planejamento ${MONTHS[month]} ${year}`,
+          month, year,
+          items: savedItems,
+        }
+        persistPlans([newPlan, ...savedPlans])
       }
-      persistPlans([newPlan, ...savedPlans])
       closePlanning()
       fetchPosts()
     } catch (e) {
@@ -886,6 +948,10 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
                   </span>
                 </div>
                 <div className="editorial-plan-card-actions">
+                  <button className="editorial-plan-edit-btn" onClick={() => openEditPlan(plan)}>
+                    <i className="bx bx-edit"></i>
+                    Editar
+                  </button>
                   <button className="editorial-export-btn" onClick={() => exportSavedPlanPDF(plan)}>
                     <i className="bx bx-file-export"></i>
                     Exportar PDF
@@ -931,9 +997,21 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
         <div className="editorial-modal-overlay" onClick={e => { if (e.target === e.currentTarget) closePlanning() }}>
           <div className="editorial-plan-modal">
             <div className="editorial-plan-modal-header">
-              <div>
-                <h3>Planejamento Editorial</h3>
-                <p className="editorial-plan-modal-sub">{MONTHS[month]} {year} &mdash; organize todos os posts e exporte para PDF</p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3>{editingPlanId ? 'Editar planejamento' : 'Planejamento Editorial'}</h3>
+                <input
+                  type="text"
+                  className="editorial-plan-label-input"
+                  value={planLabel}
+                  onChange={e => setPlanLabel(e.target.value)}
+                  placeholder={`Planejamento ${MONTHS[month]} ${year}`}
+                  aria-label="Nome do planejamento"
+                />
+                <p className="editorial-plan-modal-sub">
+                  {editingPlanId
+                    ? 'Ajuste os posts do planejamento — as alterações são sincronizadas no calendário.'
+                    : 'Organize todos os posts e exporte para PDF.'}
+                </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button className="editorial-export-btn" onClick={exportPlanPDF} title="Exportar PDF">
@@ -1045,7 +1123,7 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
                 <button className="editorial-cancel-btn" onClick={closePlanning}>Cancelar</button>
                 <button className="editorial-save-btn" onClick={savePlan} disabled={planSaving}>
                   {planSaving ? <i className="bx bx-loader-alt bx-spin"></i> : <i className="bx bx-calendar-check"></i>}
-                  Salvar no calendário
+                  {editingPlanId ? 'Salvar alterações' : 'Salvar no calendário'}
                 </button>
               </div>
             </div>
@@ -1657,6 +1735,13 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           background: #f8faf9; border-color: rgba(187,202,190,0.72);
         }
         :global(.dashboard-light-mode) .editorial-plan-count { color: #6b7280; }
+        :global(.dashboard-light-mode) .editorial-plan-edit-btn {
+          background: #ffffff; border-color: rgba(187,202,190,0.86); color: #3d4a41;
+        }
+        :global(.dashboard-light-mode) .editorial-plan-edit-btn:hover { background: #f8faf9; }
+        :global(.dashboard-light-mode) .editorial-plan-label-input {
+          background: #f8faf9; border-color: rgba(187,202,190,0.86); color: #1a1c1c;
+        }
 
         /* Plans view */
         .editorial-plans-view {
@@ -1715,6 +1800,18 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           align-items: center;
           gap: 8px;
         }
+        .editorial-plan-edit-btn {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 8px 16px; border-radius: 10px;
+          border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+          background: rgba(255,255,255,0.04); color: var(--text-secondary);
+          font: inherit; font-weight: 700; font-size: 12px; cursor: pointer;
+          transition: all 0.15s;
+        }
+        .editorial-plan-edit-btn:hover {
+          background: rgba(255,255,255,0.08); color: var(--text-primary);
+          border-color: rgba(255,255,255,0.2);
+        }
         .editorial-plan-delete-btn {
           width: 32px;
           height: 32px;
@@ -1729,6 +1826,22 @@ export default function EditorialCalendar({ clients = [], isLightMode = false, d
           transition: background 0.15s;
         }
         .editorial-plan-delete-btn:hover { background: rgba(239,68,68,0.16); }
+
+        /* Editable plan name inside the planning modal */
+        .editorial-plan-label-input {
+          width: 100%; max-width: 420px;
+          margin: 6px 0 4px;
+          padding: 7px 12px; border-radius: 9px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(190,201,191,0.16);
+          color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 600;
+          box-sizing: border-box;
+        }
+        .editorial-plan-label-input:focus {
+          outline: none;
+          border-color: var(--button-primary, #26c281);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-primary, #26c281) 18%, transparent);
+        }
 
         .editorial-plan-card-items {
           display: flex;
