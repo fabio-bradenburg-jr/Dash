@@ -27,6 +27,7 @@ import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
 import ComunicacaoTab from '@/components/dashboard/tabs/ComunicacaoTab'
+import QualidadeLeadsTab from '@/components/dashboard/tabs/QualidadeLeadsTab'
 import ComercialProcessoTab from '@/components/dashboard/tabs/ComercialProcessoTab'
 import OffboardingTab from '@/components/dashboard/tabs/OffboardingTab'
 import RotinasTab from '@/components/dashboard/tabs/RotinasTab'
@@ -4016,6 +4017,7 @@ export default function DashboardShell({
       case 'semanal':
       case 'tarefas':
       case 'comunicacao':
+      case 'qualidade-leads':
       case 'settings':
       case 'onboarding':
       case 'offboarding':
@@ -4046,7 +4048,7 @@ export default function DashboardShell({
   const permissionsReady = isMaster || myNavPermissionsLoaded
 
   const TAB_ORDER = useMemo(() => ([
-    'semanal', 'tarefas', 'comunicacao', 'settings',
+    'semanal', 'tarefas', 'comunicacao', 'qualidade-leads', 'settings',
     'clientes', 'onboarding', 'offboarding', 'acessos',
     'comercial',
     'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil',
@@ -16127,7 +16129,7 @@ export default function DashboardShell({
         </div>
 
         <nav className="hub-nav">
-          {(isMaster || hasNavAccess('semanal') || hasNavAccess('settings')) && (
+          {(isMaster || hasNavAccess('semanal') || hasNavAccess('settings') || hasNavAccess('tarefas') || hasNavAccess('comunicacao') || hasNavAccess('qualidade-leads')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Geral</div>
               {isMaster && (
@@ -16153,6 +16155,11 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('comunicacao')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => { setActiveTab('comunicacao'); setIsHubNavOpen(false) }}>
                   <span className="mi">forum</span><span className="hub-nav-label">Comunicação</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('qualidade-leads')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'qualidade-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('qualidade-leads'); setIsHubNavOpen(false) }}>
+                  <span className="mi">ads_click</span><span className="hub-nav-label">Qualidade dos Leads</span>
                 </button>
               )}
               {(isMaster || hasNavAccess('settings')) && (
@@ -16518,6 +16525,15 @@ export default function DashboardShell({
 
         {activeTab === 'comunicacao' && (isMaster || hasNavAccess('comunicacao')) && (
           <ComunicacaoTab
+            clients={clients}
+            workspaceUsers={usersList}
+            currentUserId={user?.id}
+            isMaster={isMaster}
+          />
+        )}
+
+        {activeTab === 'qualidade-leads' && (isMaster || hasNavAccess('qualidade-leads')) && (
+          <QualidadeLeadsTab
             clients={clients}
             workspaceUsers={usersList}
             currentUserId={user?.id}
