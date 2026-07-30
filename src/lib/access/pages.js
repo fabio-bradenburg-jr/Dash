@@ -8,7 +8,6 @@ export const PAGE_MODULES = [
   { key: 'semanal', label: 'Controle da Operação', group: 'Geral' },
   { key: 'tarefas', label: 'Rotinas & Tarefas', group: 'Geral' },
   { key: 'comunicacao', label: 'Comunicação', group: 'Geral' },
-  { key: 'qualidade-leads', label: 'Qualidade dos Leads', group: 'Geral' },
   { key: 'settings', label: 'Configurações', group: 'Geral' },
   // Sucesso do Cliente
   { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
@@ -23,6 +22,7 @@ export const PAGE_MODULES = [
   { key: 'anuncios', label: 'Anúncios', group: 'Performance' },
   { key: 'saldos', label: 'Saldos', group: 'Performance' },
   { key: 'funil', label: 'Funil', group: 'Performance' },
+  { key: 'qualidade-leads', label: 'Qualidade dos Leads', group: 'Performance' },
   { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
   { key: 'relatorio-manual', label: 'Relatório Manual', group: 'Performance' },
   { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },

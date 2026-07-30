@@ -4048,10 +4048,10 @@ export default function DashboardShell({
   const permissionsReady = isMaster || myNavPermissionsLoaded
 
   const TAB_ORDER = useMemo(() => ([
-    'semanal', 'tarefas', 'comunicacao', 'qualidade-leads', 'settings',
+    'semanal', 'tarefas', 'comunicacao', 'settings',
     'clientes', 'onboarding', 'offboarding', 'acessos',
     'comercial',
-    'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil',
+    'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil', 'qualidade-leads',
     'editorial-dash', 'editorial', 'editorial-plans',
     'pac-dash', 'pac-calendario', 'pac-tipos',
     'usuarios',
@@ -16129,7 +16129,7 @@ export default function DashboardShell({
         </div>
 
         <nav className="hub-nav">
-          {(isMaster || hasNavAccess('semanal') || hasNavAccess('settings') || hasNavAccess('tarefas') || hasNavAccess('comunicacao') || hasNavAccess('qualidade-leads')) && (
+          {(isMaster || hasNavAccess('semanal') || hasNavAccess('settings')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Geral</div>
               {isMaster && (
@@ -16155,11 +16155,6 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('comunicacao')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => { setActiveTab('comunicacao'); setIsHubNavOpen(false) }}>
                   <span className="mi">forum</span><span className="hub-nav-label">Comunicação</span>
-                </button>
-              )}
-              {(isMaster || hasNavAccess('qualidade-leads')) && (
-                <button type="button" className={`hub-nav-item ${activeTab === 'qualidade-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('qualidade-leads'); setIsHubNavOpen(false) }}>
-                  <span className="mi">ads_click</span><span className="hub-nav-label">Qualidade dos Leads</span>
                 </button>
               )}
               {(isMaster || hasNavAccess('settings')) && (
@@ -16203,7 +16198,7 @@ export default function DashboardShell({
               </button>
             </div>
           )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas')) && (
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas') || hasNavAccess('funil') || hasNavAccess('qualidade-leads')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Performance</div>
               {(isMaster || hasNavAccess('apresentacao')) && (
@@ -16244,6 +16239,11 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('funil')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'funil' ? 'active' : ''}`} onClick={() => { setActiveTab('funil'); setIsHubNavOpen(false) }}>
                   <span className="mi">filter_alt</span><span className="hub-nav-label">Funil</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('qualidade-leads')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'qualidade-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('qualidade-leads'); setIsHubNavOpen(false) }}>
+                  <span className="mi">ads_click</span><span className="hub-nav-label">Qualidade dos Leads</span>
                 </button>
               )}
               {isMaster && (
