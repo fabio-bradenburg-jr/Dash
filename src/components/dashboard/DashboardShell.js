@@ -15390,7 +15390,7 @@ export default function DashboardShell({
       </div>
 
       <div className="client-create-actions weekly-entry-actions" style={weeklyActionsStyle}>
-        <button type="button" className="btn btn-secondary" onClick={() => setIsWeeklyEntryModalOpen(false)}>Cancelar</button>
+        <button type="button" className="btn btn-secondary" onClick={() => { setIsWeeklyEntryModalOpen(false); setWeeklyForm((current) => ({ ...current, investment: '', leads: '', sql: '' })) }}>Limpar campos</button>
         <button type="submit" className="btn btn-primary" disabled={isSavingWeeklyRecord || !weeklyForm.clientId} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
           <i className={weeklyEditingExistingRecord ? 'bx bx-save' : 'bx bx-list-plus'}></i>
           {isSavingWeeklyRecord ? 'Salvando...' : (weeklyEditingExistingRecord ? 'Atualizar coluna da semana' : 'Incluir coluna desta semana')}

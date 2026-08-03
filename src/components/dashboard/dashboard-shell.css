@@ -15381,6 +15381,94 @@
           }
         }
 
+        /* ===== Aba enxuta: cadastro como cara principal ===== */
+        .weekly-lean-hero {
+          padding: 28px 32px !important;
+          border-radius: 24px !important;
+          border-top: 3px solid var(--weekly-accent) !important;
+        }
+
+        .weekly-lean-hero h2 {
+          margin: 8px 0 4px;
+          font-size: clamp(1.5rem, 2.6vw, 2rem);
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          color: var(--text-primary);
+        }
+
+        .weekly-lean-hero p {
+          margin: 0;
+          max-width: 720px;
+          color: var(--text-muted);
+          line-height: 1.5;
+          font-size: 0.9rem;
+        }
+
+        .weekly-lean-metrics {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 16px;
+        }
+
+        .weekly-panel-lean .weekly-kpi-card {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 18px 20px !important;
+          border-radius: 20px !important;
+        }
+
+        .weekly-panel-lean .weekly-kpi-card span {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        .weekly-panel-lean .weekly-kpi-card strong {
+          font-size: 1.6rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: var(--text-primary);
+        }
+
+        .weekly-lean-metric-note {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          opacity: 0.8;
+        }
+
+        .weekly-inline-cadastro {
+          padding: 32px !important;
+          border-radius: 24px !important;
+          border-top: 3px solid var(--weekly-accent) !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form {
+          max-height: none !important;
+          overflow: visible !important;
+          padding: 0 !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form .section-header {
+          padding: 0 0 4px 0 !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-actions {
+          position: static !important;
+          background: transparent !important;
+          border-top: 1px solid rgba(148, 163, 184, 0.12) !important;
+        }
+
+        :root[data-ui-mode='light'] .weekly-inline-cadastro .weekly-entry-actions,
+        .dashboard-light-mode .weekly-inline-cadastro .weekly-entry-actions {
+          border-top-color: rgba(15, 23, 42, 0.08) !important;
+        }
+
         :root[data-ui-mode='light'] .weekly-entry-modal {
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98)) !important;
           border-color: rgba(15, 23, 42, 0.08) !important;
