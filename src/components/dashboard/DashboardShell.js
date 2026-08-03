@@ -334,6 +334,30 @@ function formatWeekRangeLabel(weekStart, weekEnd) {
   return `${start} até ${end}`
 }
 
+// Rótulo curto de coluna para a planilha (ex: "04–10/08").
+function formatWeekColumnShort(weekStart) {
+  const start = parseLocalDateInput(weekStart)
+  if (!start) return '—'
+  const end = parseLocalDateInput(getWeekEndDateInputValue(weekStart)) || start
+  const pad = (value) => String(value).padStart(2, '0')
+  const startDay = pad(start.getDate())
+  const endDay = pad(end.getDate())
+  const endMonth = pad(end.getMonth() + 1)
+  return `${startDay}–${endDay}/${endMonth}`
+}
+
+// Distância relativa da semana à semana corrente ("Atual", "-1 sem", ...).
+function formatWeekColumnRelative(weekStart) {
+  const target = parseLocalDateInput(weekStart)
+  if (!target) return ''
+  const currentWeekStart = parseLocalDateInput(getMondayDateInputValue())
+  if (!currentWeekStart) return ''
+  const weeksAgo = Math.round((currentWeekStart.getTime() - target.getTime()) / (7 * 24 * 60 * 60 * 1000))
+  if (weeksAgo === 0) return 'Atual'
+  if (weeksAgo > 0) return `-${weeksAgo} sem`
+  return `+${Math.abs(weeksAgo)} sem`
+}
+
 
 function getCurrentMonthInputValue() {
   return getTodayDateInputValue().slice(0, 7)
@@ -5404,6 +5428,35 @@ export default function DashboardShell({
     if (!weeklyForm.clientId || !weeklyPrevWeekStart) return null
     return weeklyRecords.find((r) => r.clientId === weeklyForm.clientId && r.weekStart === weeklyPrevWeekStart) || null
   }, [weeklyRecords, weeklyForm.clientId, weeklyPrevWeekStart])
+
+  // Últimas 3 imputações do cliente (excluindo a semana atual em edição), da mais
+  // antiga para a mais recente, para exibir como colunas de comparação na planilha.
+  const weeklyComparisonColumns = useMemo(() => {
+    if (!weeklyForm.clientId) return []
+    return weeklyRecords
+      .filter((record) => record.clientId === weeklyForm.clientId && String(record.weekStart || '') !== String(weeklyWeekStart || ''))
+      .slice()
+      .sort((left, right) => String(left.weekStart || '').localeCompare(String(right.weekStart || '')))
+      .slice(-3)
+      .map((record) => {
+        const investment = Number(record.investment || 0)
+        const leads = Number(record.leads || 0)
+        const sql = Number(record.sql || 0)
+        return {
+          ...record,
+          investment,
+          leads,
+          sql,
+          cpl: leads > 0 ? investment / leads : 0,
+          costPerSql: sql > 0 ? investment / sql : 0,
+        }
+      })
+  }, [weeklyRecords, weeklyForm.clientId, weeklyWeekStart])
+
+  const weeklyEditingExistingRecord = useMemo(() => {
+    if (!weeklyForm.clientId || !weeklyWeekStart) return false
+    return weeklyRecords.some((record) => record.clientId === weeklyForm.clientId && String(record.weekStart || '') === String(weeklyWeekStart || ''))
+  }, [weeklyRecords, weeklyForm.clientId, weeklyWeekStart])
 
   const weeklyHealthRiskTarget = Number.isFinite(Number(operationSettings?.healthRiskTargetPercent))
     ? Math.min(100, Math.max(0, Number(operationSettings.healthRiskTargetPercent)))
@@ -15167,12 +15220,12 @@ export default function DashboardShell({
       <div className="section-header section-header-stack" style={weeklyEntryHeaderStyle}>
         <div>
           <span className="eyebrow">Imputação</span>
-          <h2>Dados da semana</h2>
-          <p className="chart-subtitle">Escolha o cliente, preencha os números acompanhados com o time e registre os planos de ação da semana.</p>
+          <h2>Planilha da semana</h2>
+          <p className="chart-subtitle">Escolha o cliente e a semana a incluir. As últimas 3 imputações aparecem lado a lado para comparar — preencha a coluna “Esta semana” e inclua os dados.</p>
         </div>
       </div>
 
-      <div className="weekly-form-grid" style={weeklyFormGridStyle}>
+      <div className="weekly-sheet-controls">
         <label className="input-group" style={weeklyFieldStyle}>
           <span>Cliente</span>
           <select style={weeklyControlStyle} value={weeklyForm.clientId} onChange={(event) => setWeeklyForm((current) => ({ ...current, clientId: event.target.value }))}>
@@ -15183,75 +15236,119 @@ export default function DashboardShell({
           </select>
         </label>
         <label className="input-group" style={weeklyFieldStyle}>
-          <span>Semana</span>
+          <span>Semana a incluir</span>
           <input style={weeklyControlStyle} type="date" value={weeklyWeekStart} onChange={(event) => setWeeklyWeekStart(getMondayDateInputValue(event.target.value))} />
-          <small style={{ color: activeClientDashboardHex, fontWeight: 800 }}>{formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)}</small>
+          <small style={{ color: activeClientDashboardHex, fontWeight: 800 }}>
+            {formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)}
+            {weeklyEditingExistingRecord ? ' · já existe, será atualizada' : ' · nova coluna'}
+          </small>
         </label>
-        <label className="input-group" style={weeklyFieldStyle}>
-          <span>Investimento</span>
-          <div className="weekly-input-row">
-            <input style={weeklyControlStyle} type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
-            {weeklyPrevRecord && (
-              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.investment || 0)}</span>
-            )}
-          </div>
-        </label>
-        <label className="input-group" style={weeklyFieldStyle}>
-          <span>Leads gerados</span>
-          <div className="weekly-input-row">
-            <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
-            {weeklyPrevRecord && (
-              <span className="weekly-prev-value">{formatNumber(weeklyPrevRecord.leads || 0)}</span>
-            )}
-          </div>
-        </label>
-        <label className="input-group" style={weeklyFieldStyle}>
-          <span>SQL</span>
-          <div className="weekly-input-row">
-            <input style={weeklyControlStyle} type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
-            {weeklyPrevRecord && (
-              <span className="weekly-prev-value">{formatNumber(weeklyPrevRecord.sql || 0)}</span>
-            )}
-          </div>
-        </label>
-        <div className="weekly-computed-field" style={weeklyComputedStyle}>
-          <span>CPL automático</span>
-          <div className="weekly-input-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
-            <strong>{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</strong>
-            {weeklyPrevRecord && weeklyPrevRecord.cpl > 0 && (
-              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.cpl)}</span>
-            )}
-          </div>
-        </div>
-        <div className="weekly-computed-field" style={weeklyComputedStyle}>
-          <span>Custo SQL automático</span>
-          <div className="weekly-input-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
-            <strong>{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</strong>
-            {weeklyPrevRecord && weeklyPrevRecord.costPerSql > 0 && (
-              <span className="weekly-prev-value">{formatCurrency(weeklyPrevRecord.costPerSql)}</span>
-            )}
-          </div>
-        </div>
       </div>
 
-      <div className="weekly-health-options" style={weeklyHealthGridStyle} role="group" aria-label="Saúde do cliente">
-        {WEEKLY_HEALTH_OPTIONS.map((option) => {
-          const isActive = weeklyForm.healthStatus === option.key
-          return (
-            <button
-              key={'weekly-health-' + option.key}
-              type="button"
-              className={'weekly-health-option ' + (isActive ? 'active' : '')}
-              onClick={() => setWeeklyForm((current) => ({ ...current, healthStatus: option.key }))}
-              style={isActive ? { ...weeklyHealthOptionBaseStyle, borderColor: option.color, color: option.color, boxShadow: '0 0 0 1px ' + option.color + '44, 0 16px 40px ' + option.color + '18' } : weeklyHealthOptionBaseStyle}
-            >
-              <span style={{ width: 12, height: 12, borderRadius: 999, background: option.color }}></span>
-              <strong>{option.label}</strong>
-              <small>{option.criteria}</small>
-            </button>
-          )
-        })}
-      </div>
+      {!weeklyForm.clientId ? (
+        <div className="weekly-sheet-empty">
+          <i className="bx bx-table"></i>
+          <strong>Selecione um cliente</strong>
+          <span>Ao escolher o cliente, a planilha abre com as últimas 3 imputações para você comparar com a semana atual.</span>
+        </div>
+      ) : (
+        <div className="weekly-sheet-scroll">
+          <table className="weekly-sheet-table">
+            <thead>
+              <tr>
+                <th className="weekly-sheet-metric-head">Métrica</th>
+                {weeklyComparisonColumns.map((column) => (
+                  <th key={'weekly-sheet-col-' + column.id} className="weekly-sheet-prev-head">
+                    <span className="weekly-sheet-col-eyebrow">{formatWeekColumnRelative(column.weekStart)}</span>
+                    <strong>{formatWeekColumnShort(column.weekStart)}</strong>
+                  </th>
+                ))}
+                <th className="weekly-sheet-current-head" style={{ borderTopColor: activeClientDashboardHex, color: activeClientDashboardHex }}>
+                  <span className="weekly-sheet-col-eyebrow" style={{ color: activeClientDashboardHex }}>
+                    <i className="bx bx-plus"></i>{weeklyEditingExistingRecord ? 'Esta semana · editando' : 'Esta semana · nova'}
+                  </span>
+                  <strong style={{ color: 'inherit' }}>{formatWeekColumnShort(weeklyWeekStart)}</strong>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-wallet"></i>Investimento</th>
+                {weeklyComparisonColumns.map((column) => (
+                  <td key={'weekly-sheet-inv-' + column.id}>{formatCurrency(column.investment)}</td>
+                ))}
+                <td className="weekly-sheet-current-cell">
+                  <input className="weekly-sheet-input" type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-user-plus"></i>Leads gerados</th>
+                {weeklyComparisonColumns.map((column) => (
+                  <td key={'weekly-sheet-leads-' + column.id}>{formatNumber(column.leads)}</td>
+                ))}
+                <td className="weekly-sheet-current-cell">
+                  <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-filter-alt"></i>SQL</th>
+                {weeklyComparisonColumns.map((column) => (
+                  <td key={'weekly-sheet-sql-' + column.id}>{formatNumber(column.sql)}</td>
+                ))}
+                <td className="weekly-sheet-current-cell">
+                  <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-purchase-tag-alt"></i>CPL<small>auto</small></th>
+                {weeklyComparisonColumns.map((column) => (
+                  <td key={'weekly-sheet-cpl-' + column.id}>{column.leads > 0 ? formatCurrency(column.cpl) : '-'}</td>
+                ))}
+                <td className="weekly-sheet-current-cell weekly-sheet-computed-cell">{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</td>
+              </tr>
+              <tr>
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-credit-card"></i>Custo SQL<small>auto</small></th>
+                {weeklyComparisonColumns.map((column) => (
+                  <td key={'weekly-sheet-csql-' + column.id}>{column.sql > 0 ? formatCurrency(column.costPerSql) : '-'}</td>
+                ))}
+                <td className="weekly-sheet-current-cell weekly-sheet-computed-cell">{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</td>
+              </tr>
+              <tr className="weekly-sheet-health-row">
+                <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-heart"></i>Saúde</th>
+                {weeklyComparisonColumns.map((column) => {
+                  const health = WEEKLY_HEALTH_BY_KEY[column.healthStatus]
+                  return (
+                    <td key={'weekly-sheet-health-' + column.id}>
+                      {health
+                        ? <span className="weekly-health-pill" style={{ borderColor: health.color + '66', color: health.color, background: health.color + '14' }}>{health.label}</span>
+                        : <span className="weekly-sheet-muted">—</span>}
+                    </td>
+                  )
+                })}
+                <td className="weekly-sheet-current-cell">
+                  <div className="weekly-sheet-health-picker" role="group" aria-label="Saúde do cliente">
+                    {WEEKLY_HEALTH_OPTIONS.map((option) => {
+                      const isActive = weeklyForm.healthStatus === option.key
+                      return (
+                        <button
+                          key={'weekly-sheet-health-opt-' + option.key}
+                          type="button"
+                          title={option.criteria}
+                          className={'weekly-sheet-health-chip ' + (isActive ? 'active' : '')}
+                          onClick={() => setWeeklyForm((current) => ({ ...current, healthStatus: option.key }))}
+                          style={isActive ? { borderColor: option.color, color: option.color, background: option.color + '1f' } : undefined}
+                        >
+                          <span style={{ background: option.color }}></span>{option.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showActionSpaceSettings && (
         <ActionSpaceSettings
@@ -15295,8 +15392,8 @@ export default function DashboardShell({
       <div className="client-create-actions weekly-entry-actions" style={weeklyActionsStyle}>
         <button type="button" className="btn btn-secondary" onClick={() => setIsWeeklyEntryModalOpen(false)}>Cancelar</button>
         <button type="submit" className="btn btn-primary" disabled={isSavingWeeklyRecord || !weeklyForm.clientId} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
-          <i className="bx bx-save"></i>
-          {isSavingWeeklyRecord ? 'Salvando...' : 'Salvar semana'}
+          <i className={weeklyEditingExistingRecord ? 'bx bx-save' : 'bx bx-list-plus'}></i>
+          {isSavingWeeklyRecord ? 'Salvando...' : (weeklyEditingExistingRecord ? 'Atualizar coluna da semana' : 'Incluir coluna desta semana')}
         </button>
       </div>
     </form>
