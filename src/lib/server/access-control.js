@@ -19,6 +19,13 @@ export const PRIMARY_ADMIN_EMAILS = ['fabio@assessorialp.com.br']
 export const PREVIOUS_PRIMARY_ADMIN_EMAILS = []
 export const ASSESSORIA_LP_MEMBER_EMAILS = []
 
+// Colunas do perfil carregadas no contexto de acesso. Propositalmente SEM `avatar_url`:
+// esse campo pode guardar uma imagem base64 de vários MB, e o contexto de acesso é
+// resolvido em TODA requisição autenticada — trazer o avatar aqui multiplicava o egress
+// do Supabase (foi o que estourou a cota). O avatar é buscado sob demanda em /api/me,
+// onde a UI de fato precisa dele.
+const PROFILE_CONTEXT_COLUMNS = 'id, email, full_name, role, team_id, created_at, updated_at, workspace_id, ai_access_level, can_edit_integrations, status'
+
 export function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase()
 }
@@ -81,7 +88,7 @@ function buildProfilePayload(user, role, workspaceId) {
 export async function ensureUserProfile(adminSupabase, user) {
   const { data: existingProfile, error: profileError } = await adminSupabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_CONTEXT_COLUMNS)
     .eq('id', user.id)
     .maybeSingle()
 
@@ -116,7 +123,7 @@ export async function ensureUserProfile(adminSupabase, user) {
   const { data: createdProfile, error: createProfileError } = await adminSupabase
     .from('profiles')
     .insert(payload)
-    .select('*')
+    .select(PROFILE_CONTEXT_COLUMNS)
     .single()
 
   if (createProfileError) throw createProfileError
@@ -130,7 +137,7 @@ export async function getAccessContext(supabase, user, options = {}) {
 
   const { data: existingProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_CONTEXT_COLUMNS)
     .eq('id', user.id)
     .maybeSingle()
 

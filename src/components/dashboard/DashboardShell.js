@@ -10316,7 +10316,36 @@ export default function DashboardShell({
     }
 
     const reader = new FileReader()
-    reader.onload = () => onLoad(reader.result?.toString() || '')
+    reader.onload = () => {
+      const original = reader.result?.toString() || ''
+      if (!original) { onLoad(''); return }
+      // Redimensiona a imagem no cliente antes de salvar. Avatares/logos eram guardados
+      // como base64 do arquivo original (até ~2.7MB) em profiles.avatar_url e em
+      // workspace_clients.payload — isso inflava as linhas e disparava o egress do
+      // Supabase. Aqui reduzimos para no máximo 320px, mantendo a UX (o usuário envia
+      // qualquer imagem) e cortando o tamanho salvo em mais de 10x.
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const MAX_DIM = 320
+          const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height))
+          const width = Math.max(1, Math.round(img.width * scale))
+          const height = Math.max(1, Math.round(img.height * scale))
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+          // PNG preserva a transparência de logos; já reduzido, o arquivo fica pequeno.
+          const resized = canvas.toDataURL('image/png')
+          onLoad(resized && resized.length < original.length ? resized : original)
+        } catch {
+          onLoad(original)
+        }
+      }
+      img.onerror = () => onLoad(original)
+      img.src = original
+    }
     reader.readAsDataURL(file)
   }
 
