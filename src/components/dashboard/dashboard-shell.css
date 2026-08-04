@@ -15469,6 +15469,117 @@
           border-top-color: rgba(15, 23, 42, 0.08) !important;
         }
 
+        /* ===== Escala compacta da aba enxuta ===== */
+        .weekly-panel-lean {
+          gap: 18px !important;
+        }
+
+        .weekly-lean-hero {
+          padding: 20px 24px !important;
+          border-radius: 18px !important;
+        }
+
+        .weekly-lean-hero h2 {
+          font-size: clamp(1.15rem, 2vw, 1.45rem) !important;
+          margin: 5px 0 3px !important;
+        }
+
+        .weekly-lean-hero p {
+          font-size: 0.8rem !important;
+        }
+
+        .weekly-panel-lean .weekly-kpi-card {
+          padding: 13px 15px !important;
+          border-radius: 16px !important;
+          gap: 6px !important;
+        }
+
+        .weekly-panel-lean .weekly-kpi-card span {
+          font-size: 0.62rem !important;
+        }
+
+        .weekly-panel-lean .weekly-kpi-card strong {
+          font-size: 1.2rem !important;
+        }
+
+        .weekly-lean-metrics {
+          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+
+        .weekly-inline-cadastro {
+          padding: 22px !important;
+          border-radius: 18px !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form {
+          gap: 16px !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form h2 {
+          font-size: 1.15rem !important;
+          letter-spacing: -0.02em !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form .eyebrow {
+          font-size: 0.62rem;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form .chart-subtitle {
+          font-size: 0.78rem !important;
+          margin-top: 4px !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form .input-group > span {
+          font-size: 0.64rem !important;
+        }
+
+        .weekly-inline-cadastro .weekly-sheet-controls {
+          gap: 14px;
+        }
+
+        /* Campos gerais (Cliente / Semana) — inline styles precisam de !important */
+        .weekly-inline-cadastro .weekly-entry-form select,
+        .weekly-inline-cadastro .weekly-entry-form input {
+          min-height: 40px !important;
+          border-radius: 11px !important;
+          padding: 0 12px !important;
+          font-size: 0.88rem !important;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-form .weekly-sheet-input {
+          min-height: 34px !important;
+          border-radius: 9px !important;
+          font-size: 0.85rem !important;
+        }
+
+        .weekly-inline-cadastro .weekly-sheet-table {
+          font-size: 0.84rem;
+        }
+
+        .weekly-inline-cadastro .weekly-sheet-table thead th,
+        .weekly-inline-cadastro .weekly-sheet-table tbody td,
+        .weekly-inline-cadastro .weekly-sheet-table tbody th.weekly-sheet-metric-cell {
+          padding: 9px 12px !important;
+        }
+
+        .weekly-inline-cadastro .weekly-sheet-table thead th strong {
+          font-size: 0.86rem;
+        }
+
+        .weekly-inline-cadastro .weekly-sheet-health-chip {
+          padding: 5px 8px;
+          font-size: 0.68rem;
+          border-radius: 8px;
+        }
+
+        .weekly-inline-cadastro .weekly-entry-actions .btn {
+          min-height: 40px !important;
+          min-width: 120px;
+          border-radius: 12px !important;
+          font-size: 0.82rem;
+        }
+
         :root[data-ui-mode='light'] .weekly-entry-modal {
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98)) !important;
           border-color: rgba(15, 23, 42, 0.08) !important;
