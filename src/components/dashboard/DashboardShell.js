@@ -3350,6 +3350,8 @@ export default function DashboardShell({
   const [weeklyWeekStart, setWeeklyWeekStart] = useState(() => getMondayDateInputValue())
   const [isWeeklyEntryModalOpen, setIsWeeklyEntryModalOpen] = useState(false)
   const [isWeeklyHistoryModalOpen, setIsWeeklyHistoryModalOpen] = useState(false)
+  const [weeklySheetDepth, setWeeklySheetDepth] = useState(3)
+  const [isWeeklyHistoryExpandOpen, setIsWeeklyHistoryExpandOpen] = useState(false)
   const [isChurnListOpen, setIsChurnListOpen] = useState(false)
   // Onboarding checklist state
   const [onboardingRecords, setOnboardingRecords] = useState([])
@@ -5429,15 +5431,14 @@ export default function DashboardShell({
     return weeklyRecords.find((r) => r.clientId === weeklyForm.clientId && r.weekStart === weeklyPrevWeekStart) || null
   }, [weeklyRecords, weeklyForm.clientId, weeklyPrevWeekStart])
 
-  // Últimas 3 imputações do cliente (excluindo a semana atual em edição), da mais
-  // antiga para a mais recente, para exibir como colunas de comparação na planilha.
-  const weeklyComparisonColumns = useMemo(() => {
+  // Histórico completo do cliente (todas as semanas imputadas, exceto a que está
+  // em edição), da mais antiga para a mais recente, com CPL/Custo SQL derivados.
+  const weeklyClientHistoryColumns = useMemo(() => {
     if (!weeklyForm.clientId) return []
     return weeklyRecords
       .filter((record) => record.clientId === weeklyForm.clientId && String(record.weekStart || '') !== String(weeklyWeekStart || ''))
       .slice()
       .sort((left, right) => String(left.weekStart || '').localeCompare(String(right.weekStart || '')))
-      .slice(-3)
       .map((record) => {
         const investment = Number(record.investment || 0)
         const leads = Number(record.leads || 0)
@@ -5452,6 +5453,12 @@ export default function DashboardShell({
         }
       })
   }, [weeklyRecords, weeklyForm.clientId, weeklyWeekStart])
+
+  // Colunas de comparação exibidas inline na planilha (últimas N conforme a aba).
+  const weeklyComparisonColumns = useMemo(
+    () => weeklyClientHistoryColumns.slice(-weeklySheetDepth),
+    [weeklyClientHistoryColumns, weeklySheetDepth]
+  )
 
   const weeklyEditingExistingRecord = useMemo(() => {
     if (!weeklyForm.clientId || !weeklyWeekStart) return false
@@ -15215,13 +15222,103 @@ export default function DashboardShell({
     background: isLightAppMode ? 'linear-gradient(180deg, transparent, rgba(255,255,255,.98) 20%)' : 'linear-gradient(180deg, transparent, rgba(18,18,20,.98) 20%)',
   }
 
+  const weeklyTodayMonday = getMondayDateInputValue()
+  const weeklyIsCurrentWeek = weeklyWeekStart === weeklyTodayMonday
+  const weeklyNavLabel = (() => {
+    const cur = parseLocalDateInput(weeklyTodayMonday)
+    const sel = parseLocalDateInput(weeklyWeekStart)
+    if (!cur || !sel) return formatWeekColumnShort(weeklyWeekStart)
+    const diff = Math.round((sel.getTime() - cur.getTime()) / (7 * 86400000))
+    if (diff === 0) return 'Esta semana'
+    if (diff === -1) return 'Semana passada'
+    if (diff === 1) return 'Próxima semana'
+    return diff < 0 ? `${Math.abs(diff)} sem. atrás` : `Em ${diff} sem.`
+  })()
+  const shiftWeeklyWeek = (deltaWeeks) => {
+    const base = parseLocalDateInput(weeklyWeekStart) || new Date()
+    base.setDate(base.getDate() + deltaWeeks * 7)
+    setWeeklyWeekStart(getMondayDateInputValue(base))
+  }
+  const weeklySheetDepthOptions = [3, 6, 12]
+
+  const weeklyExpandHistoryModal = isWeeklyHistoryExpandOpen && typeof document !== 'undefined' && createPortal(
+    <div className="modal-overlay weekly-modal-overlay" style={weeklyModalOverlayStyle} role="presentation" onClick={() => setIsWeeklyHistoryExpandOpen(false)}>
+      <div className="modal-card glass-panel weekly-expand-modal" role="dialog" aria-modal="true" aria-label="Histórico completo de imputações" onClick={(event) => event.stopPropagation()} style={weeklyModalCardStyle}>
+        <button type="button" className="modal-close" style={weeklyModalCloseStyle} onClick={() => setIsWeeklyHistoryExpandOpen(false)} aria-label="Fechar histórico">
+          <i className="bx bx-x"></i>
+        </button>
+        <div className="weekly-expand-heading">
+          <span className="eyebrow">Histórico completo</span>
+          <h2>{clientsById.get(weeklyForm.clientId)?.name || 'Cliente'}</h2>
+          <p className="chart-subtitle">Todas as semanas imputadas para este cliente, em colunas, da mais antiga para a mais recente.</p>
+        </div>
+        {weeklyClientHistoryColumns.length ? (
+          <div className="weekly-sheet-scroll weekly-expand-scroll">
+            <table className="weekly-sheet-table">
+              <thead>
+                <tr>
+                  <th className="weekly-sheet-metric-head">Métrica</th>
+                  {weeklyClientHistoryColumns.map((column) => (
+                    <th key={'weekly-expand-col-' + column.id} className="weekly-sheet-prev-head">
+                      <span className="weekly-sheet-col-eyebrow">{formatWeekColumnRelative(column.weekStart)}</span>
+                      <strong>{formatWeekColumnShort(column.weekStart)}</strong>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-wallet"></i>Investimento</th>
+                  {weeklyClientHistoryColumns.map((column) => (<td key={'weekly-exp-inv-' + column.id}>{formatCurrency(column.investment)}</td>))}
+                </tr>
+                <tr>
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-user-plus"></i>Leads gerados</th>
+                  {weeklyClientHistoryColumns.map((column) => (<td key={'weekly-exp-leads-' + column.id}>{formatNumber(column.leads)}</td>))}
+                </tr>
+                <tr>
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-filter-alt"></i>SQL</th>
+                  {weeklyClientHistoryColumns.map((column) => (<td key={'weekly-exp-sql-' + column.id}>{formatNumber(column.sql)}</td>))}
+                </tr>
+                <tr>
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-purchase-tag-alt"></i>CPL</th>
+                  {weeklyClientHistoryColumns.map((column) => (<td key={'weekly-exp-cpl-' + column.id}>{column.leads > 0 ? formatCurrency(column.cpl) : '-'}</td>))}
+                </tr>
+                <tr>
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-credit-card"></i>Custo SQL</th>
+                  {weeklyClientHistoryColumns.map((column) => (<td key={'weekly-exp-csql-' + column.id}>{column.sql > 0 ? formatCurrency(column.costPerSql) : '-'}</td>))}
+                </tr>
+                <tr className="weekly-sheet-health-row">
+                  <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-heart"></i>Saúde</th>
+                  {weeklyClientHistoryColumns.map((column) => {
+                    const health = WEEKLY_HEALTH_BY_KEY[column.healthStatus]
+                    return (
+                      <td key={'weekly-exp-health-' + column.id}>
+                        {health
+                          ? <span className="weekly-health-pill" style={{ borderColor: health.color + '66', color: health.color, background: health.color + '14' }}>{health.label}</span>
+                          : <span className="weekly-sheet-muted">—</span>}
+                      </td>
+                    )
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="weekly-sheet-empty"><i className="bx bx-calendar-x"></i><strong>Sem histórico</strong><span>Este cliente ainda não tem semanas imputadas.</span></div>
+        )}
+      </div>
+    </div>,
+    document.body
+  )
+
   const weeklyFormContent = (
+    <>
     <form className="weekly-entry-form" style={weeklyEntryFormStyle} onSubmit={handleSaveWeeklyRecord}>
       <div className="section-header section-header-stack" style={weeklyEntryHeaderStyle}>
         <div>
           <span className="eyebrow">Imputação</span>
           <h2>Planilha da semana</h2>
-          <p className="chart-subtitle">Escolha o cliente e a semana a incluir. As últimas 3 imputações aparecem lado a lado para comparar — preencha a coluna “Esta semana” e inclua os dados.</p>
+          <p className="chart-subtitle">Escolha o cliente e navegue pelas semanas. As imputações aparecem em colunas lado a lado — preencha a coluna “Esta semana” e inclua os dados.</p>
         </div>
       </div>
 
@@ -15235,15 +15332,53 @@ export default function DashboardShell({
             ))}
           </select>
         </label>
-        <label className="input-group" style={weeklyFieldStyle}>
+        <div className="input-group" style={weeklyFieldStyle}>
           <span>Semana a incluir</span>
-          <input style={weeklyControlStyle} type="date" value={weeklyWeekStart} onChange={(event) => setWeeklyWeekStart(getMondayDateInputValue(event.target.value))} />
-          <small style={{ color: activeClientDashboardHex, fontWeight: 800 }}>
-            {formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)}
-            {weeklyEditingExistingRecord ? ' · já existe, será atualizada' : ' · nova coluna'}
-          </small>
-        </label>
+          <div className="weekly-week-nav">
+            <button type="button" className="weekly-week-nav-btn" onClick={() => shiftWeeklyWeek(-1)} title="Semana anterior"><i className="bx bx-chevron-left"></i></button>
+            <div className="weekly-week-nav-label">
+              <strong style={{ color: weeklyIsCurrentWeek ? activeClientDashboardHex : undefined }}>{weeklyNavLabel}</strong>
+              <small>{formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)}{weeklyEditingExistingRecord ? ' · atualizar' : ' · nova'}</small>
+            </div>
+            <button type="button" className="weekly-week-nav-btn" onClick={() => shiftWeeklyWeek(1)} title="Próxima semana"><i className="bx bx-chevron-right"></i></button>
+            <input className="weekly-week-nav-date" type="date" value={weeklyWeekStart} onChange={(event) => setWeeklyWeekStart(getMondayDateInputValue(event.target.value))} />
+            {!weeklyIsCurrentWeek && (
+              <button type="button" className="weekly-week-nav-today" onClick={() => setWeeklyWeekStart(weeklyTodayMonday)} style={{ color: activeClientDashboardHex, borderColor: activeClientDashboardHex + '66' }}>Hoje</button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {weeklyForm.clientId && (
+        <div className="weekly-sheet-tabsrow">
+          <div className="weekly-sheet-tabs" role="group" aria-label="Janela de comparação">
+            {weeklySheetDepthOptions.map((option) => {
+              const isActive = weeklySheetDepth === option
+              return (
+                <button
+                  key={'weekly-depth-' + option}
+                  type="button"
+                  className={'weekly-sheet-tab ' + (isActive ? 'active' : '')}
+                  onClick={() => setWeeklySheetDepth(option)}
+                  style={isActive ? { background: activeClientDashboardHex, borderColor: activeClientDashboardHex, color: '#04150d' } : undefined}
+                >
+                  {option} semanas
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="weekly-sheet-expand-btn"
+            onClick={() => setIsWeeklyHistoryExpandOpen(true)}
+            disabled={!weeklyClientHistoryColumns.length}
+            style={{ borderColor: activeClientDashboardHex + '66', color: activeClientDashboardHex }}
+          >
+            <i className="bx bx-expand-alt"></i>
+            Ver histórico completo
+          </button>
+        </div>
+      )}
 
       {!weeklyForm.clientId ? (
         <div className="weekly-sheet-empty">
@@ -15397,6 +15532,8 @@ export default function DashboardShell({
         </button>
       </div>
     </form>
+    {weeklyExpandHistoryModal}
+    </>
   )
 
 
