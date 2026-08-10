@@ -15392,20 +15392,6 @@ export default function DashboardShell({
         </div>
       )}
 
-      {weeklyForm.clientId && weeklyEditingExistingRecord && !weeklyEditMode && (
-        <div className="weekly-edit-warning">
-          <i className="bx bx-info-circle"></i>
-          <div className="weekly-edit-warning-copy">
-            <strong>Esta semana já foi preenchida.</strong>
-            <span>Os dados de {formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)} já foram imputados e aparecem como uma coluna normal. Para alterar, entre no modo de edição.</span>
-          </div>
-          <button type="button" className="weekly-edit-warning-btn" onClick={() => setWeeklyEditMode(true)} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
-            <i className="bx bx-edit"></i>
-            Editar
-          </button>
-        </div>
-      )}
-
       {!weeklyForm.clientId ? (
         <div className="weekly-sheet-empty">
           <i className="bx bx-table"></i>
@@ -15424,11 +15410,16 @@ export default function DashboardShell({
                     <strong>{formatWeekColumnShort(column.weekStart)}</strong>
                   </th>
                 ))}
-                <th className="weekly-sheet-current-head" style={{ borderTopColor: activeClientDashboardHex, color: activeClientDashboardHex }}>
+                <th className={'weekly-sheet-current-head' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')} style={{ borderTopColor: activeClientDashboardHex, color: activeClientDashboardHex }}>
                   <span className="weekly-sheet-col-eyebrow" style={{ color: activeClientDashboardHex }}>
-                    <i className={weeklyCurrentEditable ? 'bx bx-plus' : 'bx bx-check'}></i>{weeklyCurrentColumnTag}
+                    <i className={weeklyCurrentEditable ? 'bx bx-plus' : 'bx bx-lock-alt'}></i>{weeklyCurrentColumnTag}
                   </span>
                   <strong style={{ color: 'inherit' }}>{formatWeekColumnShort(weeklyWeekStart)}</strong>
+                  {!weeklyCurrentEditable && (
+                    <button type="button" className="weekly-sheet-unlock-btn" onClick={() => setWeeklyEditMode(true)} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
+                      <i className="bx bx-edit"></i>Editar
+                    </button>
+                  )}
                 </th>
               </tr>
             </thead>
@@ -15438,7 +15429,7 @@ export default function DashboardShell({
                 {weeklyComparisonColumns.map((column) => (
                   <td key={'weekly-sheet-inv-' + column.id}>{formatCurrency(column.investment)}</td>
                 ))}
-                <td className="weekly-sheet-current-cell">
+                <td className={'weekly-sheet-current-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>
                   {weeklyCurrentEditable
                     ? <input className="weekly-sheet-input" type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
                     : <span className="weekly-sheet-current-value">{formatCurrency(weeklyCurrentInvestment)}</span>}
@@ -15449,7 +15440,7 @@ export default function DashboardShell({
                 {weeklyComparisonColumns.map((column) => (
                   <td key={'weekly-sheet-leads-' + column.id}>{formatNumber(column.leads)}</td>
                 ))}
-                <td className="weekly-sheet-current-cell">
+                <td className={'weekly-sheet-current-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>
                   {weeklyCurrentEditable
                     ? <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
                     : <span className="weekly-sheet-current-value">{formatNumber(weeklyCurrentLeads)}</span>}
@@ -15460,7 +15451,7 @@ export default function DashboardShell({
                 {weeklyComparisonColumns.map((column) => (
                   <td key={'weekly-sheet-sql-' + column.id}>{formatNumber(column.sql)}</td>
                 ))}
-                <td className="weekly-sheet-current-cell">
+                <td className={'weekly-sheet-current-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>
                   {weeklyCurrentEditable
                     ? <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
                     : <span className="weekly-sheet-current-value">{formatNumber(weeklyCurrentSql)}</span>}
@@ -15471,14 +15462,14 @@ export default function DashboardShell({
                 {weeklyComparisonColumns.map((column) => (
                   <td key={'weekly-sheet-cpl-' + column.id}>{column.leads > 0 ? formatCurrency(column.cpl) : '-'}</td>
                 ))}
-                <td className="weekly-sheet-current-cell weekly-sheet-computed-cell">{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</td>
+                <td className={'weekly-sheet-current-cell weekly-sheet-computed-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>{weeklyCurrentLeads > 0 ? formatCurrency(weeklyCurrentCpl) : '-'}</td>
               </tr>
               <tr>
                 <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-credit-card"></i>Custo SQL<small>auto</small></th>
                 {weeklyComparisonColumns.map((column) => (
                   <td key={'weekly-sheet-csql-' + column.id}>{column.sql > 0 ? formatCurrency(column.costPerSql) : '-'}</td>
                 ))}
-                <td className="weekly-sheet-current-cell weekly-sheet-computed-cell">{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</td>
+                <td className={'weekly-sheet-current-cell weekly-sheet-computed-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>{weeklyCurrentSql > 0 ? formatCurrency(weeklyCurrentCostPerSql) : '-'}</td>
               </tr>
               <tr className="weekly-sheet-health-row">
                 <th scope="row" className="weekly-sheet-metric-cell"><i className="bx bx-heart"></i>Saúde</th>
@@ -15492,7 +15483,7 @@ export default function DashboardShell({
                     </td>
                   )
                 })}
-                <td className="weekly-sheet-current-cell">
+                <td className={'weekly-sheet-current-cell' + (weeklyCurrentEditable ? '' : ' weekly-sheet-current-locked')}>
                   {weeklyCurrentEditable ? (
                     <div className="weekly-sheet-health-picker" role="group" aria-label="Saúde do cliente">
                       {WEEKLY_HEALTH_OPTIONS.map((option) => {
