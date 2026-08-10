@@ -3352,6 +3352,7 @@ export default function DashboardShell({
   const [isWeeklyHistoryModalOpen, setIsWeeklyHistoryModalOpen] = useState(false)
   const [weeklySheetDepth, setWeeklySheetDepth] = useState(3)
   const [isWeeklyHistoryExpandOpen, setIsWeeklyHistoryExpandOpen] = useState(false)
+  const [weeklyEditMode, setWeeklyEditMode] = useState(false)
   const [isChurnListOpen, setIsChurnListOpen] = useState(false)
   // Onboarding checklist state
   const [onboardingRecords, setOnboardingRecords] = useState([])
@@ -4155,6 +4156,9 @@ export default function DashboardShell({
       healthStatus: existingRecord?.healthStatus || 'attention',
       actionItemsText: existingRecord && Array.isArray(existingRecord.actionItems) ? existingRecord.actionItems.join('\n') : '',
     }))
+    // Ao trocar de cliente/semana, sai do modo de edição — semanas já
+    // preenchidas aparecem como coluna normal (read-only) com opção de editar.
+    setWeeklyEditMode(false)
   }, [weeklyRecords, weeklyForm.clientId, weeklyWeekStart])
 
   const handleSaveWeeklyRecord = async (event) => {
@@ -4192,6 +4196,8 @@ export default function DashboardShell({
       const savedClientName = dashboardEligibleClients.find((client) => client.id === weeklyForm.clientId)?.name || 'cliente'
       setWeeklySuccessMessage(`Semana de ${savedClientName} salva com sucesso.`)
       setIsWeeklyEntryModalOpen(false)
+      // Após imputar, a semana passa a ser exibida como coluna normal preenchida.
+      setWeeklyEditMode(false)
     } catch (error) {
       setWeeklyError(error.message || 'Não foi possível salvar o acompanhamento semanal.')
     } finally {
@@ -15240,6 +15246,12 @@ export default function DashboardShell({
     setWeeklyWeekStart(getMondayDateInputValue(base))
   }
   const weeklySheetDepthOptions = [3, 6, 12]
+  // A coluna "Esta semana" só é editável quando é uma semana nova OU quando o
+  // usuário clicou em "Editar" numa semana já preenchida.
+  const weeklyCurrentEditable = !weeklyEditingExistingRecord || weeklyEditMode
+  const weeklyCurrentColumnTag = !weeklyEditingExistingRecord
+    ? 'Esta semana · nova'
+    : (weeklyEditMode ? 'Esta semana · editando' : 'Esta semana · preenchida')
 
   const weeklyExpandHistoryModal = isWeeklyHistoryExpandOpen && typeof document !== 'undefined' && createPortal(
     <div className="modal-overlay weekly-modal-overlay" style={weeklyModalOverlayStyle} role="presentation" onClick={() => setIsWeeklyHistoryExpandOpen(false)}>
@@ -15380,6 +15392,20 @@ export default function DashboardShell({
         </div>
       )}
 
+      {weeklyForm.clientId && weeklyEditingExistingRecord && !weeklyEditMode && (
+        <div className="weekly-edit-warning">
+          <i className="bx bx-info-circle"></i>
+          <div className="weekly-edit-warning-copy">
+            <strong>Esta semana já foi preenchida.</strong>
+            <span>Os dados de {formatWeekRangeLabel(weeklyWeekStart, weeklyWeekEnd)} já foram imputados e aparecem como uma coluna normal. Para alterar, entre no modo de edição.</span>
+          </div>
+          <button type="button" className="weekly-edit-warning-btn" onClick={() => setWeeklyEditMode(true)} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
+            <i className="bx bx-edit"></i>
+            Editar
+          </button>
+        </div>
+      )}
+
       {!weeklyForm.clientId ? (
         <div className="weekly-sheet-empty">
           <i className="bx bx-table"></i>
@@ -15400,7 +15426,7 @@ export default function DashboardShell({
                 ))}
                 <th className="weekly-sheet-current-head" style={{ borderTopColor: activeClientDashboardHex, color: activeClientDashboardHex }}>
                   <span className="weekly-sheet-col-eyebrow" style={{ color: activeClientDashboardHex }}>
-                    <i className="bx bx-plus"></i>{weeklyEditingExistingRecord ? 'Esta semana · editando' : 'Esta semana · nova'}
+                    <i className={weeklyCurrentEditable ? 'bx bx-plus' : 'bx bx-check'}></i>{weeklyCurrentColumnTag}
                   </span>
                   <strong style={{ color: 'inherit' }}>{formatWeekColumnShort(weeklyWeekStart)}</strong>
                 </th>
@@ -15413,7 +15439,9 @@ export default function DashboardShell({
                   <td key={'weekly-sheet-inv-' + column.id}>{formatCurrency(column.investment)}</td>
                 ))}
                 <td className="weekly-sheet-current-cell">
-                  <input className="weekly-sheet-input" type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
+                  {weeklyCurrentEditable
+                    ? <input className="weekly-sheet-input" type="number" min="0" step="0.01" value={weeklyForm.investment} onChange={(event) => setWeeklyForm((current) => ({ ...current, investment: event.target.value }))} placeholder="0,00" />
+                    : <span className="weekly-sheet-current-value">{formatCurrency(weeklyCurrentInvestment)}</span>}
                 </td>
               </tr>
               <tr>
@@ -15422,7 +15450,9 @@ export default function DashboardShell({
                   <td key={'weekly-sheet-leads-' + column.id}>{formatNumber(column.leads)}</td>
                 ))}
                 <td className="weekly-sheet-current-cell">
-                  <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
+                  {weeklyCurrentEditable
+                    ? <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.leads} onChange={(event) => setWeeklyForm((current) => ({ ...current, leads: event.target.value }))} placeholder="0" />
+                    : <span className="weekly-sheet-current-value">{formatNumber(weeklyCurrentLeads)}</span>}
                 </td>
               </tr>
               <tr>
@@ -15431,7 +15461,9 @@ export default function DashboardShell({
                   <td key={'weekly-sheet-sql-' + column.id}>{formatNumber(column.sql)}</td>
                 ))}
                 <td className="weekly-sheet-current-cell">
-                  <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
+                  {weeklyCurrentEditable
+                    ? <input className="weekly-sheet-input" type="number" min="0" step="1" value={weeklyForm.sql} onChange={(event) => setWeeklyForm((current) => ({ ...current, sql: event.target.value }))} placeholder="0" />
+                    : <span className="weekly-sheet-current-value">{formatNumber(weeklyCurrentSql)}</span>}
                 </td>
               </tr>
               <tr>
@@ -15461,23 +15493,32 @@ export default function DashboardShell({
                   )
                 })}
                 <td className="weekly-sheet-current-cell">
-                  <div className="weekly-sheet-health-picker" role="group" aria-label="Saúde do cliente">
-                    {WEEKLY_HEALTH_OPTIONS.map((option) => {
-                      const isActive = weeklyForm.healthStatus === option.key
-                      return (
-                        <button
-                          key={'weekly-sheet-health-opt-' + option.key}
-                          type="button"
-                          title={option.criteria}
-                          className={'weekly-sheet-health-chip ' + (isActive ? 'active' : '')}
-                          onClick={() => setWeeklyForm((current) => ({ ...current, healthStatus: option.key }))}
-                          style={isActive ? { borderColor: option.color, color: option.color, background: option.color + '1f' } : undefined}
-                        >
-                          <span style={{ background: option.color }}></span>{option.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {weeklyCurrentEditable ? (
+                    <div className="weekly-sheet-health-picker" role="group" aria-label="Saúde do cliente">
+                      {WEEKLY_HEALTH_OPTIONS.map((option) => {
+                        const isActive = weeklyForm.healthStatus === option.key
+                        return (
+                          <button
+                            key={'weekly-sheet-health-opt-' + option.key}
+                            type="button"
+                            title={option.criteria}
+                            className={'weekly-sheet-health-chip ' + (isActive ? 'active' : '')}
+                            onClick={() => setWeeklyForm((current) => ({ ...current, healthStatus: option.key }))}
+                            style={isActive ? { borderColor: option.color, color: option.color, background: option.color + '1f' } : undefined}
+                          >
+                            <span style={{ background: option.color }}></span>{option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    (() => {
+                      const health = WEEKLY_HEALTH_BY_KEY[weeklyForm.healthStatus]
+                      return health
+                        ? <span className="weekly-health-pill" style={{ borderColor: health.color + '66', color: health.color, background: health.color + '14' }}>{health.label}</span>
+                        : <span className="weekly-sheet-muted">—</span>
+                    })()
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -15524,13 +15565,19 @@ export default function DashboardShell({
         )}
       </div>
 
-      <div className="client-create-actions weekly-entry-actions" style={weeklyActionsStyle}>
-        <button type="button" className="btn btn-secondary" onClick={() => { setIsWeeklyEntryModalOpen(false); setWeeklyForm((current) => ({ ...current, investment: '', leads: '', sql: '' })) }}>Limpar campos</button>
-        <button type="submit" className="btn btn-primary" disabled={isSavingWeeklyRecord || !weeklyForm.clientId} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
-          <i className={weeklyEditingExistingRecord ? 'bx bx-save' : 'bx bx-list-plus'}></i>
-          {isSavingWeeklyRecord ? 'Salvando...' : (weeklyEditingExistingRecord ? 'Atualizar coluna da semana' : 'Incluir coluna desta semana')}
-        </button>
-      </div>
+      {weeklyForm.clientId && weeklyCurrentEditable && (
+        <div className="client-create-actions weekly-entry-actions" style={weeklyActionsStyle}>
+          {weeklyEditMode && weeklyEditingExistingRecord ? (
+            <button type="button" className="btn btn-secondary" onClick={() => setWeeklyEditMode(false)}>Cancelar edição</button>
+          ) : (
+            <button type="button" className="btn btn-secondary" onClick={() => setWeeklyForm((current) => ({ ...current, investment: '', leads: '', sql: '' }))}>Limpar campos</button>
+          )}
+          <button type="submit" className="btn btn-primary" disabled={isSavingWeeklyRecord || !weeklyForm.clientId} style={{ background: activeClientDashboardHex, borderColor: activeClientDashboardHex }}>
+            <i className={weeklyEditingExistingRecord ? 'bx bx-save' : 'bx bx-list-plus'}></i>
+            {isSavingWeeklyRecord ? 'Salvando...' : (weeklyEditingExistingRecord ? 'Atualizar coluna da semana' : 'Incluir coluna desta semana')}
+          </button>
+        </div>
+      )}
     </form>
     {weeklyExpandHistoryModal}
     </>

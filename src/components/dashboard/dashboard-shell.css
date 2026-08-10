@@ -15747,6 +15747,69 @@
           color-scheme: light;
         }
 
+        /* ===== Aviso de semana já preenchida + valor read-only ===== */
+        .weekly-edit-warning {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 13px 16px;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 184, 0, 0.35);
+          background: rgba(255, 184, 0, 0.08);
+        }
+
+        .weekly-edit-warning > i {
+          font-size: 20px;
+          color: #ffb800;
+          flex-shrink: 0;
+        }
+
+        .weekly-edit-warning-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .weekly-edit-warning-copy strong {
+          font-size: 0.86rem;
+          color: var(--text-primary);
+        }
+
+        .weekly-edit-warning-copy span {
+          font-size: 0.76rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+
+        .weekly-edit-warning-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 99px;
+          border: 1px solid transparent;
+          color: #04150d;
+          font-size: 0.78rem;
+          font-weight: 800;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .weekly-sheet-current-value {
+          display: block;
+          text-align: right;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+
+        @media (max-width: 620px) {
+          .weekly-edit-warning {
+            flex-wrap: wrap;
+          }
+        }
+
         :root[data-ui-mode='light'] .weekly-entry-modal {
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98)) !important;
           border-color: rgba(15, 23, 42, 0.08) !important;
