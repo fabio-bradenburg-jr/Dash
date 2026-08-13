@@ -244,14 +244,19 @@ export default function OnboardingTab() {
           // General metrics
           const allValidTaskIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
           const getValidDone = (rec) => (Array.isArray(rec?.completed_tasks) ? rec.completed_tasks : []).filter(id => allValidTaskIds.has(id)).length
+          const getValidNa = (rec) => (Array.isArray(rec?.na_tasks) ? rec.na_tasks : []).filter(id => allValidTaskIds.has(id)).length
+          // Tarefas marcadas como N/A contam para a conclusão: são descontadas do total exigido.
+          const getEffectiveTotal = (rec) => Math.max(0, totalTasks - getValidNa(rec))
+          const isClientComplete = (rec) => getValidDone(rec) >= getEffectiveTotal(rec)
           const filteredOnboardingClients = onboardingClients.filter((c) => {
             if (onboardingClientFilter && c.id !== onboardingClientFilter) return false
             if (onboardingSearch && !String(c.name || '').toLowerCase().includes(onboardingSearch.toLowerCase())) return false
             if (onboardingStatusFilter !== 'all') {
               const rec = onboardingRecords.find((r) => r.client_id === c.id)
               const done = getValidDone(rec)
-              if (onboardingStatusFilter === 'complete' && done < totalTasks) return false
-              if (onboardingStatusFilter === 'in_progress' && (done === 0 || done >= totalTasks)) return false
+              const eff = getEffectiveTotal(rec)
+              if (onboardingStatusFilter === 'complete' && done < eff) return false
+              if (onboardingStatusFilter === 'in_progress' && (done === 0 || done >= eff)) return false
               if (onboardingStatusFilter === 'not_started' && done > 0) return false
             }
             return true
@@ -267,17 +272,18 @@ export default function OnboardingTab() {
           const totalClients = onboardingClients.length
           const completedClients = onboardingClients.filter((c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            return getValidDone(rec) >= totalTasks
+            return isClientComplete(rec)
           }).length
           const inProgressClients = onboardingClients.filter((c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
             const done = getValidDone(rec)
-            return done > 0 && done < totalTasks
+            return done > 0 && done < getEffectiveTotal(rec)
           }).length
           const notStartedClients = totalClients - completedClients - inProgressClients
+          // Concluídas + N/A contam como resolvidas para o progresso geral.
           const totalTasksDone = onboardingClients.reduce((sum, c) => {
             const rec = onboardingRecords.find((r) => r.client_id === c.id)
-            return sum + Math.min(getValidDone(rec), totalTasks)
+            return sum + Math.min(getValidDone(rec) + getValidNa(rec), totalTasks)
           }, 0)
           const overallProgress = totalClients > 0 ? Math.round((totalTasksDone / (totalClients * totalTasks)) * 100) : 0
 
@@ -527,7 +533,9 @@ export default function OnboardingTab() {
                         const record = onboardingRecords.find((r) => r.client_id === client.id)
                         const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
                         const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
-                        const progress = totalTasks > 0 ? Math.min(100, Math.round((completedTasks.length / totalTasks) * 100)) : 0
+                        const naTasksList = (Array.isArray(record?.na_tasks) ? record.na_tasks : []).filter(id => allValidIds.has(id))
+                        const effTotal = Math.max(0, totalTasks - naTasksList.length)
+                        const progress = effTotal > 0 ? Math.min(100, Math.round((completedTasks.length / effTotal) * 100)) : 100
                         return (
                           <tr key={client.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -540,8 +548,9 @@ export default function OnboardingTab() {
                             </td>
                             {ONBOARDING_PHASES.map((phase) => {
                               const phaseDone = phase.tasks.filter((t) => completedTasks.includes(t.id)).length
-                              const phaseTotal = phase.tasks.length
-                              const allDone = phaseDone === phaseTotal
+                              const phaseNa = phase.tasks.filter((t) => naTasksList.includes(t.id)).length
+                              const phaseTotal = Math.max(0, phase.tasks.length - phaseNa)
+                              const allDone = phaseDone >= phaseTotal
                               const noneDone = phaseDone === 0
                               return (
                                 <td key={phase.id} style={{ textAlign: 'center', padding: '10px 8px' }}>
@@ -573,8 +582,10 @@ export default function OnboardingTab() {
                     const record = onboardingRecords.find((r) => r.client_id === client.id)
                     const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
                     const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
+                    const naCountList = (Array.isArray(record?.na_tasks) ? record.na_tasks : []).filter(id => allValidIds.has(id)).length
+                    const effTotal = Math.max(0, totalTasks - naCountList)
                     const completedCount = completedTasks.length
-                    const progress = totalTasks > 0 ? Math.min(100, Math.round((completedCount / totalTasks) * 100)) : 0
+                    const progress = effTotal > 0 ? Math.min(100, Math.round((completedCount / effTotal) * 100)) : 100
                     return (
                       <button
                         key={client.id}
@@ -590,7 +601,7 @@ export default function OnboardingTab() {
                           <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4 }} />
                           </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.6, whiteSpace: 'nowrap' }}>{completedCount}/{effTotal}</span>
                         </div>
                         <span style={{ fontSize: '0.82rem', fontWeight: 800, color: progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : 'rgba(255,255,255,0.3)', minWidth: 36, textAlign: 'right' }}>{progress}%</span>
                         <i className="bx bx-chevron-right" style={{ fontSize: 18, opacity: 0.4 }}></i>
@@ -607,8 +618,10 @@ export default function OnboardingTab() {
                   const record = onboardingRecords.find((r) => r.client_id === client.id)
                   const allValidIds = new Set(ONBOARDING_PHASES.flatMap(p => p.tasks.map(t => t.id)))
                   const completedTasks = (Array.isArray(record?.completed_tasks) ? record.completed_tasks : []).filter(id => allValidIds.has(id))
+                  const naCountList = (Array.isArray(record?.na_tasks) ? record.na_tasks : []).filter(id => allValidIds.has(id)).length
+                  const effTotal = Math.max(0, totalTasks - naCountList)
                   const completedCount = completedTasks.length
-                  const progress = totalTasks > 0 ? Math.min(100, Math.round((completedCount / totalTasks) * 100)) : 0
+                  const progress = effTotal > 0 ? Math.min(100, Math.round((completedCount / effTotal) * 100)) : 100
 
                   return (
                     <button
@@ -631,7 +644,7 @@ export default function OnboardingTab() {
                           <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#22c55e' : '#26c281', borderRadius: 4, transition: 'width 0.3s' }} />
                           </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, whiteSpace: 'nowrap' }}>{completedCount}/{totalTasks}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, whiteSpace: 'nowrap' }}>{completedCount}/{effTotal}</span>
                         </div>
                       </div>
                       <i className="bx bx-chevron-right" style={{ fontSize: 20, opacity: 0.4, flexShrink: 0 }}></i>
