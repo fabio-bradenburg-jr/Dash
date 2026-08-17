@@ -12,6 +12,7 @@ export const PAGE_MODULES = [
   // Sucesso do Cliente
   { key: 'clientes', label: 'Clientes', group: 'Sucesso do Cliente' },
   { key: 'onboarding', label: 'Onboarding', group: 'Sucesso do Cliente' },
+  { key: 'analise-clientes', label: 'Análise de Clientes', group: 'Sucesso do Cliente' },
   { key: 'offboarding', label: 'Offboarding', group: 'Sucesso do Cliente' },
   { key: 'acessos', label: 'Dados', group: 'Sucesso do Cliente' },
   // Comercial
