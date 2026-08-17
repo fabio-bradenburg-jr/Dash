@@ -26,6 +26,7 @@ import CampanhasTab from '@/components/dashboard/tabs/CampanhasTab'
 import FunilPerformanceTab from '@/components/dashboard/tabs/FunilPerformanceTab'
 import ProdutosTab from '@/components/dashboard/tabs/ProdutosTab'
 import OnboardingTab from '@/components/dashboard/tabs/OnboardingTab'
+import AnaliseClientesTab from '@/components/dashboard/tabs/AnaliseClientesTab'
 import ComunicacaoTab from '@/components/dashboard/tabs/ComunicacaoTab'
 import QualidadeLeadsTab from '@/components/dashboard/tabs/QualidadeLeadsTab'
 import ComercialProcessoTab from '@/components/dashboard/tabs/ComercialProcessoTab'
@@ -3648,7 +3649,7 @@ export default function DashboardShell({
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
   const PAC_TABS = ['pac-dash', 'pac-calendario', 'pac-tipos']
   const [isPacMenuOpen, setIsPacMenuOpen] = useState(() => PAC_TABS.includes(initialTab))
-  const SUCCESS_TABS = ['clientes', 'onboarding', 'offboarding', 'acessos']
+  const SUCCESS_TABS = ['clientes', 'onboarding', 'analise-clientes', 'offboarding', 'acessos']
   const [isSuccessMenuOpen, setIsSuccessMenuOpen] = useState(() => SUCCESS_TABS.includes(initialTab))
   const [globalIntegrations, setGlobalIntegrations] = useState({
     ...DEFAULT_PREFERENCES.globalIntegrations,
@@ -4047,6 +4048,7 @@ export default function DashboardShell({
       case 'qualidade-leads':
       case 'settings':
       case 'onboarding':
+      case 'analise-clientes':
       case 'offboarding':
       case 'acessos':
       case 'comercial':
@@ -4076,7 +4078,7 @@ export default function DashboardShell({
 
   const TAB_ORDER = useMemo(() => ([
     'semanal', 'tarefas', 'comunicacao', 'settings',
-    'clientes', 'onboarding', 'offboarding', 'acessos',
+    'clientes', 'onboarding', 'analise-clientes', 'offboarding', 'acessos',
     'comercial',
     'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil', 'qualidade-leads',
     'editorial-dash', 'editorial', 'editorial-plans',
@@ -16436,7 +16438,7 @@ export default function DashboardShell({
               )}
             </div>
           )}
-          {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('offboarding') || hasNavAccess('acessos')) && (
+          {(canAccessClientsTab || isMaster) && (isMaster || hasNavAccess('clientes') || hasNavAccess('onboarding') || hasNavAccess('analise-clientes') || hasNavAccess('offboarding') || hasNavAccess('acessos')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Sucesso do Cliente</div>
               {canAccessClientsTab && (isMaster || hasNavAccess('clientes')) && (
@@ -16448,6 +16450,11 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('onboarding')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'onboarding' ? 'active' : ''}`} onClick={() => { setActiveTab('onboarding'); setIsHubNavOpen(false) }}>
                   <span className="mi">rocket_launch</span><span className="hub-nav-label">Onboarding</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('analise-clientes')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'analise-clientes' ? 'active' : ''}`} onClick={() => { setActiveTab('analise-clientes'); setIsHubNavOpen(false) }}>
+                  <span className="mi">monitoring</span><span className="hub-nav-label">Análise de Clientes</span>
                 </button>
               )}
               {(isMaster || hasNavAccess('offboarding')) && (
@@ -16793,6 +16800,10 @@ export default function DashboardShell({
 
         {activeTab === 'onboarding' && (isMaster || hasNavAccess('onboarding')) && (
           <OnboardingTab />
+        )}
+
+        {activeTab === 'analise-clientes' && (isMaster || hasNavAccess('analise-clientes')) && (
+          <AnaliseClientesTab />
         )}
 
         {activeTab === 'comunicacao' && (isMaster || hasNavAccess('comunicacao')) && (
