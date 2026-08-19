@@ -27,6 +27,7 @@ export const PAGE_MODULES = [
   { key: 'relatorios', label: 'Relatórios', group: 'Performance' },
   { key: 'relatorio-manual', label: 'Relatório Manual', group: 'Performance' },
   { key: 'planilha-leads', label: 'Planilha de Leads', group: 'Performance' },
+  { key: 'monitor-leads', label: 'Monitor de Leads', group: 'Performance' },
   // Social Media
   { key: 'editorial-dash', label: 'Social · Painel', group: 'Social Media' },
   { key: 'editorial', label: 'Social · Calendário', group: 'Social Media' },

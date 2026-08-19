@@ -20,6 +20,7 @@ import CustomSelect from '@/components/dashboard/CustomSelect'
 import { DashboardContext } from '@/components/dashboard/DashboardContext'
 import './dashboard-shell.css'
 import PlanilhaLeadsTab from '@/components/dashboard/tabs/PlanilhaLeadsTab'
+import MonitorLeadsTab from '@/components/dashboard/tabs/MonitorLeadsTab'
 import SaldosTab from '@/components/dashboard/tabs/SaldosTab'
 import AnunciosTab from '@/components/dashboard/tabs/AnunciosTab'
 import CampanhasTab from '@/components/dashboard/tabs/CampanhasTab'
@@ -3643,7 +3644,7 @@ export default function DashboardShell({
     clientGroupIds: [],
   })
   const [savingUser, setSavingUser] = useState(false)
-  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil']
+  const ADS_TABS = ['apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'monitor-leads', 'funil']
   const [isAdsMenuOpen, setIsAdsMenuOpen] = useState(() => ADS_TABS.includes(initialTab))
   const SOCIAL_TABS = ['editorial', 'editorial-dash', 'editorial-plans']
   const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(() => SOCIAL_TABS.includes(initialTab))
@@ -4059,6 +4060,7 @@ export default function DashboardShell({
       case 'relatorios':
       case 'relatorio-manual':
       case 'planilha-leads':
+      case 'monitor-leads':
       case 'funil':
       case 'editorial-dash':
       case 'editorial':
@@ -4080,7 +4082,7 @@ export default function DashboardShell({
     'semanal', 'tarefas', 'comunicacao', 'settings',
     'clientes', 'onboarding', 'analise-clientes', 'offboarding', 'acessos',
     'comercial',
-    'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'funil', 'qualidade-leads',
+    'apresentacao', 'campanhas', 'anuncios', 'saldos', 'relatorios', 'relatorio-manual', 'planilha-leads', 'monitor-leads', 'funil', 'qualidade-leads',
     'editorial-dash', 'editorial', 'editorial-plans',
     'pac-dash', 'pac-calendario', 'pac-tipos',
     'usuarios',
@@ -16477,7 +16479,7 @@ export default function DashboardShell({
               </button>
             </div>
           )}
-          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas') || hasNavAccess('funil') || hasNavAccess('qualidade-leads')) && (
+          {(isMaster || hasNavAccess('apresentacao') || hasNavAccess('campanhas') || hasNavAccess('anuncios') || hasNavAccess('saldos') || hasNavAccess('relatorios') || hasNavAccess('relatorio-manual') || hasNavAccess('tarefas') || hasNavAccess('planilha-leads') || hasNavAccess('monitor-leads') || hasNavAccess('funil') || hasNavAccess('qualidade-leads')) && (
             <div className="hub-nav-group">
               <div className="hub-nav-group-label">Performance</div>
               {(isMaster || hasNavAccess('apresentacao')) && (
@@ -16513,6 +16515,11 @@ export default function DashboardShell({
               {(isMaster || hasNavAccess('planilha-leads')) && (
                 <button type="button" className={`hub-nav-item ${activeTab === 'planilha-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('planilha-leads'); setIsHubNavOpen(false) }}>
                   <span className="mi">table</span><span className="hub-nav-label">Planilha de Leads</span>
+                </button>
+              )}
+              {(isMaster || hasNavAccess('monitor-leads')) && (
+                <button type="button" className={`hub-nav-item ${activeTab === 'monitor-leads' ? 'active' : ''}`} onClick={() => { setActiveTab('monitor-leads'); setIsHubNavOpen(false) }}>
+                  <span className="mi">calendar_month</span><span className="hub-nav-label">Monitor de Leads</span>
                 </button>
               )}
               {(isMaster || hasNavAccess('funil')) && (
@@ -16835,6 +16842,10 @@ export default function DashboardShell({
 
         {activeTab === 'planilha-leads' && (isMaster || hasNavAccess('planilha-leads')) && (
           <PlanilhaLeadsTab />
+        )}
+
+        {activeTab === 'monitor-leads' && (isMaster || hasNavAccess('monitor-leads')) && (
+          <MonitorLeadsTab />
         )}
 
         {activeTab === 'rotinas' && (isMaster || hasNavAccess('tarefas')) && (
