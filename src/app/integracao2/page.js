@@ -1,26 +1,91 @@
 'use client'
 import styles from './page.module.css'
 
+/* ─────────────────────────────────────────────────────────────
+   Conteúdo alinhado ao Contrato de Prestação de Assessoria
+   Comercial — PLANO PERFORMANCE | MÉTODO LP.
+   Referências entre parênteses = cláusulas do contrato.
+   ───────────────────────────────────────────────────────────── */
+
 const JOURNEY_STEPS = [
-  { label: 'Apresentação',           done: true },
-  { label: 'Assinatura do Contrato', done: true },
-  { label: 'Reunião de Integração',  current: true },
-  { label: 'Início dos Anúncios',    done: false },
+  { label: 'Apresentação da proposta',                 detail: 'Escopo e entregáveis do plano Performance alinhados',                       done: true },
+  { label: 'Assinatura do contrato e 1ª mensalidade',  detail: 'A primeira mensalidade é paga na assinatura',                          done: true },
+  { label: 'Reunião de integração',                    detail: 'Até 3 dias úteis após a assinatura e a confirmação do pagamento',      current: true },
+  { label: 'Entrega de acessos e materiais',           detail: 'Checklist enviado logo após esta reunião' },
+  { label: 'Ativação da 1ª campanha de leads',         detail: 'Até 10 dias úteis após a integração, com o checklist concluído' },
+  { label: 'Rotina contínua',                          detail: 'Relatório semanal, reunião mensal e otimização das campanhas' },
 ]
 
-const THREE_PS = [
-  { icon: 'bx-target-lock', title: 'Planejamento Estratégico', desc: 'Definimos público, produto, estratégia e metas antes de qualquer ação.' },
-  { icon: 'bxs-group',      title: 'Potenciais Clientes',      desc: 'Captação ativa de leads qualificados com anúncios e formulários filtrados.' },
-  { icon: 'bx-receipt',     title: 'Prestação de Contas',      desc: 'Relatórios e reuniões mensais para transparência total nos resultados.' },
+const FIVE_PS = [
+  { icon: 'bx-target-lock',   title: 'Planejamento Estratégico', desc: 'Diagnóstico da oferta, do público-alvo e do canal prioritário antes de qualquer campanha.' },
+  { icon: 'bx-git-branch',    title: 'Processos Comerciais',     desc: 'Scripts, funil e CRM estruturados para sustentar o atendimento e a conversão.' },
+  { icon: 'bxs-group',        title: 'Potenciais Clientes',      desc: 'Tráfego pago e anúncios em Meta Ads ou Google Ads para gerar contatos qualificados.' },
+  { icon: 'bx-trending-up',   title: 'PAC — Aceleração Contínua', desc: 'Testes e otimização contínua das campanhas e da rotina comercial ao longo do contrato.' },
+  { icon: 'bx-receipt',       title: 'Prestação de Contas',      desc: 'Relatório semanal dos indicadores e reunião mensal de resultados e próximos passos.' },
+]
+
+// Entregáveis expressamente incluídos no pacote PERFORMANCE (cláusula 1.3)
+const DELIVERABLES = [
+  { code: '1.3.1', icon: 'bx-target-lock',    title: 'Planejamento da aquisição',    desc: 'Diagnóstico inicial da oferta, do público-alvo e do canal prioritário, com definição das premissas das campanhas.' },
+  { code: '1.3.2', icon: 'bx-broadcast',      title: 'Tráfego pago',                 desc: 'Criação, ativação, gestão e otimização contínua de campanhas em Meta Ads ou Google Ads, conforme o canal definido.' },
+  { code: '1.3.3', icon: 'bx-photo-album',    title: 'Desenvolvimento de anúncios',  desc: 'Criação das peças e textos publicitários das campanhas, a partir dos materiais e aprovações enviados por você.' },
+  { code: '1.3.4', icon: 'bx-line-chart',     title: 'Relatórios semanais',          desc: 'Síntese semanal dos indicadores: investimento, contatos ou leads e custo por resultado.' },
+  { code: '1.3.5', icon: 'bx-calendar-check', title: 'Reuniões mensais',             desc: 'Uma reunião por mês para apresentar resultados, analisar aprendizados e alinhar as ações seguintes.' },
+  { code: '1.3.6', icon: 'bx-chat',           title: 'Scripts de vendas',            desc: 'Roteiros de abordagem, qualificação, follow-up, contorno de objeções e fechamento.' },
+  { code: '1.3.7', icon: 'bx-user-voice',     title: 'Treinamento comercial',        desc: 'Capacitação do time para aplicar os scripts, usar o processo e evoluir a rotina comercial.' },
+  { code: '1.3.8', icon: 'bx-collection',     title: 'CRM',                          desc: 'Implantação e organização do CRM: funil, etapas, campos essenciais e orientação de uso.' },
+]
+
+// Fora do escopo, salvo contratação por aditivo (1.4)
+const OUT_OF_SCOPE = [
+  { icon: 'bx-code-alt', label: 'Site ou landing page' },
+  { icon: 'bx-like',     label: 'Gestão de redes sociais' },
+  { icon: 'bx-bot',      label: 'Automações e soluções de IA' },
+]
+
+// Custos pagos diretamente pela empresa (1.5 e 5.4)
+const CLIENT_COSTS = [
+  'Investimento em mídia',
+  'Licenças e assinaturas de software',
+  'Domínio e hospedagem',
+  'Serviços de terceiros',
+  'Bancos de imagens',
+  'Deslocamentos e captação externa',
 ]
 
 const METHOD_STEPS = [
-  { code: 'P1', label: 'Planejamento',           color: '#26c281' },
-  { code: 'P2', label: 'Qualificação',           color: '#4fdf9b' },
-  { code: 'P2', label: 'Atendimento e Vendas',   color: '#4fdf9b' },
-  { code: 'P3', label: 'Anúncios que Convertem', color: '#26c281' },
-  { code: 'P3', label: 'Gestão dos Leads',       color: '#26c281' },
-  { code: 'P4', label: 'Controle do Funil',      color: '#1ba86d' },
+  { code: 'P1', label: 'Planejamento da aquisição',                color: '#26c281' },
+  { code: 'P2', label: 'Processos comerciais: scripts, funil e CRM', color: '#4fdf9b' },
+  { code: 'P3', label: 'Anúncios e tráfego pago',                  color: '#26c281' },
+  { code: 'P3', label: 'Qualificação e gestão dos leads',          color: '#26c281' },
+  { code: 'P4', label: 'PAC — otimização contínua',                color: '#1ba86d' },
+  { code: 'P5', label: 'Relatório semanal e reunião mensal',       color: '#4fdf9b' },
+]
+
+// Prestação de contas e atendimento (1.3.4, 1.3.5 e 4.5)
+const CADENCE = [
+  {
+    icon: 'bx-line-chart', tag: 'SEMANAL', title: 'Relatório semanal',
+    items: ['Investimento do período', 'Contatos ou leads gerados', 'Custo por resultado'],
+  },
+  {
+    icon: 'bx-calendar-check', tag: 'MENSAL', title: 'Reunião de resultados',
+    items: ['Resultados do período anterior', 'Análise dos aprendizados', 'Ações do período seguinte'],
+  },
+  {
+    icon: 'bxl-whatsapp', tag: 'DIA A DIA', title: 'Canal de atendimento',
+    items: ['WhatsApp ou canal acordado', 'Dias úteis, em horário comercial', 'Fora do período: no próximo atendimento'],
+  },
+]
+
+// Obrigações da CONTRATANTE (3.1)
+const CLIENT_DUTIES = [
+  'Enviar informações, acessos, materiais e aprovações em tempo hábil',
+  'Participar das reuniões e colaborar com a implantação dos processos',
+  'Garantir a veracidade e a titularidade dos conteúdos e materiais enviados',
+  'Manter os acessos às plataformas atualizados e avisar sobre bloqueios',
+  'Realizar as vendas, o atendimento e o acompanhamento dos potenciais clientes',
+  'Pagar diretamente a mídia, as licenças e os serviços de terceiros',
 ]
 
 const FUNNEL_DATA = [
@@ -40,8 +105,9 @@ const BRIEFING_QUESTIONS = [
 ]
 
 const CHECKLIST_ITEMS = [
-  'Acesso ao Meta Ads',
+  'Acesso ao Meta Ads (e ao Google Ads, se for o canal definido)',
   'Acesso do Instagram: login e senha',
+  'Acesso ao CRM atual, se já houver um em uso',
   'Lista de clientes',
   'Materiais da marca, como logomarca',
   'Pasta no Drive com vídeos e imagens',
@@ -80,11 +146,11 @@ export default function Integracao2Page() {
 
           {/* Left: text */}
           <div className={styles.heroContent}>
-            <span className={styles.heroBadge}>MÉTODO LP</span>
+            <span className={styles.heroBadge}>PLANO PERFORMANCE · MÉTODO LP</span>
             <h1 className={styles.heroTitle}>Integração<br /><span className={styles.green}>Método LP</span></h1>
             <p className={styles.heroSub}>A partir daqui, aceleramos seu crescimento.</p>
             <p className={styles.heroDesc}>
-              Você está entrando em uma máquina comercial completa, criada para gerar demanda, organizar leads e transformar oportunidades em vendas.
+              O plano Performance reúne todos os entregáveis do pacote Escalada e acrescenta a estruturação dos processos comerciais necessária ao acompanhamento e à conversão dos potenciais clientes.
             </p>
             <button className={styles.ctaBtn} onClick={() => scrollTo('como-funciona')}>
               Começar integração <i className="bx bx-chevron-down" />
@@ -153,7 +219,7 @@ export default function Integracao2Page() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>JORNADA</span>
             <h2 className={styles.sectionTitle}>Como funciona a partir de agora</h2>
-            <p className={styles.sectionSub}>Você está entrando em uma máquina comercial completa.</p>
+            <p className={styles.sectionSub}>Os prazos abaixo são os do contrato e valem a partir da entrega dos acessos e aprovações.</p>
           </div>
           <div className={styles.journey}>
             {JOURNEY_STEPS.map((step, i) => (
@@ -165,20 +231,22 @@ export default function Integracao2Page() {
                 <div className={styles.journeyLabel}>
                   {step.current && <span className={styles.journeyYouAreHere}>Você está aqui</span>}
                   <span>{step.label}</span>
+                  {step.detail && <span className={styles.journeyDetail}>{step.detail}</span>}
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* 3 — MÉTODO 3 P'S */}
-        <section id="metodo-3ps" className={styles.section}>
+        {/* 3 — MÉTODO 5 P'S */}
+        <section id="metodo-5ps" className={`${styles.section} ${styles.sectionWide}`}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>MÉTODO</span>
-            <h2 className={styles.sectionTitle}>Os 3 P's</h2>
+            <h2 className={styles.sectionTitle}>Os 5 P&apos;s</h2>
+            <p className={styles.sectionSub}>Aplicados na extensão necessária aos entregáveis incluídos no plano Performance.</p>
           </div>
           <div className={styles.fivePs}>
-            {THREE_PS.map((p, i) => (
+            {FIVE_PS.map((p, i) => (
               <div key={i} className={`${styles.pCard} ${styles.ledCard}`}>
                 <div className={styles.pCardIcon}><i className={`bx ${p.icon}`} /></div>
                 <h3 className={styles.pCardTitle}>{p.title}</h3>
@@ -188,12 +256,62 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 4 — ETAPAS DO MÉTODO */}
+        {/* 4 — ENTREGÁVEIS DO PLANO */}
+        <section id="entregaveis" className={`${styles.section} ${styles.sectionWide}`}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>ESCOPO</span>
+            <h2 className={styles.sectionTitle}>O que está incluído no seu plano</h2>
+            <p className={styles.sectionSub}>Os 8 entregáveis do pacote Performance, exatamente como descritos no contrato.</p>
+          </div>
+          <div className={styles.deliverGrid}>
+            {DELIVERABLES.map((d) => (
+              <div key={d.code} className={`${styles.deliverCard} ${styles.ledCard}`}>
+                <div className={styles.deliverHead}>
+                  <span className={styles.deliverIcon}><i className={`bx ${d.icon}`} /></span>
+                  <span className={styles.deliverCode}>{d.code}</span>
+                </div>
+                <h3 className={styles.deliverTitle}>{d.title}</h3>
+                <p className={styles.deliverDesc}>{d.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 5 — FORA DO ESCOPO */}
+        <section id="fora-do-escopo" className={`${styles.section} ${styles.sectionDark}`}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>TRANSPARÊNCIA</span>
+            <h2 className={styles.sectionTitle}>O que não está incluído</h2>
+            <p className={styles.sectionSub}>Deixar isso claro agora evita ruído depois. Tudo aqui pode ser contratado por aditivo.</p>
+          </div>
+          <div className={styles.scopeWrap}>
+            <div className={styles.scopeGrid}>
+              {OUT_OF_SCOPE.map((s, i) => (
+                <div key={i} className={styles.scopeCard}>
+                  <i className={`bx ${s.icon}`} />
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className={styles.scopeCosts}>
+              <p className={styles.scopeCostsTitle}>Custos pagos diretamente pela sua empresa</p>
+              <div className={styles.scopeChips}>
+                {CLIENT_COSTS.map((c, i) => <span key={i} className={styles.scopeChip}>{c}</span>)}
+              </div>
+            </div>
+          </div>
+          <p className={styles.noteBox}>
+            <i className="bx bx-info-circle" />
+            A mensalidade cobre exclusivamente os honorários da assessoria. Qualquer alteração de escopo é formalizada por escrito entre as partes.
+          </p>
+        </section>
+
+        {/* 6 — ETAPAS DO MÉTODO */}
         <section id="etapas" className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>PROCESSO</span>
             <h2 className={styles.sectionTitle}>As Etapas do Método</h2>
-            <p className={styles.sectionSub}>O método é um processo, não uma ação isolada.</p>
+            <p className={styles.sectionSub}>O método é um processo contínuo, não uma ação isolada.</p>
           </div>
           <div className={styles.methodSteps}>
             {METHOD_STEPS.map((s, i) => (
@@ -206,45 +324,46 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 5 — PLANEJAMENTO */}
+        {/* 7 — PLANEJAMENTO */}
         <section id="planejamento" className={styles.section}>
           <div className={styles.twoCol}>
             <div>
-              <span className={styles.sectionTag}>P1</span>
-              <h2 className={styles.sectionTitle}>Planejamento</h2>
-              <p className={styles.bodyText}>Definimos:</p>
+              <span className={styles.sectionTag}>P1 · ENTREGÁVEL 1.3.1</span>
+              <h2 className={styles.sectionTitle}>Planejamento da aquisição</h2>
+              <p className={styles.bodyText}>Diagnóstico inicial que define as premissas de todas as campanhas:</p>
               <ul className={styles.greenList}>
-                <li>Público certo</li>
-                <li>Produto/serviço foco</li>
-                <li>Estratégia de comunicação</li>
-                <li>Dores e objeções</li>
-                <li>Metas e indicadores</li>
+                <li>Oferta e produto/serviço foco</li>
+                <li>Público-alvo</li>
+                <li>Canal prioritário: Meta Ads ou Google Ads</li>
+                <li>Estratégia de comunicação, dores e objeções</li>
+                <li>Metas e indicadores de acompanhamento</li>
               </ul>
             </div>
             <div className={`${styles.impactCard} ${styles.ledCard}`}>
               <i className="bx bx-bulb" style={{ fontSize: 40, color: '#26c281', marginBottom: 16 }} />
-              <p className={styles.impactText}>"Anunciar sem estratégia é rasgar dinheiro."</p>
+              <p className={styles.impactText}>&ldquo;Anunciar sem estratégia é rasgar dinheiro.&rdquo;</p>
             </div>
           </div>
         </section>
 
-        {/* 6 — ANÚNCIOS */}
+        {/* 8 — ANÚNCIOS */}
         <section id="anuncios" className={styles.section}>
           <div className={styles.twoCol}>
             <div>
-              <span className={styles.sectionTag}>P3</span>
-              <h2 className={styles.sectionTitle}>Anúncios que Convertem</h2>
-              <p className={styles.bodyText}>Anúncios criados para atrair quem realmente pode comprar.</p>
+              <span className={styles.sectionTag}>P3 · ENTREGÁVEIS 1.3.2 E 1.3.3</span>
+              <h2 className={styles.sectionTitle}>Tráfego pago e anúncios que convertem</h2>
+              <p className={styles.bodyText}>Campanhas em Meta Ads ou Google Ads, conforme o canal definido no planejamento.</p>
               <p className={styles.bodyText} style={{ marginTop: 8, opacity: 0.5 }}>O que fazemos:</p>
               <ul className={styles.greenList}>
-                <li>Textos com foco em conversão</li>
-                <li>Material em imagem e vídeo</li>
+                <li>Criação e ativação das campanhas</li>
+                <li>Textos publicitários com foco em conversão</li>
+                <li>Peças em imagem e vídeo, a partir dos seus materiais</li>
                 <li>Segmentação precisa</li>
-                <li>Testes e otimizações contínuos</li>
+                <li>Gestão e otimização contínua</li>
               </ul>
             </div>
             <div className={`${styles.adCard} ${styles.ledCard}`}>
-              <div className={styles.adCardTag}><i className="bx bx-bar-chart-alt-2" /> MÉTRICAS DA CAMPANHA</div>
+              <div className={styles.adCardTag}><i className="bx bx-bar-chart-alt-2" /> EXEMPLO DE CAMPANHA</div>
               {CAMPAIGN_METRICS.map(({ label, value }) => (
                 <div key={label} className={styles.adCardBar}>
                   <span>{label}</span>
@@ -255,10 +374,10 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 7 — QUALIFICAÇÃO */}
+        {/* 9 — QUALIFICAÇÃO */}
         <section id="qualificacao" className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>P2</span>
+            <span className={styles.sectionTag}>P3</span>
             <h2 className={styles.sectionTitle}>Qualificação por Formulário</h2>
           </div>
           <div className={styles.qualGrid}>
@@ -276,12 +395,12 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 8 — GESTÃO DE LEADS */}
+        {/* 10 — CRM E GESTÃO DE LEADS */}
         <section id="gestao-leads" className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>P3</span>
-            <h2 className={styles.sectionTitle}>Gestão dos Leads — PGL</h2>
-            <p className={styles.sectionSub}>Todos os leads organizados em um único lugar para que nada seja perdido.</p>
+            <span className={styles.sectionTag}>P2 · ENTREGÁVEL 1.3.8</span>
+            <h2 className={styles.sectionTitle}>CRM e Gestão dos Leads — PGL</h2>
+            <p className={styles.sectionSub}>Implantamos e organizamos o CRM definido no planejamento: funil, etapas, campos essenciais e orientação de uso.</p>
           </div>
           <div className={`${styles.crmCard} ${styles.ledCard}`}>
             <div className={styles.crmHeader}>
@@ -298,32 +417,38 @@ export default function Integracao2Page() {
               </div>
             ))}
           </div>
+          <p className={styles.noteBox}>
+            <i className="bx bx-info-circle" />
+            Licenças e assinaturas do CRM ou de outras plataformas são contratadas e pagas diretamente pela sua empresa.
+          </p>
         </section>
 
-        {/* 9 — ATENDIMENTO */}
+        {/* 11 — SCRIPTS, TREINAMENTO E VENDAS */}
         <section id="atendimento" className={styles.section}>
           <div className={styles.twoCol}>
             <div>
-              <span className={styles.sectionTag}>P2</span>
-              <h2 className={styles.sectionTitle}>Atendimento e Vendas</h2>
-              <p className={styles.bodyText}>O comercial recebe o lead e segue um processo claro.</p>
+              <span className={styles.sectionTag}>P2 · ENTREGÁVEIS 1.3.6 E 1.3.7</span>
+              <h2 className={styles.sectionTitle}>Scripts de vendas e treinamento</h2>
+              <p className={styles.bodyText}>Entregamos o roteiro e capacitamos o time. A execução do atendimento e das vendas é da sua equipe.</p>
               <ul className={styles.greenList}>
-                <li>Responder Rápido</li>
-                <li>Conduzir o cliente até a proposta</li>
-                <li>Fechamento de venda</li>
+                <li>Abordagem e qualificação</li>
+                <li>Follow-up e contorno de objeções</li>
+                <li>Condução até a proposta e fechamento</li>
+                <li>Treinamento do time em encontros agendados</li>
+                <li>Melhoria contínua da rotina comercial</li>
               </ul>
             </div>
             <div className={`${styles.impactCard} ${styles.ledCard}`}>
               <i className="bx bx-message-dots" style={{ fontSize: 40, color: '#26c281', marginBottom: 16 }} />
-              <p className={styles.impactText}>"Lead bom precisa de atendimento rápido e processo comercial bem executado."</p>
+              <p className={styles.impactText}>&ldquo;Lead bom precisa de atendimento rápido e processo comercial bem executado.&rdquo;</p>
             </div>
           </div>
         </section>
 
-        {/* 11 — CONTROLE DO FUNIL */}
+        {/* 12 — CONTROLE DO FUNIL */}
         <section id="funil" className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>P4</span>
+            <span className={styles.sectionTag}>P4 · PAC</span>
             <h2 className={styles.sectionTitle}>Controle do Funil</h2>
           </div>
           <div className={styles.funnelWrap}>
@@ -341,30 +466,63 @@ export default function Integracao2Page() {
               <p className={styles.bodyText}>O que você precisa garantir:</p>
               <ul className={styles.greenList}>
                 <li>Agilidade no atendimento</li>
-                <li>Uso diário de CRM, para preenchimento da PGL</li>
+                <li>Uso diário do CRM, para preenchimento da PGL</li>
                 <li>Participar das reuniões</li>
               </ul>
             </div>
           </div>
         </section>
 
-        {/* 12 — COMPROMETIMENTO */}
+        {/* 13 — PRESTAÇÃO DE CONTAS E ATENDIMENTO */}
+        <section id="prestacao-de-contas" className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>P5 · ENTREGÁVEIS 1.3.4 E 1.3.5</span>
+            <h2 className={styles.sectionTitle}>Prestação de contas e atendimento</h2>
+            <p className={styles.sectionSub}>A rotina de acompanhamento que passa a valer assim que as campanhas forem ao ar.</p>
+          </div>
+          <div className={styles.cadenceGrid}>
+            {CADENCE.map((c, i) => (
+              <div key={i} className={`${styles.cadenceCard} ${styles.ledCard}`}>
+                <span className={styles.cadenceTag}>{c.tag}</span>
+                <i className={`bx ${c.icon}`} style={{ fontSize: 30, color: '#26c281' }} />
+                <h3 className={styles.cadenceTitle}>{c.title}</h3>
+                <ul className={styles.greenList}>
+                  {c.items.map((it, j) => <li key={j}>{it}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 14 — COMPROMETIMENTO */}
         <section id="comprometimento" className={`${styles.section} ${styles.sectionDark}`}>
           <div className={styles.commitWrap}>
             <h2 className={styles.sectionTitle} style={{ textAlign: 'center' }}>Mas tudo isso só vai funcionar...</h2>
             <div className={styles.commitHighlight}>com seu comprometimento!</div>
-            <p className={styles.bodyText} style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto', opacity: 0.6 }}>
-              O método entrega estrutura, processo e direção. Mas o resultado depende da execução conjunta entre LP e cliente.
+            <p className={styles.bodyText} style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto', opacity: 0.6 }}>
+              O contrato divide as responsabilidades. A LP entrega estrutura, processo e direção — estes pontos ficam com a sua empresa:
+            </p>
+            <div className={styles.dutyGrid}>
+              {CLIENT_DUTIES.map((d, i) => (
+                <div key={i} className={styles.dutyItem}>
+                  <i className="bx bx-check-circle" />
+                  <span>{d}</span>
+                </div>
+              ))}
+            </div>
+            <p className={styles.noteBox}>
+              <i className="bx bx-time-five" />
+              Atrasos na entrega de materiais, acessos ou aprovações prorrogam os prazos da assessoria pelo período necessário à reprogramação das atividades.
             </p>
           </div>
         </section>
 
-        {/* 13 — BRIEFING */}
+        {/* 15 — BRIEFING */}
         <section id="briefing" className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>BRIEFING</span>
             <h2 className={styles.sectionTitle}>Sobre o seu negócio</h2>
-            <p className={styles.sectionSub}>Vamos entender seus principais desafios comerciais, objeções e diferenciais.</p>
+            <p className={styles.sectionSub}>Base do planejamento da aquisição: seus principais desafios comerciais, objeções e diferenciais.</p>
           </div>
           <div className={styles.briefingCards}>
             {BRIEFING_QUESTIONS.map((q, i) => (
@@ -376,11 +534,12 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 14 — CHECKLIST */}
+        {/* 16 — CHECKLIST */}
         <section id="checklist" className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>START</span>
             <h2 className={styles.sectionTitle}>Checklist para Início dos Anúncios</h2>
+            <p className={styles.sectionSub}>Com tudo entregue, a primeira campanha é ativada em até 10 dias úteis.</p>
           </div>
           <div className={styles.checklistWrap}>
             {CHECKLIST_ITEMS.map((item, i) => (
@@ -392,7 +551,7 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 15 — LEMBRE-SE */}
+        {/* 17 — LEMBRE-SE */}
         <section id="lembre-se" className={`${styles.section} ${styles.sectionAccent}`}>
           <div className={styles.rememberWrap}>
             <i className="bx bx-bell" style={{ fontSize: 48, color: '#26c281' }} />
@@ -404,12 +563,12 @@ export default function Integracao2Page() {
           </div>
         </section>
 
-        {/* 16 — FINAL */}
+        {/* 18 — FINAL */}
         <section id="final" className={`${styles.section} ${styles.sectionFinal}`}>
           <div className={styles.finalGlow} />
           <div className={styles.ledRingFinal} />
           <div className={styles.finalContent}>
-            <span className={styles.heroBadge}>MÉTODO LP</span>
+            <span className={styles.heroBadge}>PLANO PERFORMANCE · MÉTODO LP</span>
             <h2 className={styles.finalTitle}>
               Agora começa sua jornada de crescimento com<br />
               <span className={styles.green}>previsibilidade e processo.</span>
