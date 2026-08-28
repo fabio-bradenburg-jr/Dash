@@ -256,7 +256,7 @@ export default function Integracao2Page() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>ESCOPO</span>
             <h2 className={styles.sectionTitle}>O que está incluído no seu plano</h2>
-            <p className={styles.sectionSub}>Os 8 entregáveis do pacote Performance, exatamente como descritos no contrato.</p>
+            <p className={styles.sectionSub}>Os 8 entregáveis do pacote Performance.</p>
           </div>
           <div className={styles.deliverGrid}>
             {DELIVERABLES.map((d) => (
