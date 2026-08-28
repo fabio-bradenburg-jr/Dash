@@ -378,17 +378,12 @@
   font-size: clamp(0.82rem, 1.4vw, 0.95rem); font-weight: 600;
   color: rgba(241,241,241,0.38);
 }
-.journeyDetail {
-  font-size: clamp(0.7rem, 1.1vw, 0.8rem); font-weight: 500; line-height: 1.45;
-  color: rgba(241,241,241,0.34);
-}
-.journeyStepCurrent .journeyDetail { color: rgba(38,194,129,0.75); }
 .journeyStepCurrent .journeyLabel { color: #f1f1f1; }
 .journeyStepDone .journeyLabel { color: rgba(241,241,241,0.32); }
 .journeyYouAreHere { font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #26c281; text-transform: uppercase; }
 
-/* ── 5 P's (Método LP) ───────────────────────────────────────── */
-.fivePs { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
+/* ── 4 P's (Método LP) ───────────────────────────────────────── */
+.psGrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
 .pCard {
   background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06);
   border-radius: 14px; padding: clamp(14px, 2.5vh, 22px) clamp(12px, 2vw, 18px);
@@ -562,14 +557,13 @@
   display: flex; flex-direction: column; gap: 8px; transition: all .2s;
 }
 .deliverCard:hover { border-color: rgba(38,194,129,0.18); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.3); }
-.deliverHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.deliverHead { display: flex; align-items: center; gap: 8px; }
 .deliverIcon {
   width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
   background: rgba(38,194,129,0.1); border: 1px solid rgba(38,194,129,0.18);
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; color: #26c281;
 }
-.deliverCode { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: rgba(38,194,129,0.5); font-family: 'Manrope', sans-serif; }
 .deliverTitle { font-size: clamp(0.78rem, 1.25vw, 0.9rem); font-weight: 700; margin: 0; font-family: 'Manrope', sans-serif; }
 .deliverDesc { font-size: clamp(0.68rem, 1.05vw, 0.78rem); line-height: 1.5; color: rgba(241,241,241,0.45); margin: 0; }
 
@@ -642,7 +636,7 @@
   .cadenceGrid { grid-template-columns: 1fr; }
   .scopeGrid { grid-template-columns: 1fr; }
   .dutyGrid { grid-template-columns: 1fr; }
-  .fivePs { grid-template-columns: repeat(3, 1fr); }
+  .psGrid { grid-template-columns: repeat(2, 1fr); }
   .qualGrid { grid-template-columns: 1fr 1fr; }
   .vendaGrid { grid-template-columns: 1fr; }
   .funnelWrap { grid-template-columns: 1fr; }
@@ -652,7 +646,7 @@
 }
 
 @media (max-width: 600px) {
-  .fivePs { grid-template-columns: 1fr 1fr; }
+  .psGrid { grid-template-columns: 1fr 1fr; }
   .deliverGrid { grid-template-columns: 1fr; }
   .qualGrid { grid-template-columns: 1fr; }
   .heroTitle { font-size: 2.2rem; }
@@ -662,7 +656,7 @@
 }
 
 @media (max-width: 420px) {
-  .fivePs { grid-template-columns: 1fr; }
+  .psGrid { grid-template-columns: 1fr; }
   .deliverGrid { grid-template-columns: 1fr; }
   .section { padding: 40px 20%; }
 }
