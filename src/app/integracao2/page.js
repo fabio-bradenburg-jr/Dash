@@ -10,7 +10,7 @@ import styles from './page.module.css'
 
 const JOURNEY_STEPS = [
   { label: 'Apresentação da proposta',                 done: true },
-  { label: 'Assinatura do contrato e 1ª mensalidade',  detail: 'A primeira mensalidade é paga na assinatura',                          done: true },
+  { label: 'Assinatura do contrato e 1ª mensalidade',  done: true },
   { label: 'Reunião de integração',                    current: true },
   { label: 'Entrega de acessos e materiais' },
   { label: 'Ativação da 1ª campanha de leads' },
@@ -227,7 +227,6 @@ export default function Integracao2Page() {
                 <div className={styles.journeyLabel}>
                   {step.current && <span className={styles.journeyYouAreHere}>Você está aqui</span>}
                   <span>{step.label}</span>
-                  {step.detail && <span className={styles.journeyDetail}>{step.detail}</span>}
                 </div>
               </div>
             ))}

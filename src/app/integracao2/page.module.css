@@ -378,11 +378,6 @@
   font-size: clamp(0.82rem, 1.4vw, 0.95rem); font-weight: 600;
   color: rgba(241,241,241,0.38);
 }
-.journeyDetail {
-  font-size: clamp(0.7rem, 1.1vw, 0.8rem); font-weight: 500; line-height: 1.45;
-  color: rgba(241,241,241,0.34);
-}
-.journeyStepCurrent .journeyDetail { color: rgba(38,194,129,0.75); }
 .journeyStepCurrent .journeyLabel { color: #f1f1f1; }
 .journeyStepDone .journeyLabel { color: rgba(241,241,241,0.32); }
 .journeyYouAreHere { font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #26c281; text-transform: uppercase; }
