@@ -9,8 +9,8 @@ import styles from './page.module.css'
    ───────────────────────────────────────────────────────────── */
 
 const JOURNEY_STEPS = [
-  { label: 'Apresentação da proposta',                 done: true },
-  { label: 'Assinatura do contrato e 1ª mensalidade',  done: true },
+  { label: 'Apresentação',                             done: true },
+  { label: 'Assinatura do contrato',                   done: true },
   { label: 'Reunião de integração',                    current: true },
   { label: 'Entrega de acessos e materiais' },
   { label: 'Ativação da 1ª campanha de leads' },
@@ -48,9 +48,6 @@ const CLIENT_COSTS = [
   'Investimento em mídia',
   'Licenças e assinaturas de software',
   'Domínio e hospedagem',
-  'Serviços de terceiros',
-  'Bancos de imagens',
-  'Deslocamentos e captação externa',
 ]
 
 const METHOD_STEPS = [
@@ -73,7 +70,7 @@ const CADENCE = [
   },
   {
     icon: 'bxl-whatsapp', tag: 'DIA A DIA', title: 'Canal de atendimento',
-    items: ['WhatsApp ou canal acordado', 'Dias úteis, em horário comercial', 'Fora do período: no próximo atendimento'],
+    items: ['WhatsApp ou canal acordado', 'Dias úteis, em horário comercial'],
   },
 ]
 
@@ -145,7 +142,7 @@ export default function Integracao2Page() {
 
           {/* Left: text */}
           <div className={styles.heroContent}>
-            <span className={styles.heroBadge}>PLANO PERFORMANCE · MÉTODO LP</span>
+            <span className={styles.heroBadge}>PROJETO PERFORMANCE · MÉTODO LP</span>
             <h1 className={styles.heroTitle}>Integração<br /><span className={styles.green}>Método LP</span></h1>
             <p className={styles.heroSub}>A partir daqui, aceleramos seu crescimento.</p>
             <button className={styles.ctaBtn} onClick={() => scrollTo('como-funciona')}>
@@ -215,7 +212,7 @@ export default function Integracao2Page() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>JORNADA</span>
             <h2 className={styles.sectionTitle}>Como funciona a partir de agora</h2>
-            <p className={styles.sectionSub}>O caminho da assinatura até os anúncios no ar.</p>
+            <p className={styles.sectionSub}>Você está entrando em uma máquina comercial completa.</p>
           </div>
           <div className={styles.journey}>
             {JOURNEY_STEPS.map((step, i) => (
@@ -238,7 +235,7 @@ export default function Integracao2Page() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>MÉTODO</span>
             <h2 className={styles.sectionTitle}>Os 4 P&apos;s</h2>
-            <p className={styles.sectionSub}>Aplicados na extensão necessária aos entregáveis incluídos no plano Performance.</p>
+            <p className={styles.sectionSub}>Aplicados na extensão necessária aos entregáveis incluídos no projeto Performance.</p>
           </div>
           <div className={styles.psGrid}>
             {FOUR_PS.map((p, i) => (
@@ -255,8 +252,7 @@ export default function Integracao2Page() {
         <section id="entregaveis" className={`${styles.section} ${styles.sectionWide}`}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>ESCOPO</span>
-            <h2 className={styles.sectionTitle}>O que está incluído no seu plano</h2>
-            <p className={styles.sectionSub}>Os 8 entregáveis do pacote Performance.</p>
+            <h2 className={styles.sectionTitle}>O que está incluído no seu projeto</h2>
           </div>
           <div className={styles.deliverGrid}>
             {DELIVERABLES.map((d) => (
@@ -276,7 +272,7 @@ export default function Integracao2Page() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>TRANSPARÊNCIA</span>
             <h2 className={styles.sectionTitle}>O que não está incluído</h2>
-            <p className={styles.sectionSub}>Deixar isso claro agora evita ruído depois. Tudo aqui pode ser contratado por aditivo.</p>
+            <p className={styles.sectionSub}>Tudo aqui pode ser contratado por aditivo.</p>
           </div>
           <div className={styles.scopeWrap}>
             <div className={styles.scopeGrid}>
@@ -294,10 +290,6 @@ export default function Integracao2Page() {
               </div>
             </div>
           </div>
-          <p className={styles.noteBox}>
-            <i className="bx bx-info-circle" />
-            A mensalidade cobre exclusivamente os honorários da assessoria. Qualquer alteração de escopo é formalizada por escrito entre as partes.
-          </p>
         </section>
 
         {/* 6 — ETAPAS DO MÉTODO */}
@@ -351,7 +343,7 @@ export default function Integracao2Page() {
               <ul className={styles.greenList}>
                 <li>Criação e ativação das campanhas</li>
                 <li>Textos publicitários com foco em conversão</li>
-                <li>Peças em imagem e vídeo, a partir dos seus materiais</li>
+                <li>Peças em imagem e vídeo</li>
                 <li>Segmentação precisa</li>
                 <li>Gestão e otimização contínua</li>
               </ul>
@@ -411,10 +403,6 @@ export default function Integracao2Page() {
               </div>
             ))}
           </div>
-          <p className={styles.noteBox}>
-            <i className="bx bx-info-circle" />
-            Licenças e assinaturas do CRM ou de outras plataformas são contratadas e pagas diretamente pela sua empresa.
-          </p>
         </section>
 
         {/* 11 — SCRIPTS, TREINAMENTO E VENDAS */}
@@ -423,7 +411,6 @@ export default function Integracao2Page() {
             <div>
               <span className={styles.sectionTag}>P2</span>
               <h2 className={styles.sectionTitle}>Scripts de vendas e treinamento</h2>
-              <p className={styles.bodyText}>Entregamos o roteiro e capacitamos o time. A execução do atendimento e das vendas é da sua equipe.</p>
               <ul className={styles.greenList}>
                 <li>Abordagem e qualificação</li>
                 <li>Follow-up e contorno de objeções</li>
@@ -562,7 +549,7 @@ export default function Integracao2Page() {
           <div className={styles.finalGlow} />
           <div className={styles.ledRingFinal} />
           <div className={styles.finalContent}>
-            <span className={styles.heroBadge}>PLANO PERFORMANCE · MÉTODO LP</span>
+            <span className={styles.heroBadge}>PROJETO PERFORMANCE · MÉTODO LP</span>
             <h2 className={styles.finalTitle}>
               Agora começa sua jornada de crescimento com<br />
               <span className={styles.green}>previsibilidade e processo.</span>
