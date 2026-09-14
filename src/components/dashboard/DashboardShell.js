@@ -7661,7 +7661,13 @@ export default function DashboardShell({
 
   const handleArchiveClient = async (clientId, archive) => {
     if (!canEditClientRecord(clientId)) return
-    setClients((current) => current.map((c) => c.id === clientId ? { ...c, isArchived: archive } : c))
+    // Arquivar desliga o alerta de saldo no servidor: reflete isso aqui também,
+    // senão `clients` ficaria com a flag antiga.
+    setClients((current) => current.map((c) => (
+      c.id === clientId
+        ? { ...c, isArchived: archive, balanceAlertsEnabled: archive ? false : c.balanceAlertsEnabled }
+        : c
+    )))
     try {
       await fetch(`/api/clients/${clientId}/archive`, {
         method: 'PATCH',

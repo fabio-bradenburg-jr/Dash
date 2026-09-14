@@ -40,15 +40,39 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ cl
     const body = await request.json()
     const isArchived = Boolean(body?.is_archived)
 
+    const updates: Record<string, unknown> = { is_archived: isArchived }
+
+    // Arquivar é o gesto que o time usa ao encerrar o contrato, então desliga
+    // junto o alerta de saldo no WhatsApp — sem depender de lembrar do botão na
+    // aba Saldos. Desarquivar não religa: reativar é decisão explícita, senão um
+    // cliente silenciado de propósito voltaria a notificar ao ser desarquivado.
+    if (isArchived) {
+      const { data: client, error: fetchError } = await adminSupabase
+        .from('workspace_clients')
+        .select('payload')
+        .eq('id', clientId)
+        .eq('workspace_id', workspaceId)
+        .maybeSingle()
+
+      if (fetchError) throw fetchError
+      if (!client) return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
+
+      updates.payload = { ...(client.payload || {}), balanceAlertsEnabled: false }
+    }
+
     const { error } = await adminSupabase
       .from('workspace_clients')
-      .update({ is_archived: isArchived })
+      .update(updates)
       .eq('id', clientId)
       .eq('workspace_id', workspaceId)
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, is_archived: isArchived })
+    return NextResponse.json({
+      success: true,
+      is_archived: isArchived,
+      balanceAlertsEnabled: isArchived ? false : undefined,
+    })
   } catch (error) {
     console.error('[PATCH /api/clients/[clientId]/archive]', error)
     return NextResponse.json({ error: 'Erro ao arquivar cliente.' }, { status: 500 })
