@@ -94,6 +94,45 @@ function resolvePaymentAlert(accountStatus: number, clientName: string, adAccoun
   return null
 }
 
+// Status (payload.status) que indicam cliente fora da operacao. O cadastro usa
+// 'Ativo' | 'Onboarding' | 'Pausado' | 'Risco' | 'Churn', mas bases antigas e a
+// tela de plataforma gravam outras grafias — todas entram aqui para que o alerta
+// pare assim que o cliente sai da carteira.
+const INACTIVE_CLIENT_STATUSES = new Set([
+  'churn',
+  'churned',
+  'churn total',
+  'cancelado',
+  'cancelada',
+  'cancelled',
+  'canceled',
+  'encerrado',
+  'encerrada',
+  'inativo',
+  'inativa',
+  'inactive',
+  'offboarding',
+  'pausado',
+  'pausada',
+  'paused',
+])
+
+// Retorna o motivo pelo qual o cliente não deve receber alerta, ou '' se ele for
+// elegível. Cliente arquivado também para de alertar mesmo que o status siga
+// 'Ativo' — arquivar é o gesto que o time usa ao encerrar o contrato.
+function resolveIneligibilityReason(client: any): string {
+  if (client?.is_archived === true) return 'archived'
+
+  const payload = client?.payload || {}
+  if (payload.balanceAlertsEnabled === false) return 'alerts_disabled'
+  if (!payload.metaAdAccountId) return 'no_ad_account'
+
+  const status = String(payload.status || '').trim().toLowerCase()
+  if (INACTIVE_CLIENT_STATUSES.has(status)) return 'inactive_status'
+
+  return ''
+}
+
 async function wasAlertedRecently(
   adminSupabase: any,
   workspaceId: string,
@@ -173,6 +212,7 @@ export async function GET(request: Request) {
   if (wsError) return NextResponse.json({ error: wsError.message }, { status: 500 })
 
   const alerts: any[] = []
+  const skipped: Record<string, number> = {}
 
   for (const workspace of workspaces || []) {
     const token = await getMetaTokenForWorkspace(adminSupabase, workspace.id)
@@ -181,13 +221,16 @@ export async function GET(request: Request) {
     // Get all active clients with a Meta ad account
     const { data: clients } = await adminSupabase
       .from('workspace_clients')
-      .select('id, name, payload')
+      .select('id, name, payload, is_archived')
       .eq('workspace_id', workspace.id)
 
     const eligibleClients = (clients || []).filter((c: any) => {
-      const status = String(c.payload?.status || '').toLowerCase()
-      const alertsEnabled = c.payload?.balanceAlertsEnabled !== false // default true
-      return c.payload?.metaAdAccountId && status !== 'churn' && status !== 'pausado' && alertsEnabled
+      const reason = resolveIneligibilityReason(c)
+      if (reason) {
+        skipped[reason] = (skipped[reason] || 0) + 1
+        return false
+      }
+      return true
     })
 
     for (const client of eligibleClients) {
@@ -277,5 +320,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ alerts, count: alerts.length, checkedAt: new Date().toISOString() })
+  return NextResponse.json({ alerts, count: alerts.length, skipped, checkedAt: new Date().toISOString() })
 }

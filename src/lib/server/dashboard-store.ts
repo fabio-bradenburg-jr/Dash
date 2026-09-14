@@ -817,6 +817,44 @@ function normalizeClientRecord(client: LooseRecord): ClientRecord {
   }
 }
 
+// `balanceAlertsEnabled` só é gravada pelo endpoint dedicado
+// (/api/clients/[clientId]/balance-alert, usado pela aba Saldos). O estado do
+// dashboard pode trazer um valor defasado — uma aba aberta antes do toggle, por
+// exemplo — e regravar o payload devolveria o alerta que o time desligou. Por
+// isso o valor já persistido sempre vence no save do workspace.
+async function loadStoredBalanceAlertFlags(
+  adminSupabase: any,
+  workspaceId: string,
+  clientIds: string[]
+): Promise<Map<string, boolean>> {
+  const flags = new Map<string, boolean>()
+  if (clientIds.length === 0) return flags
+
+  const { data, error } = await adminSupabase
+    .from('workspace_clients')
+    .select('id, balanceAlertsEnabled:payload->balanceAlertsEnabled')
+    .eq('workspace_id', workspaceId)
+    .in('id', clientIds)
+
+  if (error) {
+    console.error('[dashboard-store] não foi possível ler balanceAlertsEnabled:', error)
+    return flags
+  }
+
+  for (const row of (data || []) as LooseRecord[]) {
+    if (typeof row.balanceAlertsEnabled === 'boolean') {
+      flags.set(String(row.id), row.balanceAlertsEnabled)
+    }
+  }
+
+  return flags
+}
+
+function withPreservedBalanceAlerts(client: LooseRecord, storedFlags: Map<string, boolean>) {
+  const stored = storedFlags.get(String(client.id))
+  return stored === undefined ? client.balanceAlertsEnabled !== false : stored
+}
+
 function normalizeGlobalIntegrations(
   globalIntegrations: Partial<DashboardIntegrations> | LooseRecord | null | undefined
 ): DashboardIntegrations {
@@ -1293,6 +1331,12 @@ export async function saveDashboardState(
       : submittedClients
 
     if (clientsToUpsert.length > 0) {
+      const storedBalanceAlertFlags = await loadStoredBalanceAlertFlags(
+        adminSupabase,
+        accessContext.workspaceId,
+        clientsToUpsert.map((client) => client.id)
+      )
+
       const { error: upsertError } = await adminSupabase
         .from('workspace_clients')
         .upsert(
@@ -1302,6 +1346,7 @@ export async function saveDashboardState(
             name: client.name,
             payload: {
               ...client,
+              balanceAlertsEnabled: withPreservedBalanceAlerts(client, storedBalanceAlertFlags),
               integrations: {
                 ...client.integrations,
                 ...submittedGlobalIntegrations,
@@ -1449,6 +1494,12 @@ export async function saveDashboardState(
   const editableOperationCards = submittedOperationCards.filter((card) => editableIds.has(card.clientId))
 
   if (editableClients.length > 0) {
+    const storedBalanceAlertFlags = await loadStoredBalanceAlertFlags(
+      adminSupabase,
+      accessContext.workspaceId,
+      editableClients.map((client) => client.id)
+    )
+
     const { error: upsertError } = await adminSupabase
       .from('workspace_clients')
       .upsert(
@@ -1458,6 +1509,7 @@ export async function saveDashboardState(
           name: client.name,
           payload: {
             ...client,
+            balanceAlertsEnabled: withPreservedBalanceAlerts(client, storedBalanceAlertFlags),
             integrations: {
               ...client.integrations,
               ...submittedGlobalIntegrations,

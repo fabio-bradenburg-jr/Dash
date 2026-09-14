@@ -4742,10 +4742,22 @@ export default function DashboardShell({
     () => dashboardEligibleClients.filter((client) => Boolean(client.metaAdAccountId)).length,
     [dashboardEligibleClients]
   )
+  // `clients` é a fonte da verdade da flag de notificação: as linhas de saldo são
+  // recarregadas da Meta e não devem carregar um valor defasado do último fetch.
+  const balanceAlertsByClientId = useMemo(() => {
+    const map = new Map()
+    clients.forEach((client) => map.set(client.id, client.balanceAlertsEnabled !== false))
+    return map
+  }, [clients])
   const filteredAdAccountBalanceRows = useMemo(() => {
     const query = adAccountBalanceSearch.trim().toLowerCase()
 
-    return adAccountBalanceRows.filter((row) => {
+    return adAccountBalanceRows.map((row) => ({
+      ...row,
+      balanceAlertsEnabled: balanceAlertsByClientId.has(row.clientId)
+        ? balanceAlertsByClientId.get(row.clientId)
+        : row.balanceAlertsEnabled !== false,
+    })).filter((row) => {
       const matchesSearch = !query || [row.clientName, row.accountName, row.accountId, row.cardLabel, row.billingTypeLabel]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query))
@@ -4776,7 +4788,7 @@ export default function DashboardShell({
 
       return matchesSearch && matchesBilling && matchesCard && matchesBalance && matchesDebt
     })
-  }, [adAccountBalanceRows, adAccountBalanceSearch, adAccountBalanceBillingFilter, adAccountBalanceCardFilter, adAccountBalanceValueFilter, adAccountBalanceDebtFilter])
+  }, [adAccountBalanceRows, balanceAlertsByClientId, adAccountBalanceSearch, adAccountBalanceBillingFilter, adAccountBalanceCardFilter, adAccountBalanceValueFilter, adAccountBalanceDebtFilter])
   const adAccountBalanceSummary = useMemo(() => {
     const configuredRows = adAccountBalanceRows.filter((row) => row.accountId)
     const prepaidRows = configuredRows.filter((row) => row.billingType === 'prepaid')
@@ -7658,6 +7670,37 @@ export default function DashboardShell({
       })
     } catch (err) {
       console.error('Erro ao arquivar cliente', err)
+    }
+  }
+
+  // Liga/desliga o alerta de saldo (WhatsApp) de um cliente. A flag mora no
+  // payload do cliente, então precisa ser atualizada também em `clients`: é ele
+  // que o save do workspace regrava no Supabase, e sem isso o próximo save
+  // devolveria o valor antigo e o alerta voltaria a disparar.
+  const handleToggleBalanceAlerts = async (clientId, nextEnabled) => {
+    if (!clientId) return
+    if (!canEditClientRecord(clientId)) {
+      setAdAccountBalanceError('Você não tem permissão para alterar as notificações deste cliente.')
+      return
+    }
+
+    setAdAccountBalanceError('')
+    setClients((current) => current.map((c) => (c.id === clientId ? { ...c, balanceAlertsEnabled: nextEnabled } : c)))
+
+    try {
+      const response = await fetch(`/api/clients/${clientId}/balance-alert`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: nextEnabled }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível salvar a notificação de saldo.')
+      }
+    } catch (error) {
+      setClients((current) => current.map((c) => (c.id === clientId ? { ...c, balanceAlertsEnabled: !nextEnabled } : c)))
+      setAdAccountBalanceError(error.message || 'Não foi possível salvar a notificação de saldo.')
     }
   }
 
@@ -10612,6 +10655,22 @@ export default function DashboardShell({
     activeTab,
   ])
 
+  // Chave estável com só o que a consulta de saldo precisa: alternar a notificação
+  // muda `clients`, e sem isso cada clique dispararia um refetch de todas as contas.
+  const adAccountBalanceClientsKey = useMemo(
+    () => JSON.stringify(
+      clients
+        .filter((client) => !client.isArchived)
+        .map((client) => ({
+          id: client.id,
+          name: client.name,
+          logoUrl: client.logoUrl,
+          metaAdAccountId: client.metaAdAccountId,
+        }))
+    ),
+    [clients]
+  )
+
   useEffect(() => {
     if (!hasLoadedPreferences || activeTab !== 'saldos') return
 
@@ -10628,15 +10687,7 @@ export default function DashboardShell({
             'Content-Type': 'application/json',
             ...metaRequestHeaders,
           },
-          body: JSON.stringify({
-            clients: clients.filter((client) => !client.isArchived).map((client) => ({
-              id: client.id,
-              name: client.name,
-              logoUrl: client.logoUrl,
-              metaAdAccountId: client.metaAdAccountId,
-              balanceAlertsEnabled: client.balanceAlertsEnabled !== false,
-            })),
-          }),
+          body: JSON.stringify({ clients: JSON.parse(adAccountBalanceClientsKey) }),
         })
         const data = await response.json().catch(() => ({}))
 
@@ -10664,7 +10715,7 @@ export default function DashboardShell({
     return () => {
       cancelled = true
     }
-  }, [hasLoadedPreferences, activeTab, clients, metaRequestHeaders, adAccountBalanceRefreshNonce])
+  }, [hasLoadedPreferences, activeTab, adAccountBalanceClientsKey, metaRequestHeaders, adAccountBalanceRefreshNonce])
 
   useEffect(() => {
     if (!hasLoadedPreferences || activeTab !== 'anuncios') return
@@ -15911,6 +15962,7 @@ export default function DashboardShell({
     setAdAccountBalanceDebtFilter,
     adAccountBalanceUpdatedAt,
     setAdAccountBalanceRefreshNonce,
+    handleToggleBalanceAlerts,
     // Shared module-level helpers/constants used by extracted tabs
     formatWeekRangeLabel,
     getMetaBreakdownResultValue,

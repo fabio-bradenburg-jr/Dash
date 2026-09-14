@@ -29,7 +29,6 @@ export default function SaldosTab() {
     adAccountBalanceError,
     adAccountBalanceLoading,
     adAccountBalanceRows,
-    setAdAccountBalanceRows,
     adAccountBalanceSearch,
     setAdAccountBalanceSearch,
     adAccountBalanceBillingFilter,
@@ -42,6 +41,7 @@ export default function SaldosTab() {
     setAdAccountBalanceDebtFilter,
     adAccountBalanceUpdatedAt,
     setAdAccountBalanceRefreshNonce,
+    handleToggleBalanceAlerts,
   } = useDashboard()
 
   const summaryDefs = [
@@ -218,23 +218,7 @@ export default function SaldosTab() {
                     {row.accountId && (
                       <button
                         type="button"
-                        onClick={async () => {
-                          const nextEnabled = row.balanceAlertsEnabled === false
-                          setAdAccountBalanceRows((prev) =>
-                            prev.map((r) => r.clientId === row.clientId ? { ...r, balanceAlertsEnabled: nextEnabled } : r)
-                          )
-                          try {
-                            await fetch(`/api/clients/${row.clientId}/balance-alert`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ enabled: nextEnabled }),
-                            })
-                          } catch {
-                            setAdAccountBalanceRows((prev) =>
-                              prev.map((r) => r.clientId === row.clientId ? { ...r, balanceAlertsEnabled: row.balanceAlertsEnabled } : r)
-                            )
-                          }
-                        }}
+                        onClick={() => handleToggleBalanceAlerts(row.clientId, !notifOn)}
                         title={notifOn ? 'Notificações WhatsApp ativas — clique para desativar' : 'Notificações WhatsApp desativadas — clique para ativar'}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 11px', borderRadius: 99, fontFamily: 'Inter', fontSize: '0.66rem', fontWeight: 700, cursor: 'pointer', border: `1px solid ${notifOn ? hexA(C.ok, 0.4) : C.border}`, background: notifOn ? hexA(C.ok, 0.13) : 'transparent', color: notifOn ? C.ok : C.text3 }}
                       >
